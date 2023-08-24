@@ -1,0 +1,129 @@
+\documentclass[18pt]{article}
+\usepackage [left=25.4mm,top=25.4mm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+%\usepackage{apacite}
+\usepackage{url}
+\usepackage{subfig}
+\usepackage{csvsimple}
+\usepackage{float}
+\usepackage{lineno}
+\usepackage[affil-it]{authblk}
+\usepackage{setspace}
+\usepackage{makecell} 
+\usepackage{tikz}
+\usepackage{csvsimple}
+\usepackage{newfloat}
+\usepackage{xcolor}
+\usepackage{tabularx,booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{array}
+
+\newcommand\hcancel[2][black]{\setbox0=\hbox{$#2$}%
+	\rlap{\raisebox{.45\ht0}{\textcolor{#1}{\rule{\wd0}{1pt}}}}#2} 
+
+\newcommand{\indep}{\perp \!\!\! \perp}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\begin{document}
+	\begin{titlepage}
+		\title{HGNN Algorithm}
+		\author[1]{Jarred M. Kvamme}
+		\author[2]{Boyu Zhang}
+		\author[1,3]{Audrey Q. Fu}
+		\affil[1]{Department of Bioinformatics and Computational Biology - University of Idaho}
+		\affil[2]{Department of Computer Science - University of Idaho}
+		\affil[3]{Department of Mathematics and Statistical Science - University of Idaho}
+		\maketitle
+	\end{titlepage}
+	
+	\section{Preprocessing}
+	\begin{itemize}
+		\item[\bf 1.1]{Given the node feature matrix $\bf X \in \mathbb{R}^{N \times p}$ compute the adjacency matrix $\bf A_0$ corresponding to the input graph $\mathcal{G}_0(E, N)$ of $E$ edges and $N$ vertices by one of the following methods
+		\begin{itemize}
+			\item[1.1.1]{\textbf{Correlations method:} Compute the correlation matrix $\bf R\in\mathbb{R}^{N\times N}$ from $\bf X$. Convert the correlation matrix $\bf R$ into an adjacency matrix $\bf A_0$ such that 
+				\[ a_{i,j} = \begin{cases}
+					1 & \text{if} \ \  r_{i,j} > \rho \\
+					0 & \text{else}
+				\end{cases} \] 
+			where $\rho$ represents a minimum correlation threshold to consider an edge $e_{i,j}$ between nodes $i$ and $j$.}
+			
+			\item[1.1.2]{\textbf{K-neighbors method:} {\bf For all nodes $i$} - compute the distance from node $i$ to all other nodes. Link node $i$ to the first $k$ nodes with smallest distances}
+			
+			\item[1.1.3]{\textbf{Precision method:}}
+		\end{itemize} }
+	
+	\item[\bf 1.2]{Construct the consensus hierarchy $\mathcal{H}_0$ of the input graph $\mathcal{G}_0$..
+		
+		\begin{itemize}
+			\item[1.2.1]{\textbf{For $i \in \{1:n\}$ repetitions:} Using the Louvain Algorithm, construct a hierarchy $\mathcal{H}^{(i)}$ which represents a stochastic partition of $\mathcal{G}_0$ into a set of $\ell-1$ sub-graphs such that $\mathcal{H}^{(i)} = \{\mathcal{S}_0, \mathcal{S}_1^{(i)}, \mathcal{S}^{(i)},\cdots , \mathcal{S}_{\ell-1}^{(i)}\}$ where $\ell = |\mathcal{H}^{(i)}|$ is the number of layers in the hierarchy with $\mathcal{S}_0 = \mathcal{G}_0$ representing the starting (or bottom) layer.}
+			
+			\item[1.2.2] {Let $M = \{m_i\}_{i=1}^n$ contain the number of super layers in all $n$ hierarchies such that $m_i = |\mathcal{H}^{(i)}| - 1$. Next let $\zeta \in \{1, 2, ... (\ell - 1)\}$ denote the set of possible numbers of super-layers for a given hierarchy. Compute the number of super-layers for the consensus hierarchy $\mathcal{H}_0$ via popular vote:
+			\[ m_0 = \argmax_{\zeta} f(M) \ \ \text{where} \ \ f(M) = \frac{\sum_{i \in \zeta} I(M = i)}{n} \]
+			}
+			
+			\item[1.2.3] {Compute the number of communities in each super-layer of the consensus hierarchy $\mathcal{H}_0$ by agglomerating the community assignments for a given layer across all $n$ computed hierarchies from {\bf step 1.2.1}. \\ 
+				\textbf{For all $j \in \{1:m_0\}$:} agglomerate the community assignments for all $i$ subgraphs $\mathcal{S}_j$ corresponding to the $j^{th}$ super layer in all $i$ hierarchies.}
+		\end{itemize} } 
+	
+	\item[\bf 1.3]{For each layer $\mathcal{S}_j$ in $\mathcal{H}_0$, gather all edges connecting $\mathcal{S}_{j}$ to its adjacent super-layer $\mathcal{S}_{j+1}$. These are the \textbf{``down-to-up"} edges. Let $p_i^{(j)}$ represent the collection of edges which maps the path from node $\eta_i$ in the bottom layer to the $j^{th}$ super-layer. Then this path represents the message-passing channel by which the $i^{th}$ node $N_i$ can communicate with $k^{th}$ super-level node $N_k$ in the $j^{th}$ super layer}
+	
+	\item[\bf 1.4]{For each super }
+	
+	
+	\item[\bf 1.5]{Set up HC-GNN model}
+	\item[\bf 1.6]{Generate within-level community detection autoencoders}
+		
+	\end{itemize}
+	
+	\section{Training}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+\end{document}
