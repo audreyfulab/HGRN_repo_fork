@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  24 AUG 2023 13:45
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  6 SEP 2023 23:32
 entering extended mode
 **./HGRN_pseudocode.tex
 (HGRN_pseudocode.tex
@@ -6,8 +6,8 @@ LaTeX2e <2020-02-02> patch level 5
 L3 programming layer <2020-05-11>
 ("C:\Program Files\MiKTeX 2.9\tex/latex/base\article.cls"
 Document Class: article 2019/12/20 v1.4l Standard LaTeX document class
-("C:\Program Files\MiKTeX 2.9\tex/latex/base\size10.clo"
-File: size10.clo 2019/12/20 v1.4l Standard LaTeX file (size option)
+("C:\Program Files\MiKTeX 2.9\tex/latex/base\size12.clo"
+File: size12.clo 2019/12/20 v1.4l Standard LaTeX file (size option)
 )
 \c@part=\count167
 \c@section=\count168
@@ -648,58 +648,118 @@ Package: multicol 2019/12/09 v1.8y multicolumn formatting (FMi)
 \colbreak@box=\box108
 \mc@col@check@num=\count317
 )
+("C:\Program Files\MiKTeX 2.9\tex/latex/koma-script\tocbasic.sty"
+Package: tocbasic 2022/07/04 v3.37 KOMA-Script package (handling toc-files)
+
+("C:\Program Files\MiKTeX 2.9\tex/latex/koma-script\scrbase.sty"
+Package: scrbase 2022/07/04 v3.37 KOMA-Script package (KOMA-Script-independent 
+basics and keyval usage)
+
+("C:\Program Files\MiKTeX 2.9\tex/latex/koma-script\scrlfile.sty"
+Package: scrlfile 2022/07/04 v3.37 KOMA-Script package (file load hooks)
+
+("C:\Program Files\MiKTeX 2.9\tex/latex/koma-script\scrlfile-patcholdlatex.sty"
+Package: scrlfile-patcholdlatex 2022/07/04 v3.37 KOMA-Script package (patching 
+old LaTeX kernels)
+("C:\Program Files\MiKTeX 2.9\tex/latex/koma-script\scrlogo.sty"
+Package: scrlogo 2022/07/04 v3.37 KOMA-Script package (logo)
+))
+("C:\Program Files\MiKTeX 2.9\tex/latex/l3packages/xparse\xparse.sty"
+("C:\Program Files\MiKTeX 2.9\tex/latex/l3kernel\expl3.sty"
+Package: expl3 2020-05-11 L3 programming layer (loader) 
+
 ("C:\Program Files\MiKTeX 2.9\tex/latex/l3backend\l3backend-pdfmode.def"
 File: l3backend-pdfmode.def 2020-05-05 L3 backend support: PDF mode
 \l__kernel_color_stack_int=\count318
 \l__pdf_internal_box=\box109
+))
+Package: xparse 2020-03-06 L3 Experimental document command parser
+\l__xparse_current_arg_int=\count319
+\g__xparse_grabber_int=\count320
+\l__xparse_m_args_int=\count321
+\l__xparse_v_nesting_int=\count322
+))
+Skipping: [2021/05/01] Usage of raw or classic option list on input line 252.
+Applying: [0000/00/00] Usage of raw or classic option list on input line 368.
 )
+\scr@dte@tocline@numberwidth=\skip65
+\scr@dte@tocline@numbox=\box110
+)
+("C:\Program Files\MiKTeX 2.9\tex/latex/sectsty\sectsty.sty"
+Package: sectsty 2002/02/25 v2.0.2 Commands to change all sectional heading sty
+les
 
-LaTeX Warning: Unused global option(s):
-    [18pt].
 
-(HGRN_pseudocode.aux)
+LaTeX Warning: Command \underbar  has changed.
+               Check if current package is valid.
+
+
+LaTeX Warning: Command \underline  has changed.
+               Check if current package is valid.
+
+)
+Package newfloat Info: New float `suppfigure' with options `name={Supplementary
+ Figure},fileext=lsf,listname={List of Supplementary Figures}' on input line 34
+.
+\c@suppfigure=\count323
+Package newfloat Info: float type `suppfigure'=4 on input line 34.
+\c@lsfdepth=\count324
+Package tocbasic Info: babel extension for `lsf' omitted
+(tocbasic)             because of missing \bbl@set@language on input line 34.
+Package newfloat Info: New float `supptable' with options `name={Supplementary 
+Table},fileext=lsf,listname={List of Supplementary Tables}' on input line 35.
+\c@supptable=\count325
+Package newfloat Info: float type `supptable'=8 on input line 35.
+Package newfloat Info: \newfloat@ext@lsf is already defined on input line 35.
+Package newfloat Info: New float `suppmat' with options `name={Supplementary Ma
+terial},fileext=lsf,listname={List of Supplementary Material}' on input line 36
+.
+\c@suppmat=\count326
+Package newfloat Info: float type `suppmat'=16 on input line 36.
+Package newfloat Info: \newfloat@ext@lsf is already defined on input line 36.
+ (HGRN_pseudocode.aux)
 \openout1 = `HGRN_pseudocode.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 31.
-LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 50.
+LaTeX Font Info:    ... okay on input line 50.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
 * driver: pdftex
-* paper: <default>
+* paper: a4paper
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(72.26997pt, 449.87984pt, 92.14519pt)
-* v-part:(T,H,B)=(72.26997pt, 627.30264pt, 95.39737pt)
-* \paperwidth=614.295pt
-* \paperheight=794.96999pt
-* \textwidth=449.87984pt
-* \textheight=627.30264pt
+* h-part:(L,W,R)=(72.26997pt, 435.61081pt, 89.62709pt)
+* v-part:(T,H,B)=(72.26997pt, 671.37022pt, 101.40665pt)
+* \paperwidth=597.50787pt
+* \paperheight=845.04684pt
+* \textwidth=435.61081pt
+* \textheight=671.37022pt
 * \oddsidemargin=-0.00002pt
 * \evensidemargin=-0.00002pt
 * \topmargin=-37.00002pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=10.0pt
+* \topskip=12.0pt
 * \footskip=30.0pt
-* \marginparwidth=65.0pt
-* \marginparsep=11.0pt
+* \marginparwidth=35.0pt
+* \marginparsep=10.0pt
 * \columnsep=10.0pt
-* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \skip\footins=10.8pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -711,16 +771,16 @@ LaTeX Font Info:    ... okay on input line 31.
 
 ("C:\Program Files\MiKTeX 2.9\tex/context/base/mkii\supp-pdf.mkii"
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count319
+\scratchcounter=\count327
 \scratchdimen=\dimen304
-\scratchbox=\box110
-\nofMPsegments=\count320
-\nofMParguments=\count321
+\scratchbox=\box111
+\nofMPsegments=\count328
+\nofMParguments=\count329
 \everyMPshowfont=\toks40
-\MPscratchCnt=\count322
+\MPscratchCnt=\count330
 \MPscratchDim=\dimen305
-\MPnumerator=\count323
-\makeMPintoPDFobject=\count324
+\MPnumerator=\count331
+\makeMPintoPDFobject=\count332
 \everyMPtoPDFconversion=\toks41
 ) ("C:\Program Files\MiKTeX 2.9\tex/latex/epstopdf-pkg\epstopdf-base.sty"
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
@@ -734,46 +794,118 @@ Package caption Info: End \AtBeginDocument code.
 
 ABD: EveryShipout initializing macros
 Package newfloat Info: `float' package detected.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 40.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 59.
 
 
 ("C:\Program Files\MiKTeX 2.9\tex/latex/amsfonts\umsa.fd"
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 40.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 59.
 
 
 ("C:\Program Files\MiKTeX 2.9\tex/latex/amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
-{C:/Users/Bruin/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}] [1] (HGRN_p
-seudocode.aux) ) 
+{C:/Users/Bruin/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}] (HGRN_pseud
+ocode.toc)
+\tf@toc=\write5
+\openout5 = `HGRN_pseudocode.toc'.
+
+
+(HGRN_pseudocode.lot)
+\tf@lot=\write6
+\openout6 = `HGRN_pseudocode.lot'.
+
+ (HGRN_pseudocode.lof)
+\tf@lof=\write7
+\openout7 = `HGRN_pseudocode.lof'.
+
+ [1]
+Underfull \hbox (badness 10000) in paragraph at lines 97--104
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 97--104
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 107--108
+
+ []
+
+[2] [3] [4]
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
+
+ []
+
+[5]
+Underfull \hbox (badness 10000) in paragraph at lines 210--212
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 219--221
+
+ []
+
+[6]
+Overfull \hbox (27.9805pt too wide) in paragraph at lines 248--298
+ [][] 
+ []
+
+[7]
+
+pdfTeX warning: pdflatex.exe (file C:/Users/Bruin/Documents/GitHub/HGRN_repo/HG
+RN_pseudocode/HGRN_schematic.pdf): PDF inclusion: found PDF version <1.7>, but 
+at most version <1.5> allowed
+<C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.pdf, 
+id=47, 963.6pt x 542.025pt>
+File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.
+pdf Graphic file (type pdf)
+<use C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.p
+df>
+Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudoc
+ode/HGRN_schematic.pdf  used on input line 304.
+(pdftex.def)             Requested size: 481.79883pt x 271.01183pt.
+
+Overfull \hbox (46.18802pt too wide) in paragraph at lines 304--305
+[][] 
+ []
+
+[8 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.pd
+f>] (HGRN_pseudocode.bbl) [9
+
+] (HGRN_pseudocode.aux) ) 
 Here is how much of TeX's memory you used:
- 16224 strings out of 480811
- 309783 string characters out of 2905907
- 539346 words of memory out of 3000000
- 31917 multiletter control sequences out of 15000+200000
- 541212 words of font info for 58 fonts, out of 3000000 for 9000
+ 17482 strings out of 480811
+ 337658 string characters out of 2905907
+ 614191 words of memory out of 3000000
+ 33138 multiletter control sequences out of 15000+200000
+ 542455 words of font info for 62 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 58i,9n,60p,801b,293s stack positions out of 5000i,500n,10000p,200000b,50000s
-<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmb
-x10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
-<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx7.pfb><C:/Progr
-am Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Program Files
-/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTeX 
-2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fonts
-/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pu
-blic/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsf
-onts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/c
-mr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr8.pfb><C
-:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Progra
-m Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files/M
-iKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Program Files/MiKTeX 2.
-9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on HGRN_pseudocode.pdf (2 pages, 163556 bytes).
+ 62i,14n,60p,801b,376s stack positions out of 5000i,500n,10000p,200000b,50000s
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfon
+ts/cm/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
+bx8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb>
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:/Prog
+ram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Program Files
+/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Program Files/MiKTeX 2
+.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/
+type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pub
+lic/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
+nts/cm/cmr6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr
+8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C
+:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy6.pfb><C:/Program
+ Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Program Files/Mi
+KTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Program Files/MiKTeX 2.9
+/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKTeX 2.9/fo
+nts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on HGRN_pseudocode.pdf (10 pages, 324932 bytes).
 PDF statistics:
- 72 PDF objects out of 1000 (max. 8388607)
+ 128 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 13 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 18 words of extra memory for PDF output out of 10000 (max. 10000000)
 

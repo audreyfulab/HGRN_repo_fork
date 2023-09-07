@@ -1,0 +1,46 @@
+This is BibTeX, Version 0.99d (MiKTeX 2.9.7420 64-bit)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: HGRN_pseudocode.aux
+The style file: unsrt.bst
+Database file #1: pseudocode_bibs.bib
+You've used 2 entries,
+            1791 wiz_defined-function locations,
+            458 strings with 3879 characters,
+and the built_in function-call counts, 419 in all, are:
+= -- 31
+> -- 25
+< -- 0
++ -- 9
+- -- 7
+* -- 28
+:= -- 80
+add.period$ -- 6
+call.type$ -- 2
+change.case$ -- 2
+chr.to.int$ -- 0
+cite$ -- 2
+duplicate$ -- 17
+empty$ -- 37
+format.name$ -- 7
+if$ -- 86
+int.to.chr$ -- 0
+int.to.str$ -- 2
+missing$ -- 2
+newline$ -- 13
+num.names$ -- 2
+pop$ -- 4
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 7
+stack$ -- 0
+substring$ -- 18
+swap$ -- 2
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 3
+width$ -- 3
+write$ -- 23

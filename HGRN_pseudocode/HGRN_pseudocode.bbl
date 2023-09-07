@@ -1,0 +1,14 @@
+\begin{thebibliography}{1}
+
+\bibitem{kipf2016variational}
+Thomas~N Kipf and Max Welling.
+\newblock Variational graph auto-encoders.
+\newblock {\em arXiv preprint arXiv:1611.07308}, 2016.
+
+\bibitem{zhou2023community}
+Xinchuang Zhou, Lingtao Su, Xiangju Li, Zhongying Zhao, and Chao Li.
+\newblock Community detection based on unsupervised attributed network
+  embedding.
+\newblock {\em Expert Systems with Applications}, 213:118937, 2023.
+
+\end{thebibliography}
