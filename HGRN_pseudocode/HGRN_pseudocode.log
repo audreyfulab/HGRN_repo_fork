@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  6 SEP 2023 23:32
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  7 SEP 2023 00:17
 entering extended mode
 **./HGRN_pseudocode.tex
 (HGRN_pseudocode.tex
@@ -837,56 +837,61 @@ Underfull \hbox (badness 10000) in paragraph at lines 107--108
  []
 
 [2] [3] [4]
-Underfull \hbox (badness 10000) in paragraph at lines 207--208
+Underfull \hbox (badness 10000) in paragraph at lines 191--194
 
  []
 
 [5]
-Underfull \hbox (badness 10000) in paragraph at lines 210--212
+Underfull \hbox (badness 10000) in paragraph at lines 224--225
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 219--221
+Underfull \hbox (badness 10000) in paragraph at lines 227--229
 
  []
 
 [6]
-Overfull \hbox (27.9805pt too wide) in paragraph at lines 248--298
- [][] 
+Underfull \hbox (badness 10000) in paragraph at lines 236--238
+
  []
 
 [7]
+Overfull \hbox (27.9805pt too wide) in paragraph at lines 265--315
+ [][] 
+ []
+
+[8]
 
 pdfTeX warning: pdflatex.exe (file C:/Users/Bruin/Documents/GitHub/HGRN_repo/HG
 RN_pseudocode/HGRN_schematic.pdf): PDF inclusion: found PDF version <1.7>, but 
 at most version <1.5> allowed
 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.pdf, 
-id=47, 963.6pt x 542.025pt>
+id=50, 963.6pt x 542.025pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.
 pdf Graphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.p
 df>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudoc
-ode/HGRN_schematic.pdf  used on input line 304.
+ode/HGRN_schematic.pdf  used on input line 321.
 (pdftex.def)             Requested size: 481.79883pt x 271.01183pt.
 
-Overfull \hbox (46.18802pt too wide) in paragraph at lines 304--305
+Overfull \hbox (46.18802pt too wide) in paragraph at lines 321--322
 [][] 
  []
 
-[8 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.pd
-f>] (HGRN_pseudocode.bbl) [9
+[9 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic.pd
+f>] (HGRN_pseudocode.bbl) [10
 
 ] (HGRN_pseudocode.aux) ) 
 Here is how much of TeX's memory you used:
- 17482 strings out of 480811
- 337658 string characters out of 2905907
- 614191 words of memory out of 3000000
- 33138 multiletter control sequences out of 15000+200000
+ 17483 strings out of 480811
+ 337675 string characters out of 2905907
+ 614192 words of memory out of 3000000
+ 33139 multiletter control sequences out of 15000+200000
  542455 words of font info for 62 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,14n,60p,801b,376s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 62i,14n,60p,801b,395s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfon
 ts/cm/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
 bx8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb>
@@ -903,9 +908,9 @@ nts/cm/cmr6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr
 KTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Program Files/MiKTeX 2.9
 /fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKTeX 2.9/fo
 nts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on HGRN_pseudocode.pdf (10 pages, 324932 bytes).
+Output written on HGRN_pseudocode.pdf (11 pages, 327848 bytes).
 PDF statistics:
- 128 PDF objects out of 1000 (max. 8388607)
+ 131 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  18 words of extra memory for PDF output out of 10000 (max. 10000000)
 

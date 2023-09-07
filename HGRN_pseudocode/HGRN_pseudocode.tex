@@ -109,21 +109,21 @@
 			 \forceindent \textbf{Encoder Module}: \\
 			 \forceindent \textbf{For $m$ encoder layers}: 
 			\begin{enumerate}
-				\item[]{compute encoder hidden layers \\
+				\item[]{\textbf{compute encoder hidden layers} \\
 					We compute the first encoder layer as fully connected linear layer with activation function $\alpha_{1}$ (such as the $ReLU$, Leaky $ReLU$, Identity functions, etc). The matrix ${\bf U}_1$ represents a set of trainable weights in the linear layer. 
 					\[{\bf E}_1 = \alpha_1\left({\bf X{\bf U}_1}\right)\]
 					\\
 					In general we compute the remaining $m-1^{th}$ hidden layers of the encoder as:
 					\[{\bf E}_{m-1} = \alpha_{m-1}\left({\bf E}_{m-2}{\bf U}_{m-1}\right)\]}
 				
-				\item[]{compute embedding dimension \\
+				\item[]{\textbf{compute embedding dimension} \\
 					We now compute the embedding or bottleneck dimension as a fully connected linear layer (represented by the trainable weights ${\bf U}_m$) which takes the last ($m^{th}$) hidden layer of the encoder as input. Again the function $\alpha_{m}$ represents the layer activation function.  
 					\[ {\bf Z} = \alpha_{m}\left(E_{m}  {\bf U}_m\right) \]} 
 			\end{enumerate}
 			\forceindent \textbf{Decoder Module}: \\
 			\forceindent \textbf{For $m$ decoder layers}:
 			\begin{enumerate}
-				\item[]{compute decoder hidden layers.\\
+				\item[]{\textbf{compute decoder hidden layers.}\\
 					We compute the first decoder layer as a fully connected linear layer which takes as input the embeddings $\bf Z$ and outputs the hidden decoder layer $D_1$ 
 					\[ {\bf D_1} = \alpha_1({\bf ZO}_1)\]
 					\\
@@ -131,7 +131,7 @@
 					
 					\[{\bf D}_{m-1} = \alpha_{m-1}\left({\bf D}_{m-2}{\bf O}_{m-1}\right)\]}
 				
-				\item[]{Reconstruct the input from the final decoder layer. Here we reconstruct the input feature matrix $\hat{\bf X}$ from the final hidden layer of the decoder $D_m$. The matrix ${\bf O_m}$ represents a trainable fully connected linear layer and $\phi$ represents the output activation function. 
+				\item[]{\textbf{Reconstruct the input from the final decoder} layer. Here we reconstruct the input feature matrix $\hat{\bf X}$ from the final hidden layer of the decoder $D_m$. The matrix ${\bf O_m}$ represents a trainable fully connected linear layer and $\phi$ represents the output activation function. 
 					\[\hat{\bf X} = \phi\left(D_m\cdot O_m\right)\]
 					\\
 					We also reconstruct the adjacency matrix $\hat{\bf A}$ from the embedding dimmension $\bf Z$ in the following way
@@ -143,7 +143,7 @@
 			\forceindent \textbf{Linear Classifier Layers}: \\
 			\forceindent \textbf{For $\ell+1$ hierarchical layers}:
 			\begin{enumerate}
-				\item[]{compute community assignment probabilities 
+				\item[]{\textbf{$\bullet$ Compute community assignment probabilities} 
 					\\
 					In this step we construct $\ell$ single layer linear classifiers. Each linear classifier will output the community assignments of nodes (or super-nodes) from the previous layer. The first linear classifier uses the embeddings to classify $N$ nodes to $k_1$ communities given by
 					\[{\bf H}_{1} = \text{SoftMax}\left({\bf Z}{\bf W}_{1}\right) \]
@@ -155,7 +155,7 @@
 						h_{k_{\ell - 1}, 1} & \cdots & h_{k_{\ell -1}, k_\ell} 
 					\end{bmatrix}\]}
 				
-				\item[]{Normalize the community assignment probabilities
+				\item[]{\textbf{$\bullet$ Normalize the community assignment probabilities}
 					\\
 					In this step the community assignment probabilities are normalized according to the method of %\cite{zhou et al} 
 					\[ \hat{h}_{i,k_\ell} = \frac{\sqrt{k_{\ell-1}} \sqrt{h_{i, k_\ell}}}{\sum_i \sum_{k_\ell} \sqrt{h_{i, k_\ell}}}\]
@@ -168,35 +168,52 @@
 				}
 				
 				
-				\item[]{compute community assignment matrix \\ 
+				\item[]{\textbf{$\bullet$ compute community assignment matrix} \\ 
 					The community assignment matrix is a boolean matrix which represents the community assignment of a node or super node such that the value 1 at the $k_\ell^{th}$ position if a node is assigned to community $k_\ell$ and zero otherwise. This matrix can be obtained by taking the argument maximum over the rows of community assignment probabilities ${\bf H}_\ell$ for the $\ell^{th}$ hierarchical layer.  
 					\[{\bf C}_{\ell} = g({\bf \hat{H}}_{\ell}) \ \text{where} \ \  g(\hat{h}_{i,k_\ell}) = 
 					\begin{cases} 1 & \ \text{if} \ \ \hat{h}_{i,k_\ell} = \argmax_{k_\ell} \hat{\bf h}_i \\ %\in \mathcal{C}^{\ell}_{k_\ell} \\
 						0 & \text{else} %\ v_i \not\in \mathcal{C}^{\ell}_{k_\ell}
 					\end{cases}\]}
 				
-				\item[]{compute assigned labels \[ \mathbb{S}_\ell = \argmax_{k_\ell} {\bf C}_{\ell}\]}
+				\item[]{\textbf{$\bullet$ Compute community labels} \\
+					For each hierarchical layer $\ell$ we may compute the community assignment labels. Consider a two-layer hierarchy, the community assignment labels $\mathbb{S}_1$ from assigning $N$ nodes in the bottom layer to $k_1 < N$ nodes in the super layer is given as 
+					\[\mathbb{S}_1 = \argmax_{k_1} {\bf C}_1 \]
+					
+					more generally, the labels from assigning nodes in layer $\ell - 1$ to layer $\ell$ is given as:
+					
+					\[ \mathbb{S}_\ell = \argmax_{k_\ell} {\bf C}_{\ell}\]}
 				
-				\item[]{compute input to the next classifier:  \\
-					Before we can proceed to the linear classifier corresponding to the $\ell$ hierarchical layer we need to compute its input as the centroids of the previous layer a linear. Thus the matrix ${\bf \tilde X}_\ell$ represents the centroids computed from assigning nodes in previous layer $\ell - 1$ to the communities represented by nodes in the current layer $\ell$. Thus the input of the second classifier is computed as the centroids of the first classifier defined by the linear combination of the embeddings and the community assignment matrix: 
+				\item[]{\textbf{$\bullet$ Compute input to the next classifier:}  \\
+					Before we can proceed to the linear classifier corresponding to the $\ell^{th}$ hierarchical layer we need to compute its input as the centroids of the previous layer a linear. Thus the matrix ${\bf \tilde X}_\ell$ represents the centroids computed from assigning nodes in previous layer $\ell - 1$ to the communities represented by nodes in the current layer $\ell$. Thus the input of the second classifier is computed as the centroids of the first classifier defined by the linear combination of the embeddings and the community assignment matrix: 
 					\[ {\bf \tilde X}_{(1)} = g_1\left({\bf Z}^T {\bf C}_{1}\right)^T\] 
 					\\
 					In general this can be written as: 
 					\[ {\bf \tilde X}^{(\ell)} = g_\ell\left({\bf Z}_{\ell}^T {\bf C}_{\ell}\right)^T\] 
 					\\
-					Here the function $g$ represents the layer activation function. We may also compute the adjacency matrix corresponding to the sub-graph formed by assigning the $N$ original nodes to $k_1$ communities. We consider two approaches for computing ${\tilde{\bf A}^{\ell}}$. 
+					Here the function $g$ represents the layer activation function. \\
 					
-					The first approach employs the dot-product decoder described by \cite{kipf2016variational,zhou2023community}. For the first linear classifier the reconstructed adjacency matrix is encoded from the embeddings
-					\[ {\bf \tilde A}^{(1)} = \sigma \left( {\bf Z}\bf{Z}^T \right) \]}
-					For layers $\ell > 1$ the reconstructed adjacency matrix is the dot product decoding of the centroids such that:
-					\[\tilde{\bf A}^{(\ell)} = \sigma\left({\bf \tilde X}^{(\ell)}\cdot [{\bf \tilde X}^{(\ell)}]^T\right) \]
-					
-					The second approach follows from the Louvain algorithm \cite{} in which the edge between two community nodes is represented as the sum of the edge weights between the nodes in each community. Consider a two-layer hierarchical network where first layer contains $N$ nodes $V = \{v_i\}_{i=1}^N$ and the super-layer is represented by a graph with $M<N$ super-nodes $\mathcal{\bf S} = \{\mathcal{S}_1, \mathcal{S}_2, \cdots \mathcal{S}_M\}$. Each super-node $\mathcal{S}_i$ is the community representation of the nodes the bottom layer such that $\mathcal{S}_i = \{v_j\}_{j=1}^{N_i}$ where $N_i$ represents the number of nodes in the $i^{th}$ community.    
-					
-					
-					\[\mathcal{E}_{ij} = (\mathcal{S}_i, \mathcal{S}_j) = \sum_{v_i \in \mathcal{S}_i, v_j \in \mathcal{S}_j}  a_{ij} \]
-					
-					where $\mathcal{E}_{ij}$ represents the edge between super nodes $\mathcal{S}_i$ and $\mathcal{S}_j$ and $a_{ij} = 1$ if there is an edge between bottom level nodes $e_{ij}= (v_i,v_j)$ where 
+					We may also compute the adjacency matrix corresponding to the sub-graph formed by assigning the $N$ original nodes to $k_1$ communities. We consider two approaches for computing ${\tilde{\bf A}^{\ell}}$. 
+					\begin{itemize}
+						\item[$\rightarrow$]{The first approach employs the \textbf{dot-product decoder} described by \cite{kipf2016variational,zhou2023community}. For the first linear classifier the reconstructed adjacency matrix is decoded from the embeddings:
+							\[ {\bf \tilde A}^{(1)} = \sigma \left( {\bf Z}\bf{Z}^T \right) \]
+						For layers $\ell > 1$ the reconstructed adjacency matrix is the dot product decoding of the centroids such that:
+						\[\tilde{\bf A}^{(\ell)} = \sigma\left({\bf \tilde X}^{(\ell)}\cdot [{\bf \tilde X}^{(\ell)}]^T\right) \]
+						}
+						\item[]
+						\item[]
+						\item[$\rightarrow$]{
+						For the second method first consider a two-layer hierarchical network where the first layer contains $N$ nodes $V = \{v_i\}_{i=1}^N$ and the super-layer is represented by a graph with $k_1<N$ super-nodes $\mathcal{\bf S} = \{\mathcal{S}_1, \mathcal{S}_2, \cdots \mathcal{S}_{k_1}\}$. Each super-node $\mathcal{S}_i$ is the community representation of the nodes the bottom layer such that $\mathcal{S}_i = \{v_j\}_{j=1}^{N_i}$ where $N_i$ represents the number of nodes in the $i^{th}$ community. The second approach follows from the Louvain algorithm \cite{blondel2008fast} in which an edge between two super-level nodes is represented as the sum of the edge weights for the edges connecting the nodes in community $i$ to community $j$. 
+						
+						\[\mathcal{E}_{ij} = (\mathcal{S}_i, \mathcal{S}_j) = \sum_{v_i \in \mathcal{S}_i, v_j \in \mathcal{S}_j}  (v_i, v_j) \]
+						
+						where $\mathcal{E}_{ij}$ represents the edge between super nodes $\mathcal{S}_i$ and $\mathcal{S}_j$ and the sum is over all pairs of connecting them. Given the community matrix $\bf C$ which maps the assignments of the nodes in $\bf V$ to the communities in $\mathcal{\bf S}$ the adjacency for any super level graph can be easily computed as 
+						
+						\[ \tilde{\bf A} = {\bf C^T}{\bf A}{\bf C} \] 
+						
+						Where $\bf A$ represents the bottom level graph with $N$ nodes and $\tilde{\bf A}$ represents the super-level graph with $M$ nodes.
+						}
+					\end{itemize}
+					}
 					
 			\end{enumerate}
 			

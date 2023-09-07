@@ -11,4 +11,10 @@ Xinchuang Zhou, Lingtao Su, Xiangju Li, Zhongying Zhao, and Chao Li.
   embedding.
 \newblock {\em Expert Systems with Applications}, 213:118937, 2023.
 
+\bibitem{blondel2008fast}
+Vincent~D Blondel, Jean-Loup Guillaume, Renaud Lambiotte, and Etienne Lefebvre.
+\newblock Fast unfolding of communities in large networks.
+\newblock {\em Journal of statistical mechanics: theory and experiment},
+  2008(10):P10008, 2008.
+
 \end{thebibliography}

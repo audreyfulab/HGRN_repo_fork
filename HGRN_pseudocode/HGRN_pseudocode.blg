@@ -3,44 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: HGRN_pseudocode.aux
 The style file: unsrt.bst
 Database file #1: pseudocode_bibs.bib
-You've used 2 entries,
+You've used 3 entries,
             1791 wiz_defined-function locations,
-            458 strings with 3879 characters,
-and the built_in function-call counts, 419 in all, are:
-= -- 31
-> -- 25
+            466 strings with 4109 characters,
+and the built_in function-call counts, 663 in all, are:
+= -- 50
+> -- 39
 < -- 0
-+ -- 9
-- -- 7
-* -- 28
-:= -- 80
-add.period$ -- 6
-call.type$ -- 2
-change.case$ -- 2
++ -- 14
+- -- 11
+* -- 50
+:= -- 121
+add.period$ -- 9
+call.type$ -- 3
+change.case$ -- 3
 chr.to.int$ -- 0
-cite$ -- 2
-duplicate$ -- 17
-empty$ -- 37
-format.name$ -- 7
-if$ -- 86
+cite$ -- 3
+duplicate$ -- 26
+empty$ -- 60
+format.name$ -- 11
+if$ -- 138
 int.to.chr$ -- 0
-int.to.str$ -- 2
-missing$ -- 2
-newline$ -- 13
-num.names$ -- 2
-pop$ -- 4
+int.to.str$ -- 3
+missing$ -- 3
+newline$ -- 18
+num.names$ -- 3
+pop$ -- 5
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 7
+skip$ -- 10
 stack$ -- 0
-substring$ -- 18
-swap$ -- 2
+substring$ -- 36
+swap$ -- 3
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 3
-width$ -- 3
-write$ -- 23
+while$ -- 5
+width$ -- 4
+write$ -- 34
