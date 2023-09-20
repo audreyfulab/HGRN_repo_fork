@@ -1,5 +1,10 @@
 \begin{thebibliography}{1}
 
+\bibitem{zhang2019graph}
+Si~Zhang, Hanghang Tong, Jiejun Xu, and Ross Maciejewski.
+\newblock Graph convolutional networks: a comprehensive review.
+\newblock {\em Computational Social Networks}, 6(1):1--23, 2019.
+
 \bibitem{kipf2016variational}
 Thomas~N Kipf and Max Welling.
 \newblock Variational graph auto-encoders.

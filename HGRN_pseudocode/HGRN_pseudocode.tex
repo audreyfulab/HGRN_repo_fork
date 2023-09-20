@@ -110,22 +110,23 @@
 			 \forceindent \textbf{For $m$ encoder layers}: 
 			\begin{enumerate}
 				\item[]{\textbf{compute encoder hidden layers} \\
-					We compute the first encoder layer as fully connected linear layer with activation function $\alpha_{1}$ (such as the $ReLU$, Leaky $ReLU$, Identity functions, etc). The matrix ${\bf U}_1$ represents a set of trainable weights in the linear layer. 
-					\[{\bf E}_1 = \alpha_1\left({\bf X{\bf U}_1}\right)\]
+					We adopt the classical Graph Attention Network (GAT) mechanism under an autoencoder framework \cite{}. The GCN mechanism consists of three main components: (i) collect neighbor features, (ii) aggregate neight messages, (iii) pass the aggregated message to a dense trainable layer. Under this mechanism the first hidden layer is defined as: 
+					\[{\bf E}_1 = ReLU\left({\bf D}^{\frac{\text{-1}}{2}} ({\bf A}+{\bf I}) {\bf D}^{\frac{\text{-1}}{2}}{\bf X}{\bf U}_{1}\right) = GCN({\bf X},{\bf A})\]
 					\\
-					In general we compute the remaining $m-1^{th}$ hidden layers of the encoder as:
-					\[{\bf E}_{m-1} = \alpha_{m-1}\left({\bf E}_{m-2}{\bf U}_{m-1}\right)\]}
+					where $\mathit{\bf L} = {\bf D}^{\frac{\text{-1}}{2}} ({\bf A}+{\bf I}) {\bf D}^{\frac{\text{-1}}{2}}$ is the normalized Laplacian representation of ${\bf A}$. The normalized laplacian is used to avoid exploding aggregation functions by normalizing node information across the graph \cite{zhang2019graph}. In general we compute the $m-1^{th}$ hidden layer of the encoder as:
+					\[{\bf E}_{m-1} = ReLU\left(\mathit{\bf L}{\bf E}_{m-2}{\bf U}_{m-1}\right)\]
+					}
 				
 				\item[]{\textbf{compute embedding dimension} \\
-					We now compute the embedding or bottleneck dimension as a fully connected linear layer (represented by the trainable weights ${\bf U}_m$) which takes the last ($m^{th}$) hidden layer of the encoder as input. Again the function $\alpha_{m}$ represents the layer activation function.  
-					\[ {\bf Z} = \alpha_{m}\left(E_{m}  {\bf U}_m\right) \]} 
+					The embedding or bottleneck dimension follows the same format above a fully connected GCN layer which takes the last ($m^{th}$) hidden layer of the encoder as input.
+					\[ {\bf Z} = ReLU\left(\mathit{\bf L}{\bf E}_{m-1}{\bf U}_{m}\right) = GCN({\bf E}_{m-1}, {\bf A}) \]} 
 			\end{enumerate}
 			\forceindent \textbf{Decoder Module}: \\
 			\forceindent \textbf{For $m$ decoder layers}:
 			\begin{enumerate}
 				\item[]{\textbf{compute decoder hidden layers.}\\
-					We compute the first decoder layer as a fully connected linear layer which takes as input the embeddings $\bf Z$ and outputs the hidden decoder layer $D_1$ 
-					\[ {\bf D_1} = \alpha_1({\bf ZO}_1)\]
+					The decoder layers also consist of GCN layers to reconstruct the data using the original adjacency matrix ${\bf A}$ as structural input. The first decoder layer takes the embedding matrix $\bf Z$ as the feature information for the nodes and outputs the hidden decoder layer $D_1$ 
+					\[ {\bf D_1} = GCN({\bf Z}, {\bf A})\]
 					\\
 					where $\alpha_m$ is the activation function of $m^{th}$ layer (such as the $ReLU$, Leaky $ReLU$, Identity functions, etc). $\bf Z$ is the embeddings from the bottleneck dimension and ${\bf O}_m$ is a trainable fully connected linear layer. In general, the remaining $m-1$ layers are as follows:
 					
@@ -134,13 +135,13 @@
 				\item[]{\textbf{Reconstruct the input from the final decoder} layer. Here we reconstruct the input feature matrix $\hat{\bf X}$ from the final hidden layer of the decoder $D_m$. The matrix ${\bf O_m}$ represents a trainable fully connected linear layer and $\phi$ represents the output activation function. 
 					\[\hat{\bf X} = \phi\left(D_m\cdot O_m\right)\]
 					\\
-					We also reconstruct the adjacency matrix $\hat{\bf A}$ from the embedding dimmension $\bf Z$ in the following way
+					We also reconstruct the adjacency matrix $\hat{\bf A}$ from the embedding dimension $\bf Z$ using the \textbf{dot-product decoder} described by \cite{kipf2016variational,zhou2023community}
 					\[\hat{\bf A} = \sigma\left(Z\cdot Z^T\right) \]
-					Here the function $\sigma$ denotes the sigmoid (logistic) activation function to ensure that the weights of the adjacency matrix are on the zero to one scale: $\hat{\bf A} \in [0,1]^{N\times N}$
+					Here the function $\sigma$ denotes the sigmoid (logistic) activation function which assumes a normal distribution and transforms the weights of the adjacency matrix the zero-one scale: $\hat{\bf A} \in [0,1]^{N\times N}$
 				}
 					
 			\end{enumerate}
-			\forceindent \textbf{Linear Classifier Layers}: \\
+			\forceindent \textbf{Geometric Node Classification Layers}: \\
 			\forceindent \textbf{For $\ell+1$ hierarchical layers}:
 			\begin{enumerate}
 				\item[]{\textbf{$\bullet$ Compute community assignment probabilities} 
@@ -184,36 +185,25 @@
 					\[ \mathbb{S}_\ell = \argmax_{k_\ell} {\bf C}_{\ell}\]}
 				
 				\item[]{\textbf{$\bullet$ Compute input to the next classifier:}  \\
-					Before we can proceed to the linear classifier corresponding to the $\ell^{th}$ hierarchical layer we need to compute its input as the centroids of the previous layer a linear. Thus the matrix ${\bf \tilde X}_\ell$ represents the centroids computed from assigning nodes in previous layer $\ell - 1$ to the communities represented by nodes in the current layer $\ell$. Thus the input of the second classifier is computed as the centroids of the first classifier defined by the linear combination of the embeddings and the community assignment matrix: 
-					\[ {\bf \tilde X}_{(1)} = g_1\left({\bf Z}^T {\bf C}_{1}\right)^T\] 
+					Each linear classifier aims to classify the nodes in the previous layer to a subset of nodes which represent the communities of the current layer. For example, the first classifier classifies the $N$ original nodes to $k_1$ communities and takes as input the embeddings matrix from the auto-encoder. The second classifier which classifies $k_1$ communities to $k_2$ communities takes as input the centroids the $k_1$ communities in the previous layer which is computed by projecting the embeddings onto the community assignment matrix ${\bf C}_1$. These centroids are then activated to ensure regularity denoted by the activation function $g_1(\cdot)$:
+					\[ {\bf \tilde X}_{1} = g_1\left({\bf Z}^T {\bf C}_{1}\right)^T\] 
 					\\
-					In general this can be written as: 
-					\[ {\bf \tilde X}^{(\ell)} = g_\ell\left({\bf Z}_{\ell}^T {\bf C}_{\ell}\right)^T\] 
+					In general, for layers $\ell > 1$ in the hierarchy, the input is calculated from the linear combination of the centroids of the previous layer $\ell - 1$ and with the community assignemnt matrix of the current layer $\ell$ and activated by function $g_\ell(\cdot)$: 
+					\[ {\bf \tilde X}_{\ell} = g_\ell\left({\bf \tilde{X}}_{\ell-1}^T {\bf C}_{\ell}\right)^T\] 
 					\\
-					Here the function $g$ represents the layer activation function. \\
 					
-					We may also compute the adjacency matrix corresponding to the sub-graph formed by assigning the $N$ original nodes to $k_1$ communities. We consider two approaches for computing ${\tilde{\bf A}^{\ell}}$. 
-					\begin{itemize}
-						\item[$\rightarrow$]{The first approach employs the \textbf{dot-product decoder} described by \cite{kipf2016variational,zhou2023community}. For the first linear classifier the reconstructed adjacency matrix is decoded from the embeddings:
-							\[ {\bf \tilde A}^{(1)} = \sigma \left( {\bf Z}\bf{Z}^T \right) \]
-						For layers $\ell > 1$ the reconstructed adjacency matrix is the dot product decoding of the centroids such that:
-						\[\tilde{\bf A}^{(\ell)} = \sigma\left({\bf \tilde X}^{(\ell)}\cdot [{\bf \tilde X}^{(\ell)}]^T\right) \]
-						}
-						\item[]
-						\item[]
-						\item[$\rightarrow$]{
-						For the second method first consider a two-layer hierarchical network where the first layer contains $N$ nodes $V = \{v_i\}_{i=1}^N$ and the super-layer is represented by a graph with $k_1<N$ super-nodes $\mathcal{\bf S} = \{\mathcal{S}_1, \mathcal{S}_2, \cdots \mathcal{S}_{k_1}\}$. Each super-node $\mathcal{S}_i$ is the community representation of the nodes the bottom layer such that $\mathcal{S}_i = \{v_j\}_{j=1}^{N_i}$ where $N_i$ represents the number of nodes in the $i^{th}$ community. The second approach follows from the Louvain algorithm \cite{blondel2008fast} in which an edge between two super-level nodes is represented as the sum of the edge weights for the edges connecting the nodes in community $i$ to community $j$. 
+					Since we interested in the heirarchical representation of the original graph, we wish to  may also compute the adjacency matrix corresponding to the sub-graph formed by assigning the $N$ original nodes to $k_1$ communities represented by the adjacency matrix $\tilde{\bf A}_1$.\\
+				
+					For the second method first consider a two-layer hierarchical network where the first layer contains $N$ nodes $V = \{v_i\}_{i=1}^N$ and the super-layer is represented by a graph with $k_1<N$ super-nodes $\mathcal{\bf S} = \{\mathcal{S}_1, \mathcal{S}_2, \cdots \mathcal{S}_{k_1}\}$. Each super-node $\mathcal{S}_i$ is the community representation of the nodes the bottom layer such that $\mathcal{S}_i = \{v_j\}_{j=1}^{N_i}$ where $N_i$ represents the number of nodes in the $i^{th}$ community. The second approach follows from the Louvain algorithm \cite{blondel2008fast} in which an edge between two super-level nodes is represented as the sum of the edge weights for the edges connecting the nodes in community $i$ to community $j$. 
 						
-						\[\mathcal{E}_{ij} = (\mathcal{S}_i, \mathcal{S}_j) = \sum_{v_i \in \mathcal{S}_i, v_j \in \mathcal{S}_j}  (v_i, v_j) \]
+					\[\mathcal{E}_{ij} = (\mathcal{S}_i, \mathcal{S}_j) = \sum_{v_i \in \mathcal{S}_i, v_j \in \mathcal{S}_j}  (v_i, v_j) \]
 						
-						where $\mathcal{E}_{ij}$ represents the edge between super nodes $\mathcal{S}_i$ and $\mathcal{S}_j$ and the sum is over all pairs of connecting them. Given the community matrix $\bf C$ which maps the assignments of the nodes in $\bf V$ to the communities in $\mathcal{\bf S}$ the adjacency for any super level graph can be easily computed as 
+					where $\mathcal{E}_{ij}$ represents the edge between super nodes $\mathcal{S}_i$ and $\mathcal{S}_j$ and the sum is over all pairs of connecting them. Given the community matrix $\bf C$ which maps the assignments of the nodes in $\bf V$ to the communities in $\mathcal{\bf S}$ the adjacency for any super level graph can be easily computed as 
 						
-						\[ \tilde{\bf A} = {\bf C^T}{\bf A}{\bf C} \] 
+					\[ \tilde{\bf A} = {\bf C^T}{\bf A}{\bf C} \] 
 						
-						Where $\bf A$ represents the bottom level graph with $N$ nodes and $\tilde{\bf A}$ represents the super-level graph with $M$ nodes.
-						}
-					\end{itemize}
-					}
+					Where $\bf A$ represents the bottom level graph with $N$ nodes and $\tilde{\bf A}$ represents the super-level graph with $M$ nodes.
+				}
 					
 			\end{enumerate}
 			
@@ -223,20 +213,27 @@
 			\begin{enumerate}
 				\item[]{compute the loss function \\
 					
-					The total loss function consists of two primary components: The reconstruction loss $\mathcal{L}_R$ and the modularity $\mathcal{L}_M$
+					The total loss function will consist of two primary components: The reconstruction loss $\mathcal{L}_R$ and the modularity loss $\mathcal{L}_M$
 					\[\mathcal{L}_{\text{Total}} = \mathcal{L}_R - \gamma\mathcal{L}_M \]
 					where $\gamma$ denotes a tuning parameter for the modularity component. The primary objective of fitting is to maximize the modularity component while minimizing the reconstruction loss. \\
 					
-					The reconstruction loss is composed of two reconstruction losses. The first is the binary cross entropy (BCE) loss of the input adjacency and reconstructed adjacency matrix given by: 
+					The reconstruction loss is composed of two reconstruction components.
+					\[L_R = L_{R_A}+L_{R_X}\]
+					The first is the binary cross entropy (BCE) loss which compares the input adjacency $\bf A$ and the reconstructed adjacency matrix  $\hat{\bf A}$ of the bottom level of the hierarchy: 
 					\[L_{R_A} = \frac{1}{\sum_i\sum_j a_{ij}} \sum_{a_{ij}\in {\bf A}} -(a_{ij} \cdot\log(\hat{a}_{ij})+(1 - a_{ij})\cdot\log(1 - \hat{a}_{ij})) \]
-					Which aims to ensure that the reconstruction loss maintains the structure of the input graph. The second is the frobenius loss for the input node attribute matrix 
+					This component of the reconstruction loss aims to ensure that the graph autoencover maintains the structure of the original input graph. \\
+					
+					The second reconstruction component is the squared error loss of the input and reconstructed node attribute matrix:
 					\[L_{R_X} = ||{\bf X} - \hat{\bf X}||_F = \sum_i^N \sum_j^N \left(x_{ij} - \hat{x}_{ij}\right)^2 \]
-					which aims to ensure that the original node features can be recovered. 
+					which aims to ensure that the original node features can be recovered. \\
 					
-					\[L_M = \sum_{i = 1}^{\ell} \mathcal{L}_i =  \sum_{i=1}^\ell \frac{1}{4\mu_\ell}Tr\left(\hat{\bf P}_\ell {\bf B_\ell} \hat{\bf P}_\ell\right)\]
-					where\\
+					
+					The second component of the total loss function is the modularity loss. This component aims to maximize the modularity of the communities in each hierarchical layer. Therefore, this component is represent by the sum of the modularity of the $\ell$ communities in the hierarchy
+					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4\mu_\ell}Tr\left(\hat{\bf P}_\ell {\bf B_\ell} \hat{\bf P}_\ell\right)\]
+					where $\hat{\bf P}_\ell$ is the community assignment probability matrix, $\mu_{\ell}$ is the total number of edges in the graph for the $\ell^{th}$ hierarchical, $Tr(\cdot)$ denotes the trace function, and ${\bf B}_\ell$ is the modularity matrix defined as:
+					
 					\[{\bf B_\ell} = {\bf \tilde A}^{(\ell)}_{i,j} - \frac{d(v_i)\cdot d(v_j)}{2\mu_\ell}\]
-					
+					$d(\cdot)$ is a function which returns the degree of a node.  
 					\[\mu_\ell = \frac{1}{2}\sum_i^{k_\ell} \sum_j^{k_\ell} {\bf \tilde A}^{(\ell)}_{ij}\]
 					}
 			\end{enumerate}

@@ -42,12 +42,12 @@ parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
 args = parser.parse_args()
 
 
-args.connect = 'disc'
+args.connect = 'full'
 args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.05
+args.connect_prob = 0.01
 args.top_layer_nodes = 10
 args.subgraph_type = 'small world'
-args.subgraph_prob=0.05
+args.subgraph_prob=0.01
 args.nodes_per_super2=(10,20)
 args.nodes_per_super3=(5, 10)
 args.layers = 2
@@ -68,7 +68,7 @@ for j in range(0,40):
     predvec = []
     nodevec = []
     accvec = []
-    args.connect = ['disc','full'][1]
+    #args.connect = ['disc','full'][1]
     print(args, '\n')   
     pe, nodes = simulate_graph(args)
     nodes_per_graph.append(nodes)
@@ -120,6 +120,6 @@ for i in range(0, len(corrcuts)):
     ax1.set_ylabel('Average Node Degree')
     
 ax1.legend()
-fig.savefig('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/sim_result_scatter.pdf')
+fig.savefig('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/sim_result_scatter_full_0.01connectprob.pdf')
    
     

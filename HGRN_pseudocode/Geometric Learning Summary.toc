@@ -1,0 +1,10 @@
+\contentsline {section}{LIST OF TABLES}{1}%
+\contentsline {section}{LIST OF FIGURES}{1}%
+\contentsline {section}{\numberline {1}Geometric Deep Learning}{2}%
+\contentsline {subsection}{\numberline {1.1}Generic Graph Neural Networks (GNN)}{2}%
+\contentsline {subsection}{\numberline {1.2}Graph Convolutional Neural Network (GCN)}{2}%
+\contentsline {subsection}{\numberline {1.3}Graph Attention Neural Network (GAT)}{3}%
+\contentsline {section}{\numberline {2}Geometric Autoencoder Architectures}{3}%
+\contentsline {subsection}{\numberline {2.1}Graph AutoEncoder (GAE)}{3}%
+\contentsline {subsection}{\numberline {2.2}Graph Attention Autoencoder (GATE)}{4}%
+\contentsline {subsection}{\numberline {2.3}Community Detection Based on Unsupervised Attributed Network Embedding (CDBNE)}{6}%
