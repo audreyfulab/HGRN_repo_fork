@@ -1,0 +1,377 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage [left=25.4mm,top=25.4mm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+%\usepackage{apacite}
+\usepackage{url}
+\usepackage{subfig}
+\usepackage{csvsimple}
+\usepackage{float}
+\usepackage{lineno}
+\usepackage[affil-it]{authblk}
+\usepackage{setspace}
+\usepackage{makecell} 
+\usepackage{tikz}
+\usepackage{csvsimple}
+\usepackage{newfloat}
+\usepackage{xcolor}
+\usepackage{tabularx,booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{tocbasic}
+\usepackage{sectsty}
+
+\sectionfont{\fontsize{12}{15}\selectfont}
+\chapterfont{\fontsize{14}{15}\selectfont}
+\subsectionfont{\fontsize{10}{15}\selectfont}
+
+\newcommand\hcancel[2][black]{\setbox0=\hbox{$#2$}%
+	\rlap{\raisebox{.45\ht0}{\textcolor{#1}{\rule{\wd0}{1pt}}}}#2} 
+\newcommand{\forceindent}{\leavevmode{\parindent=2em\indent}}
+
+\DeclareFloatingEnvironment[name={Supplementary Figure},fileext=lsf,listname={List of Supplementary Figures}]{suppfigure}
+\DeclareFloatingEnvironment[name={Supplementary Table},fileext=lsf,listname={List of Supplementary Tables}]{supptable}
+\DeclareFloatingEnvironment[name={Supplementary Material},fileext=lsf,listname={List of Supplementary Material}]{suppmat}
+
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\indep}{\perp \!\!\! \perp}
+\renewcommand*\contentsname{TABLE OF CONTENTS}
+\renewcommand{\listfigurename}{LIST OF FIGURES}
+\renewcommand{\listtablename}{LIST OF TABLES}
+
+\renewcommand{\arraystretch}{1.5}
+\begin{document}
+	\begin{titlepage}
+		\title{HGRN Algorithm}
+		\author[1]{Jarred M. Kvamme}
+		\author[2]{Boyu Zhang}
+		\author[1,3]{Audrey Q. Fu}
+		\affil[1]{Department of Bioinformatics and Computational Biology - University of Idaho}
+		\affil[2]{Department of Computer Science - University of Idaho}
+		\affil[3]{Department of Mathematics and Statistical Science - University of Idaho}
+		\maketitle
+	\end{titlepage}
+	
+	
+	\newpage
+	\tableofcontents{}
+	\addcontentsline{toc}{section}{LIST OF TABLES}
+	\addcontentsline{toc}{section}{LIST OF FIGURES}
+	\listoftables
+	\listoffigures
+	\newpage
+	
+	
+	
+	
+	
+	\section{Preprocessing}
+	\begin{itemize}
+		\item[\bf 1.1]{\textbf{Graph Initialization}: Given an attributed network $\mathcal{G}_0(E,V,{\bf X})$ with attribute matrix ${\bf X} =\{x_1, x_2;...;x_N\} \in \mathbb{R}^{N \times p}$ where $\bf x_i$ is the $p$-length attribute vector of node $n_i$, $E = \{ (v_i, v_j)| 1<i, j<N, i\neq j\}$ edges, and $V = \{v_i\}_{i=1}^N$ nodes/vertices, estimate an initial graph of $\bf X$ represented by the adjacency matrix ${\bf A} \in \mathbb{R}^{N\times N}$ 
+		\begin{itemize}
+			\item[1.1.1]{\textbf{Correlations method:} Compute the correlation matrix ${\bf R}\in[0,1]^{N\times N}$ from $\bf X$. Convert the correlation matrix $\bf R$ into an adjacency matrix ${\bf A}_0$ such that 
+				\[ \hat{a}_{i,j} = \begin{cases}
+					1 & \text{if} \ \  r_{i,j} > \rho \\
+					0 & \text{else}
+				\end{cases} \] 
+			where $\rho$ represents a minimum correlation threshold to consider an edge $(v_i, v_j)$ between nodes $i$ and $j$.}
+			
+			\item[1.1.2]{\textbf{K-neighbors method:} }
+			
+			\item[1.1.3]{\textbf{Precision method:}}
+		\end{itemize} }
+	
+	\item[1.2]{\textbf{Estimate Hierarchical Structure}:} 
+		
+	\end{itemize}
+	
+	\section{Training}
+	\begin{itemize}
+	\item[\bf 2.1]{\textbf{Initialize HGRN Model} \\
+		Input: The model takes as input the attributed graph represented by the adjacency matrix and node attribute matrix $\{{\bf A}, {\bf X}\}$, respectively. \\
+		\\
+		Parameters: \textbf{Number of hierarchical layers} ($\ell$), \textbf{communities per layer} ($K =\{k_i\}_{i=1}^\ell$), \textbf{max training epochs} ($T$) \\
+		\\
+		Output: The output includes the reconstructed node attribute matrix $\hat{\bf X}$ and adjacency matrix $\hat{\bf A}$ as well as the node assignments the hierarchy \textbf{hierarchical graph} ($\mathcal{H} = \{\mathcal{G}_i\}_{i = 0}^\ell$
+	}
+
+	\item[\bf 2.2]{\textbf{For $T$ Epochs}:}
+		\begin{enumerate}
+			\item[2.2.1]{\textbf{Compute forward pass}: \\
+			
+			 \forceindent \textbf{Encoder Module}: \\
+			 \forceindent \textbf{For $m$ encoder layers}: 
+			\begin{enumerate}
+				\item[]{We adopt the graph autoencoder \textbf{GATE} proposed by \cite{salehi2019graph} which consists of graph attention based encoder and decoder models which reconstruct the original graph ${\bf A}$ and the node feature matrix $\bf{X}$}
+				\item[]{\textbf{compute encoder hidden layers} \\
+					The GAT mechanism applies additional trainable attention parameters ${\bf a}$ to the neighbors of each node to learn their relevance node-neighbors. For the GAT model, the relevance of node neighbors (i.e their attention weights) is computed via the following:
+					The attention from node $i$ to node $j$ is computed as 
+					\[ \theta_{ij} = \frac{\sigma\left(\exp\left({\bf a}_s^T\phi\left[{\bf W}h_i\right]+{\bf a}_v^T\phi\left[{\bf W}h_j \right]\right)\right)}
+					{\sum_{k\in \mathcal{N}(i)}\sigma\left(\exp\left({\bf a}_s^T\phi\left[{\bf W}h_i\right]+{\bf a}_v^T\phi\left[{\bf W}h_k \right]\right)\right)} \]
+					
+					By considering $H_0 = X$, the $m-1^{th}$ encoder layer generates node
+					representations in hidden layer $m-1$ as follows:
+					
+					\[ H_{m-1} = \sigma\left({\bf W}_m\cdot {\bf H}_{m-2}\right)\cdot {\bf \Theta}_{m-1}\] 
+					Where ${\bf \Theta}_{m-1}$ is the matrix of attention coefficients for layer $m-1$
+					}
+					
+					In linear form, the matrix of attention coefficients ${\bf \Theta}_{m-1}$ is computed as 
+					\[{\bf \Theta}_{m-1} = \text{Softmax}\left(\sigma\left({\bf M}_s^{m-1} + {\bf M}_v^{m-1}\right)\right) \]
+					\[{\bf M}_s^{m-1} = \]
+					\[{\bf M}_v^{m-1} = \]
+					
+				\item[]{\textbf{compute embedding dimension} \\
+					The embedding or bottleneck dimension follows the same format above a fully connected GCN layer which takes the last ($m^{th}$) hidden layer of the encoder as input.
+					\[ {\bf Z} = ReLU\left(\mathit{\bf L}{\bf E}_{m-1}{\bf U}_{m}\right) = GCN({\bf E}_{m-1}, {\bf A}) \]} 
+			\end{enumerate}
+			\forceindent \textbf{Decoder Module}: \\
+			\forceindent \textbf{For $m$ decoder layers}:
+			\begin{enumerate}
+				\item[]{\textbf{compute decoder hidden layers.}\\
+					The decoder layers also consist of GCN layers to reconstruct the data using the original adjacency matrix ${\bf A}$ as structural input. The first decoder layer takes the embedding matrix $\bf Z$ as the feature information for the nodes and outputs the hidden decoder layer $D_1$ 
+					\[ {\bf D_1} = GCN({\bf Z}, {\bf A})\]
+					\\
+					where $\alpha_m$ is the activation function of $m^{th}$ layer (such as the $ReLU$, Leaky $ReLU$, Identity functions, etc). $\bf Z$ is the embeddings from the bottleneck dimension and ${\bf O}_m$ is a trainable fully connected linear layer. In general, the remaining $m-1$ layers are as follows:
+					
+					\[{\bf D}_{m-1} = \alpha_{m-1}\left({\bf D}_{m-2}{\bf O}_{m-1}\right)\]}
+				
+				\item[]{\textbf{Reconstruct the input from the final decoder} layer. Here we reconstruct the input feature matrix $\hat{\bf X}$ from the final hidden layer of the decoder $D_m$. The matrix ${\bf O_m}$ represents a trainable fully connected linear layer and $\phi$ represents the output activation function. 
+					\[\hat{\bf X} = \phi\left(D_m\cdot O_m\right)\]
+					\\
+					We also reconstruct the adjacency matrix $\hat{\bf A}$ from the embedding dimension $\bf Z$ using the \textbf{dot-product decoder} described by \cite{kipf2016variational,zhou2023community}
+					\[\hat{\bf A} = \sigma\left(Z\cdot Z^T\right) \]
+					Here the function $\sigma$ denotes the sigmoid (logistic) activation function which assumes a normal distribution and transforms the weights of the adjacency matrix the zero-one scale: $\hat{\bf A} \in [0,1]^{N\times N}$
+				}
+					
+			\end{enumerate}
+			\forceindent \textbf{Geometric Node Classification Layers}: \\
+			\forceindent \textbf{For $\ell+1$ hierarchical layers}:
+			\begin{enumerate}
+				\item[]{\textbf{$\bullet$ Compute community assignment probabilities} 
+					\\
+					In this step we construct $\ell$ single layer linear classifiers. Each linear classifier will output the community assignments of nodes (or super-nodes) from the previous layer. The first linear classifier uses the embeddings to classify $N$ nodes to $k_1$ communities given by
+					\[{\bf H}_{1} = \text{SoftMax}\left({\bf Z}{\bf W}_{1}\right) \]
+					\\ 
+					Where $\bf H$ is a matrix with nodes in the rows and communities in the columns. Each row of $H$ represents the probabilities for assigning a node to one of the $k_1$ communities (e.g the rows sum to 1). Here the SoftMax function is used as the layer activation function and will convert ${\bf Z}$. 
+					\[{\bf H}_\ell = \begin{bmatrix}
+						h_{1, 1} & \cdots & h_{1, k_\ell} \\
+						\vdots  & \ddots & \vdots \\
+						h_{k_{\ell - 1}, 1} & \cdots & h_{k_{\ell -1}, k_\ell} 
+					\end{bmatrix}\]}
+				
+				\item[]{\textbf{$\bullet$ Normalize the community assignment probabilities}
+					\\
+					In this step the community assignment probabilities are normalized according to the method of %\cite{zhou et al} 
+					\[ \hat{h}_{i,k_\ell} = \frac{\sqrt{k_{\ell-1}} \sqrt{h_{i, k_\ell}}}{\sum_i \sum_{k_\ell} \sqrt{h_{i, k_\ell}}}\]
+					
+					\[\hat{\bf H}_\ell = \begin{bmatrix}
+						\hat{h}_{1, 1} & \cdots & \hat{h}_{1, k_\ell} \\
+						\vdots  & \ddots & \vdots \\
+						\hat{h}_{k_{\ell - 1}, 1} & \cdots & \hat{h}_{k_{\ell -1}, k_\ell} 
+					\end{bmatrix}\]
+				}
+				
+				
+				\item[]{\textbf{$\bullet$ compute community assignment matrix} \\ 
+					The community assignment matrix is a boolean matrix which represents the community assignment of a node or super node such that the value 1 at the $k_\ell^{th}$ position if a node is assigned to community $k_\ell$ and zero otherwise. This matrix can be obtained by taking the argument maximum over the rows of community assignment probabilities ${\bf H}_\ell$ for the $\ell^{th}$ hierarchical layer.  
+					\[{\bf C}_{\ell} = g({\bf \hat{H}}_{\ell}) \ \text{where} \ \  g(\hat{h}_{i,k_\ell}) = 
+					\begin{cases} 1 & \ \text{if} \ \ \hat{h}_{i,k_\ell} = \argmax_{k_\ell} \hat{\bf h}_i \\ %\in \mathcal{C}^{\ell}_{k_\ell} \\
+						0 & \text{else} %\ v_i \not\in \mathcal{C}^{\ell}_{k_\ell}
+					\end{cases}\]}
+				
+				\item[]{\textbf{$\bullet$ Compute community labels} \\
+					For each hierarchical layer $\ell$ we may compute the community assignment labels. Consider a two-layer hierarchy, the community assignment labels $\mathbb{S}_1$ from assigning $N$ nodes in the bottom layer to $k_1 < N$ nodes in the super layer is given as 
+					\[\mathbb{S}_1 = \argmax_{k_1} {\bf C}_1 \]
+					
+					more generally, the labels from assigning nodes in layer $\ell - 1$ to layer $\ell$ is given as:
+					
+					\[ \mathbb{S}_\ell = \argmax_{k_\ell} {\bf C}_{\ell}\]}
+				
+				\item[]{\textbf{$\bullet$ Compute input to the next classifier:}  \\
+					Each linear classifier aims to classify the nodes in the previous layer to a subset of nodes which represent the communities of the current layer. For example, the first classifier classifies the $N$ original nodes to $k_1$ communities and takes as input the embeddings matrix from the auto-encoder. The second classifier which classifies $k_1$ communities to $k_2$ communities takes as input the centroids the $k_1$ communities in the previous layer which is computed by projecting the embeddings onto the community assignment matrix ${\bf C}_1$. These centroids are then activated to ensure regularity denoted by the activation function $g_1(\cdot)$:
+					\[ {\bf \tilde X}_{1} = g_1\left({\bf Z}^T {\bf C}_{1}\right)^T\] 
+					\\
+					In general, for layers $\ell > 1$ in the hierarchy, the input is calculated from the linear combination of the centroids of the previous layer $\ell - 1$ and with the community assignemnt matrix of the current layer $\ell$ and activated by function $g_\ell(\cdot)$: 
+					\[ {\bf \tilde X}_{\ell} = g_\ell\left({\bf \tilde{X}}_{\ell-1}^T {\bf C}_{\ell}\right)^T\] 
+					\\
+					
+					Since we interested in the heirarchical representation of the original graph, we wish to  may also compute the adjacency matrix corresponding to the sub-graph formed by assigning the $N$ original nodes to $k_1$ communities represented by the adjacency matrix $\tilde{\bf A}_1$.\\
+				
+					For the second method first consider a two-layer hierarchical network where the first layer contains $N$ nodes $V = \{v_i\}_{i=1}^N$ and the super-layer is represented by a graph with $k_1<N$ super-nodes $\mathcal{\bf S} = \{\mathcal{S}_1, \mathcal{S}_2, \cdots \mathcal{S}_{k_1}\}$. Each super-node $\mathcal{S}_i$ is the community representation of the nodes the bottom layer such that $\mathcal{S}_i = \{v_j\}_{j=1}^{N_i}$ where $N_i$ represents the number of nodes in the $i^{th}$ community. The second approach follows from the Louvain algorithm \cite{blondel2008fast} in which an edge between two super-level nodes is represented as the sum of the edge weights for the edges connecting the nodes in community $i$ to community $j$. 
+						
+					\[\mathcal{E}_{ij} = (\mathcal{S}_i, \mathcal{S}_j) = \sum_{v_i \in \mathcal{S}_i, v_j \in \mathcal{S}_j}  (v_i, v_j) \]
+						
+					where $\mathcal{E}_{ij}$ represents the edge between super nodes $\mathcal{S}_i$ and $\mathcal{S}_j$ and the sum is over all pairs of connecting them. Given the community matrix $\bf C$ which maps the assignments of the nodes in $\bf V$ to the communities in $\mathcal{\bf S}$ the adjacency for any super level graph can be easily computed as 
+						
+					\[ \tilde{\bf A} = {\bf C^T}{\bf A}{\bf C} \] 
+						
+					Where $\bf A$ represents the bottom level graph with $N$ nodes and $\tilde{\bf A}$ represents the super-level graph with $M$ nodes.
+				}
+					
+			\end{enumerate}
+			
+			
+			\item[2.2.2]{\textbf{Compute Loss}: \\
+				\textbf{For $L$ hierarchical layers}
+			\begin{enumerate}
+				\item[]{compute the loss function \\
+					
+					The total loss function will consist of two primary components: The reconstruction loss $\mathcal{L}_R$ and the modularity loss $\mathcal{L}_M$
+					\[\mathcal{L}_{\text{Total}} = \mathcal{L}_R - \gamma\mathcal{L}_M \]
+					where $\gamma$ denotes a tuning parameter for the modularity component. The primary objective of fitting is to maximize the modularity component while minimizing the reconstruction loss. \\
+					
+					The reconstruction loss is composed of two reconstruction components.
+					\[L_R = L_{R_A}+L_{R_X}\]
+					The first is the binary cross entropy (BCE) loss which compares the input adjacency $\bf A$ and the reconstructed adjacency matrix  $\hat{\bf A}$ of the bottom level of the hierarchy: 
+					\[L_{R_A} = \frac{1}{\sum_i\sum_j a_{ij}} \sum_{a_{ij}\in {\bf A}} -(a_{ij} \cdot\log(\hat{a}_{ij})+(1 - a_{ij})\cdot\log(1 - \hat{a}_{ij})) \]
+					This component of the reconstruction loss aims to ensure that the graph autoencover maintains the structure of the original input graph. \\
+					
+					The second reconstruction component is the squared error loss of the input and reconstructed node attribute matrix:
+					\[L_{R_X} = ||{\bf X} - \hat{\bf X}||_F = \sum_i^N \sum_j^N \left(x_{ij} - \hat{x}_{ij}\right)^2 \]
+					which aims to ensure that the original node features can be recovered. \\
+					
+					
+					The second component of the total loss function is the modularity loss. This component aims to maximize the modularity of the communities in each hierarchical layer. Therefore, this component is represent by the sum of the modularity of the $\ell$ communities in the hierarchy
+					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4\mu_\ell}Tr\left(\hat{\bf P}_\ell {\bf B_\ell} \hat{\bf P}_\ell\right)\]
+					where $\hat{\bf P}_\ell$ is the community assignment probability matrix, $\mu_{\ell}$ is the total number of edges in the graph for the $\ell^{th}$ hierarchical, $Tr(\cdot)$ denotes the trace function, and ${\bf B}_\ell$ is the modularity matrix defined as:
+					
+					\[{\bf B_\ell} = {\bf \tilde A}^{(\ell)}_{i,j} - \frac{d(v_i)\cdot d(v_j)}{2\mu_\ell}\]
+					$d(\cdot)$ is a function which returns the degree of a node.  
+					\[\mu_\ell = \frac{1}{2}\sum_i^{k_\ell} \sum_j^{k_\ell} {\bf \tilde A}^{(\ell)}_{ij}\]
+					}
+			\end{enumerate}
+			}
+			\item[2.2.3]{\textbf{Compute backward pass:}} \\
+			\textbf{For ${\bf X}_0$, $\hat{\bf A}_0$ } 
+			\begin{enumerate}
+				\item[]{compute parameter gradients 
+					\[\triangledown_\theta \mathcal{L} =  \frac{\partial\mathcal{L}}{\partial {\bf \theta}} \ \ \forall \theta \in {\bf \Theta}\]}
+				
+				\item[]{update all parameters $\theta \in {\bf \Theta}$}  
+			\end{enumerate}
+			
+		}
+		\end{enumerate} 
+	
+	\end{itemize}
+	
+	
+
+\newpage
+\appendix
+\begin{table}[!ht]
+	\centering
+	\caption{Notation and explanations}
+	\begin{tabular}{p{2cm}|p{3cm}|p{10cm}}
+		\toprule[0.08cm]
+		\bf Symbol & \centering \bf Dimension & \bf Explanation \\
+		\cmidrule(lr){1-3}
+		$\ell$ & & The number of super layers in the hierarchy \\
+		
+		$L$ & & The total number of layers in the hierarchy \\
+		
+		$N$ & & The number of nodes in the attributed graph \\
+		
+		$p$ & & The number of attributes \\
+		
+		$m$ & & The number of hidden encoding layers \\
+		
+		$d_m$ & & The column dimension of the $m^{th}$ hidden layer \\
+		
+		$k_\ell$ & & The number of nodes in the $\ell^{th}$ super layer \\
+		
+		$d(\cdot)$ & & A function which returns the degree of a node \\
+		
+		$\mu_\ell$ & & The number of edges in $\ell^{th}$ super layer network $\mathcal{G}_{\ell}$ \\
+		
+		${\bf A}_0$ & $ \in \mathbb{R}^{N \times N}$ & The input estimate of the adjacency matrix \\
+		
+		${\bf X}$ &$\in \mathbb{R}^{N \times p}$ & The input node-attribute matrix \\
+		
+		${\bf E}_{m-1}$ & $\in \mathbb{R}^{N \times d_{m-1}}$ & The ${m-1}^{th}$ hidden layer of the encoder module\\
+		
+		${\bf D}_{m-1}$ & $\in \mathbb{R}^{N \times d_{m-1}}$ & The ${m-1}^{th}$ hidden layer of the decoder module\\
+		
+		${\bf U}_{m-1}$ & $\in \mathbb{R}^{d_{m-2}\times d_{m-1}}$ & the weights corresponding to the ${m-1}^{th}$ hidden layer of the encoder module \\
+		
+		${\bf O}_{m-1}$ & $\in \mathbb{R}^{d_{m-2}\times d_{m-1}}$ & the weights corresponding to the ${m-1}^{th}$ hidden layer of the decoder \\
+		
+		${\bf Z}_{\ell}$ & $\in\mathbb{R}^{k_\ell \times d_m}$ & the embeddings belonging to the $\ell^{th}$ hierarchical layer \\
+		
+		${\bf W}_\ell$ & $\in\mathbb{R}^{d_m \times k_{\ell + 1}}$ & The weights corresponding to the linear classifier in the $\ell^{th}$ hierarchical layer\\
+		
+		${\bf H}_\ell$ & $\in\mathbb{R}^{k_{\ell-1} \times k_\ell}$ & The assignment probabilities of the $\ell^{th}$ hierarchical layer \\
+		
+		${\bf C}_\ell$ & $\in\mathbb{R}^{k_{\ell-1} \times k_\ell}$ & The assignment matrix of the $\ell_{th}$ hierarchical layer \\
+		
+		${\bf \tilde X}^{(\ell)}$ & $\in\mathbb{R}^{k_\ell \times q_m}$& The centroids of the communities in the $\ell^{th}$ hierarchical layer \\
+		
+		${\bf \tilde A}^{(\ell)}$ & $\in\mathbb{R}^{k_\ell \times k_\ell}$& The computed adjacency matrix corresponding to the $\ell^{th}$ hierarchical layer \\
+		
+		${\bf B}_\ell$ & $\in\mathbb{R}^{k_\ell \times k_\ell}$ & The modularity matrix for the $\ell^{th}$ hierarchical layer \\
+		
+		\bottomrule[0.08cm]
+	\end{tabular}
+\end{table}
+
+\newpage
+
+\begin{figure}
+	\caption{Proposed HRGN schematic. Example represents a model constructed for a hierarchy with $\ell = 2$ super layers.}
+	\includegraphics[scale = 0.5]{C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2.pdf}
+\end{figure}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	\clearpage
+	\newpage
+	
+	\bibliographystyle{unsrt}
+	\bibliography{pseudocode_bibs}
+	
+	
+	
+	
+	
+	
+\end{document}
