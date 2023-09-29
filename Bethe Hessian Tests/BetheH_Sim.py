@@ -44,7 +44,6 @@ args = parser.parse_args()
 
 args.connect = 'full'
 args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.01
 args.top_layer_nodes = 10
 args.subgraph_type = 'small world'
 args.subgraph_prob=0.01
@@ -56,70 +55,90 @@ args.sample_size = 500
 
 degvals = []
 
-avgD = []
-acc = []
-pred = []
-nodes_per_graph = []
+
 
 corrcuts = np.arange(0.25, 0.85, 0.1)
-stats = []
-for j in range(0,40):
-    Dvec = []
-    predvec = []
-    nodevec = []
-    accvec = []
-    #args.connect = ['disc','full'][1]
-    print(args, '\n')   
-    pe, nodes = simulate_graph(args)
-    nodes_per_graph.append(nodes)
+connect_prob = [0.05, 0.02, 0.01, 0.005]
+fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+for c in range(0, len(connect_prob)):
+    avgD = []
+    acc = []
+    pred = []
+    nodes_per_graph = []
+    stats = []
+    for j in range(0,40):
+        Dvec = []
+        predvec = []
+        nodevec = []
+        accvec = []
+        #args.connect = ['disc','full'][1]
+        print(args, '\n')   
+        args.connect_prob = connect_prob[c]
+        pe, nodes = simulate_graph(args)
+        nodes_per_graph.append(nodes)
+        for i in range(0, len(corrcuts)):
+        #for i in range(0, len(degvals)):
+        #for i in range(0, 20):
+        
+            G, A = get_input_graph(X = pe, 
+                                   method = 'Correlation', 
+                                   r_cutoff = corrcuts[i])
+            N = A.shape[0]
+        
+
+            Deg = np.diag(np.matmul(A, np.ones((N, 1))).reshape(N))
+            avg_degree = np.matmul(np.matmul(np.ones((N,1)).T, A), np.ones((N, 1)))/N
+            eta = np.sqrt(avg_degree)
+    
+            Dvec.append(avg_degree)
+            #print(Dvec)
+            Bethe_Hessian = (np.square(eta)-1)*np.diag(np.ones(N))+Deg - eta*A
+        
+            eigvals = np.linalg.eigh(Bethe_Hessian)[0]
+        
+            k = np.sum(eigvals<0)
+            predvec.append(k)
+            accvec.append((k/args.top_layer_nodes))
+        
+        
+        
+    
+            print("="*60)
+            print('Average Degree ={}, Number of communities detected = {}'.format(avg_degree,k))
+            print("="*60)
+        
+        
+        acc.append(accvec)
+        avgD.append(Dvec)
+        pred.append(predvec)
+        nodes_per_graph.append(nodevec)
+        
+    pred_array = np.array(pred)
+    avgD_array = np.array(avgD).reshape(40,6)
+    print(avgD)
+    cols = np.arange(0, len(corrcuts)) 
+
+
+
     for i in range(0, len(corrcuts)):
-    #for i in range(0, len(degvals)):
-    #for i in range(0, 20):
-        
-        G, A = get_input_graph(X = pe, 
-                               method = 'Correlation', 
-                               r_cutoff = corrcuts[i])
-        N = A.shape[0]
-        
-
-        Deg = np.diag(np.matmul(A, np.ones((N, 1))).reshape(N))
-        avg_degree = np.matmul(np.matmul(np.ones((N,1)).T, A), np.ones((N, 1)))/N
-        eta = np.sqrt(avg_degree)
+        print('now constructing plot!!!!!!!!!!1')
+        if c<2:
+            print(c)
+            ax1[c].scatter(pred_array[:,i], avgD_array[:,i], label = 'r = '+str(np.round(corrcuts[i], 2)))
+            ax1[c].legend(loc="upper right")
+            ax1[c].set_xlabel('Number of predicted communities', size = 12)
+            ax1[c].set_ylabel('Average node degree of input graph ', size = 12)
+            #ax1[c].tick_params(axis='both', which='major', labelsize=10)
+            #ax1[c].set_title('Connection Prob ='+str(connect_prob[c]))
+        elif c>1:
+            ax2[c-2].scatter(pred_array[:,i], avgD_array[:,i], label = 'r = '+str(np.round(corrcuts[i], 2)))
+            ax2[c-2].legend(loc="upper right")
+            ax2[c-2].set_xlabel('Number of predicted communities', size = 12)
+            ax2[c-2].set_ylabel('Average node degree of input graph ', size = 12)
+            #ax2[c-2].tick_params(axis='both', which='major', labelsize=10)(fontsize=12)
+            #ax2[c-2].set_title('Connection Prob ='+str(connect_prob[c]))
     
-        Dvec.append(avg_degree)
-        Bethe_Hessian = (np.square(eta)-1)*np.diag(np.ones(N))+Deg - eta*A
-        
-        eigvals = np.linalg.eigh(Bethe_Hessian)[0]
-        
-        k = np.sum(eigvals<0)
-        predvec.append(k)
-        accvec.append((k/args.top_layer_nodes))
-        
-        
-        
-    
-        print("="*60)
-        print('Average Degree ={}, Number of communities detected = {}'.format(avg_degree,k))
-        print("="*60)
-        
-        
-    acc.append(accvec)
-    avgD.append(Dvec)
-    pred.append(predvec)
-    nodes_per_graph.append(nodevec)
-        
-pred_array = np.array(pred)
-avgD_array = np.array(avgD).reshape(40,6)
-cols = np.arange(0, len(corrcuts)) 
 
-fig,ax1 = plt.subplots(figsize = (12,10))
-
-for i in range(0, len(corrcuts)):
-    ax1.scatter(pred_array[:,i], avgD_array[:,i], label = 'r = '+str(np.round(corrcuts[i], 2)))
-    ax1.set_xlabel('# of predicted communities')
-    ax1.set_ylabel('Average Node Degree')
-    
-ax1.legend()
-fig.savefig('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/sim_result_scatter_full_0.01connectprob.pdf')
+fig.savefig('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/sim_result_scatter_full_combined.pdf')
    
     
