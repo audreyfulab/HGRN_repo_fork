@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  22 SEP 2023 11:45
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  28 SEP 2023 20:55
 entering extended mode
 **./HGRN_pseudocode_GAT.tex
 (HGRN_pseudocode_GAT.tex
@@ -836,50 +836,107 @@ Underfull \hbox (badness 10000) in paragraph at lines 107--108
 
  []
 
-[2] [3] [4]
-Underfull \hbox (badness 10000) in paragraph at lines 203--205
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 117--121
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 206--207
+Underfull \hbox (badness 10000) in paragraph at lines 128--129
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 134--137
+
+ []
+
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 159--161
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 163--165
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 168--170
+
+ []
+
+[4]
+Underfull \hbox (badness 10000) in paragraph at lines 173--176
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 184--186
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 190--191
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 192--193
+
+ []
+
+
+Overfull \hbox (3.42645pt too wide) detected at line 213
+\OT1/cmr/bx/n/12 C[] \OT1/cmr/m/n/12 = \OML/cmm/m/it/12 g\OT1/cmr/m/n/12 (\OT1/
+cmr/bx/n/12 P[]\OT1/cmr/m/n/12 ) []  \OML/cmm/m/it/12 g\OT1/cmr/m/n/12 ([]) = [
+]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 213--214
 
  []
 
 [5]
-Overfull \hbox (3.01733pt too wide) in paragraph at lines 208--209
-\OT1/cmr/m/n/12 is rep-re-sented by a graph with $\OML/cmm/m/it/12 k[] < N$ \OT
-1/cmr/m/n/12 super-nodes $\OT1/cmr/bx/n/12 S \OT1/cmr/m/n/12 = \OMS/cmsy/m/n/12
- fS[]\OML/cmm/m/it/12 ; \OMS/cmsy/m/n/12 S[]\OML/cmm/m/it/12 ; [] \OMS/cmsy/m/n
-/12 S[]g$\OT1/cmr/m/n/12 .
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 225--226
+Underfull \hbox (badness 10000) in paragraph at lines 229--231
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 228--230
+Underfull \hbox (badness 10000) in paragraph at lines 234--235
 
  []
 
 [6]
-Underfull \hbox (badness 10000) in paragraph at lines 234--236
+Underfull \hbox (badness 10000) in paragraph at lines 265--266
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 238--240
+Underfull \hbox (badness 10000) in paragraph at lines 268--270
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 274--276
 
  []
 
 [7]
-Overfull \hbox (27.9805pt too wide) in paragraph at lines 273--323
- [][] 
+Underfull \hbox (badness 10000) in paragraph at lines 281--283
+
  []
 
 [8]
+Overfull \hbox (27.9805pt too wide) in paragraph at lines 326--376
+ [][] 
+ []
+
+
+LaTeX Warning: Float too large for page by 14.13391pt on input line 376.
+
+
 
 pdfTeX warning: pdflatex.exe (file C:/Users/Bruin/Documents/GitHub/HGRN_repo/HG
 RN_pseudocode/HGRN_schematic2.pdf): PDF inclusion: found PDF version <1.7>, but
@@ -891,25 +948,31 @@ File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2.
 pdf>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudoc
-ode/HGRN_schematic2.pdf  used on input line 329.
+ode/HGRN_schematic2.pdf  used on input line 382.
 (pdftex.def)             Requested size: 481.79883pt x 271.01183pt.
 
-Overfull \hbox (46.18802pt too wide) in paragraph at lines 329--330
+Overfull \hbox (46.18802pt too wide) in paragraph at lines 382--383
 [][] 
  []
 
 [9 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2.p
-df>] (HGRN_pseudocode_GAT.bbl) [10
+df>] [10] (HGRN_pseudocode_GAT.bbl
+Underfull \hbox (badness 1997) in paragraph at lines 9--13
+[]\OT1/cmr/m/n/12 Petar Velickovic, Guillem Cu-cu-rull, Aran-txa Casanova, Ad
+ri-ana Romero,
+ []
+
+) [11
 
 ] (HGRN_pseudocode_GAT.aux) ) 
 Here is how much of TeX's memory you used:
- 17488 strings out of 480811
- 337832 string characters out of 2905907
- 614209 words of memory out of 3000000
- 33142 multiletter control sequences out of 15000+200000
- 543156 words of font info for 64 fonts, out of 3000000 for 9000
+ 17493 strings out of 480811
+ 337882 string characters out of 2905907
+ 615212 words of memory out of 3000000
+ 33146 multiletter control sequences out of 15000+200000
+ 543409 words of font info for 66 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,14n,60p,805b,366s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 62i,14n,60p,805b,385s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/public/am
 sfonts/cm/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/c
 m/cmbx8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.
@@ -926,9 +989,9 @@ gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Program File
 s/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Program Files/MiKTeX
  2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKTeX 2.
 9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on HGRN_pseudocode_GAT.pdf (11 pages, 326057 bytes).
+Output written on HGRN_pseudocode_GAT.pdf (12 pages, 331538 bytes).
 PDF statistics:
- 138 PDF objects out of 1000 (max. 8388607)
+ 134 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  18 words of extra memory for PDF output out of 10000 (max. 10000000)
 

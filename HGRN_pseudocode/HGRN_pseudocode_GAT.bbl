@@ -5,10 +5,16 @@ Amin Salehi and Hasan Davulcu.
 \newblock Graph attention auto-encoders.
 \newblock {\em arXiv preprint arXiv:1905.10715}, 2019.
 
-\bibitem{kipf2016variational}
+\bibitem{velivckovic2017graph}
+Petar Veli{\v{c}}kovi{\'c}, Guillem Cucurull, Arantxa Casanova, Adriana Romero,
+  Pietro Lio, and Yoshua Bengio.
+\newblock Graph attention networks.
+\newblock {\em arXiv preprint arXiv:1710.10903}, 2017.
+
+\bibitem{kipf2016semi}
 Thomas~N Kipf and Max Welling.
-\newblock Variational graph auto-encoders.
-\newblock {\em arXiv preprint arXiv:1611.07308}, 2016.
+\newblock Semi-supervised classification with graph convolutional networks.
+\newblock {\em arXiv preprint arXiv:1609.02907}, 2016.
 
 \bibitem{zhou2023community}
 Xinchuang Zhou, Lingtao Su, Xiangju Li, Zhongying Zhao, and Chao Li.
