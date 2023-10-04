@@ -53,7 +53,7 @@ decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], a
 
 
 #define HGRNgene model
-HGRN_model = HGRNgene(nodes, attrib, comm_sizes=[10],attn_act='Sigmoid')
+HGRN_model = HGRNgene(nodes, attrib, comm_sizes=[10],attn_act='LeakyReLU')
 
 #convert data to tensors and allow self loops in graph
 X = torch.Tensor(pe).requires_grad_()
@@ -63,7 +63,7 @@ A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
 
 #fit model
 out = fit(HGRN_model, X, A, optimizer='Adam', epochs = 200, update_interval=50, 
-        lr = 1e-4, prop_train = 0.8, gamma = 0.5, delta = 1, comm_loss='Clustering',
+        lr = 1e-4, prop_train = 0.8, gamma = 0.5, delta = 1, comm_loss='Modularity',
         true_labels=true_labels.clustlabs.to_numpy(), verbose=False)
 
 
@@ -77,7 +77,9 @@ A_pred = resort_graph(out[1].detach().numpy(), flat_list_indices)
 
 fig, ax1 = plt.subplots(1,2, figsize=(12,10))
 sbn.heatmap(A_pred, ax = ax1[0])
-sbn.heatmap(out[-1][0].detach().numpy()[flat_list_indices, None], ax = ax1[1])
+df = pd.DataFrame(np.array([out[-1][0].detach().numpy()[flat_list_indices, None].reshape(335,),
+                      sort_true_labels]).transpose(), columns = ['Predicted','Truth'])
+sbn.heatmap(df, ax = ax1[1])
 
 
 
