@@ -15,9 +15,9 @@ sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HGRNgene
 from train import CustomDataset, batch_data, fit
-from utilities import resort_graph
+from utilities import resort_graph, trace_comms, node_clust_eval
 sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
-from utils_modded import Load_Simulation_Data, get_input_graph, node_clust_eval
+from utils_modded import Load_Simulation_Data, get_input_graph
 import seaborn as sbn
 import matplotlib.pyplot as plt
 
@@ -53,7 +53,7 @@ decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], a
 
 
 #define HGRNgene model
-HGRN_model = HGRNgene(nodes, attrib, comm_sizes=[10],attn_act='LeakyReLU')
+HGRN_model = HGRNgene(nodes, attrib, comm_sizes=[60, 10],attn_act='LeakyReLU')
 
 #convert data to tensors and allow self loops in graph
 X = torch.Tensor(pe).requires_grad_()
@@ -68,16 +68,19 @@ out = fit(HGRN_model, X, A, optimizer='Adam', epochs = 200, update_interval=50,
 
 
 
+S_all = trace_comms(out[-1], [60,10])
+S_middle = S_all[0]
+S_top = S_all[1]
 
-
-
+Middle_2_Top = torch.mm(F.one_hot(S_middle), F.one_hot(S_top)).argmax(1)
 
 
 A_pred = resort_graph(out[1].detach().numpy(), flat_list_indices)
 
 fig, ax1 = plt.subplots(1,2, figsize=(12,10))
 sbn.heatmap(A_pred, ax = ax1[0])
-df = pd.DataFrame(np.array([out[-1][0].detach().numpy()[flat_list_indices, None].reshape(335,),
+
+df = pd.DataFrame(np.array([Middle_2_Top.detach().numpy()[flat_list_indices, None].reshape(335,),
                       sort_true_labels]).transpose(), columns = ['Predicted','Truth'])
 sbn.heatmap(df, ax = ax1[1])
 

@@ -113,3 +113,14 @@ def node_clust_eval(true_labels, pred_labels, verbose = True):
         print("\nhomogeneity = ",homogeneity,"\ncompleteness = ", completeness, "\nnmi = ", nmi)
     
     return np.array([homogeneity, completeness, nmi])
+
+
+
+def trace_comms(comm_list, comm_sizes):
+    
+    comm_copy = comm_list.copy()
+    for i in range(0, len(comm_list)):
+        comm_copy[i][comm_copy[i] == torch.max(comm_copy[i])] = comm_sizes[i]-1
+        
+    return comm_copy
+    
