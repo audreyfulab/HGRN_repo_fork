@@ -286,9 +286,9 @@
 					
 					The second component of the total loss function is the modularity loss $L_M$. This component aims to maximize the modularity of the communities in each hierarchical layer. Therefore, this component is represented by the sum of the modularity of the $\ell$ hierarchical communities represented by the adjacency matrices ${\bf \tilde A}^{(\ell)}$
 					
-					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4n_\ell}Tr\left({\bf P}_\ell^T {\bf B_\ell} {\bf P}_\ell\right)\]
+					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4n_{\ell-1}}Tr\left({\bf P}_\ell^T {\bf B}_{\ell-1} {\bf P}_\ell\right)\]
 					
-					where ${\bf P}_\ell$ is the matrix of community assignment probability for the $\ell^{th}$ hierarchical layer, $q_{\ell}$ is the total number of edges in the graph for the $\ell^{th}$ hierarchical layer, $Tr(\cdot)$ denotes the trace function, and ${\bf B}_\ell$ is the modularity matrix for the $\ell^{th}$ hierarchical layer defined as:
+					where ${\bf P}_\ell$ is the matrix of community assignment probabilities for $\ell^{th}$ hierarchical layer. Specifically, ${P}_\ell$ gives the probability of assigning nodes in the previous $\ell -1 ^{th}$ layer to the current layer. For example, going from the original nodes to the first hierarchical layer, ${P}_1$ gives the probability for assigning $N$ nodes to $k_1$ communities. The quantity $n_{\ell}$ is the total number of edges in the graph for the  $\ell^{th}$ hierarchical layer, $Tr(\cdot)$ denotes the trace function, and ${\bf B}_{\ell-1}$ is the modularity matrix for nodes in the previous  $\ell-1^{th}$ hierarchical layer. We may compute ${\bf B}_\ell$ using
 					
 					\[{\bf B_\ell} = {\bf \tilde A}^{(\ell)}_{i,j} - \frac{d(v_i)\cdot d(v_j)}{2n_\ell}\]
 					$d(\cdot)$ is a function which returns the degree of a node. A linear formulation of the modularity matrix can be computed as follows
