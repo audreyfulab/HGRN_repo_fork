@@ -15,19 +15,18 @@ sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HGRNgene
 from train import CustomDataset, batch_data, fit
-from utilities import resort_graph, trace_comms, node_clust_eval
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
-from utils_modded import Load_Simulation_Data, get_input_graph
+from utilities import resort_graph, trace_comms, node_clust_eval, Load_Simulation_Data, get_input_graph
 import seaborn as sbn
 import matplotlib.pyplot as plt
 
-paths = ['C:/Users/Bruin/Documents/GitHub/hierarchicalGRN/hgnn_software/data/disconnected/sm/sm_disc_0.1/',
-         'C:/Users/Bruin/Documents/GitHub/hierarchicalGRN/hgnn_software/data/full/sm/sm_full_0.1/']
-pe, true_adj_undi, flat_list_indices, true_labels, sort_true_labels = Load_Simulation_Data(paths[1], 
-                                                                              data='sm',
-                                                                              #connectivity='full',
-                                                                              connectivity=['disc','full'][1],
-                                                                              SD='0.1')
+paths = ['C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/small_world/fully_connected/2_layer/SD01/',
+         'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/small_world/fully_connected/3_layer/SD01/']
+pe, true_adj_undi, flat_list_indices, true_labels, sort_true_labels = Load_Simulation_Data(paths[0], 
+                                                                                           data = 'sm', 
+                                                                                           layers='2',
+                                                                                           connectivity = ['full','disc'][0],
+                                                                                           connect_prob = '01',
+                                                                                           SD = ['01','05'][0])
 
 #get the input graph 
 in_graph, in_adj = get_input_graph(X = pe, 
