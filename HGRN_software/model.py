@@ -78,7 +78,7 @@ class CommClassifer(nn.Module):
         
 
 
-class HGRNgene(nn.Module):
+class HCD(nn.Module):
     """
     Hierarchical Graph Representation Network for genes
     nodes: (integer) number of nodes in attributed graph
@@ -93,7 +93,7 @@ class HGRNgene(nn.Module):
 
     def __init__(self, nodes, attrib, hidden_dims = [256, 128, 64], comm_sizes = [60, 10],
                  attn_act='Sigmoid', **kwargs):
-        super(HGRNgene, self).__init__()
+        super(HCD, self).__init__()
         #copy and reverse decoder layer dims
         decode_dims = hidden_dims.copy()
         decode_dims.reverse()
@@ -123,6 +123,8 @@ class HGRNgene(nn.Module):
         #fit hierarchy
         X_top, A_top, A_all, P_all, S = self.commModule(Z, A)
         
-        return X_hat, A_hat, A_all, P_all, S
+        A_all_final = [A]+A_all
+        #return 
+        return X_hat, A_hat, A_all_final, P_all, S
         #return X_hat
         
