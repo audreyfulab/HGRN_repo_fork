@@ -268,8 +268,10 @@
 					\[L_{\text{Total}} = L_R - \delta L_M \]
 					where $\delta$ denotes a tuning parameter for the modularity component. The primary objective of fitting is to maximize the modularity component while minimizing the reconstruction loss. \\
 					
+					\[ L_{\text{Total}} = L_{\hat{\bf X}}+\gamma L_{\hat{A}} -\delta L_M\]
+					
 					The reconstruction loss is composed of two reconstruction components.
-					\[L_R = L_{\bf \hat{A}}+\gamma L_{\bf \hat{X}}\]
+					\[L_R = L_{\bf \hat{X}}+\gamma L_{\bf \hat{A}}\]
 					The first reconstruction component results from reconstruction of the input adjacency matrix ${\bf A}$. Here we employ the binary cross entropy (BCE) loss which compares the input adjacency $\bf A$ and the reconstructed adjacency matrix  $\hat{\bf A}$ of the bottom level of the hierarchy: 
 					\[L_{\bf \hat{A}} = \frac{1}{\sum_i\sum_j a_{ij}} \sum_{a_{ij}\in {\bf A}} -(a_{ij} \cdot\log(\hat{a}_{ij})+(1 - a_{ij})\cdot\log(1 - \hat{a}_{ij})) \]
 					This component of the reconstruction loss aims to ensure that the graph autoencoder maintains the structure of the original input graph. \\
@@ -284,7 +286,7 @@
 					
 					The second component of the total loss function is the modularity loss $L_M$. This component aims to maximize the modularity of the communities in each hierarchical layer. Therefore, this component is represented by the sum of the modularity of the $\ell$ hierarchical communities represented by the adjacency matrices ${\bf \tilde A}^{(\ell)}$
 					
-					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4n_\ell}Tr\left({\bf P}_\ell {\bf B_\ell} {\bf P}_\ell\right)\]
+					\[L_M = \sum_{i = 1}^{\ell} L_i =  \sum_{i=1}^\ell \frac{1}{4n_\ell}Tr\left({\bf P}_\ell^T {\bf B_\ell} {\bf P}_\ell\right)\]
 					
 					where ${\bf P}_\ell$ is the matrix of community assignment probability for the $\ell^{th}$ hierarchical layer, $q_{\ell}$ is the total number of edges in the graph for the $\ell^{th}$ hierarchical layer, $Tr(\cdot)$ denotes the trace function, and ${\bf B}_\ell$ is the modularity matrix for the $\ell^{th}$ hierarchical layer defined as:
 					
