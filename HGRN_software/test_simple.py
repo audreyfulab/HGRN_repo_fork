@@ -11,10 +11,12 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import sys
+sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
+from simulation_utilities import compute_modularity
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df
 sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 from utils_modded import Load_Simulation_Data, get_input_graph
@@ -62,13 +64,13 @@ A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
 
 
 #fit model
-out = fit(HCD_model, X, A, optimizer='Adam', epochs = 500, update_interval=50, 
+out = fit(HCD_model, X, A, optimizer='Adam', epochs = 200, update_interval=50, 
         lr = 1e-4, gamma = 0.5, delta = 1, comm_loss='Modularity',
         true_labels=true_labels.clustlabs.to_numpy(), verbose=False)
 
 
 
-S_sub, S_all = trace_comms(out[-1], comm_sizes)
+S_sub, S_layer, S_all = trace_comms(out[-1], comm_sizes)
 
 
 
@@ -84,6 +86,10 @@ df = gen_labels_df(S_all, sort_true_labels, flat_list_indices)
 
 sbn.heatmap(df, ax = ax2[0])
 
+print('-'*50)
+print('true network modularity = {:.4f}'.format(
+    compute_modularity(A_true, sort_true_labels)
+    ))
 
 
 
