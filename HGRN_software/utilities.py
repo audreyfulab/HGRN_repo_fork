@@ -24,7 +24,7 @@ def Modularity(A,P):
     r = A.sum(dim = 1)
     n = A.sum()
     B = A - (torch.outer(r,r) / n)
-    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(2*n)
+    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/n
     return modularity
     
 
@@ -160,25 +160,28 @@ def trace_comms(comm_list, comm_sizes):
     """
     
     comm_copy = comm_list.copy()
+    comm_relabeled = comm_list.copy()
     layer =[]
     layer.append(comm_list[0])
     for i in range(0, len(comm_list)):
         #make sure the maximum community label is not greater than the number
         #communities for said layer. This is so that one_hot encoding doesn't
         #misinterpret the number of predicted communities
-        clusts = np.unique(comm_copy[i])
-        newlabs = np.arange(len(clusts))
-        for j in range(0, len(clusts)):
-            comm_copy[i][comm_copy[i] == clusts[j]] = newlabs[j]
-            
-            
-    
+        comm_copy[i][comm_copy[i] == torch.max(comm_copy[i])] = comm_sizes[i]-1            
     #convert labels into one_hot matrix and trace assignments from layer back 
     #to original node size N 
     for i in range(1, len(comm_list)):
         layer.append(torch.mm(F.one_hot(comm_copy[i-1]), 
                                  F.one_hot(comm_copy[i])).argmax(1))
-    return comm_copy, layer
+    
+    comm_relabeled = layer.copy()
+    for i in range(0, len(comm_list)):
+        clusts = np.unique(layer[i])
+        newlabs = np.arange(len(clusts))
+        for j in range(0, len(clusts)):
+            comm_relabeled[i][layer[i] == clusts[j]] == newlabs[j]
+            
+    return comm_copy, comm_relabeled, layer
 
 
 
