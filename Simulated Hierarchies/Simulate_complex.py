@@ -14,6 +14,9 @@ import networkx as nx
 import seaborn as sbn
 import matplotlib.pyplot as plt
 import sys
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
@@ -25,7 +28,7 @@ warnings.filterwarnings('ignore')
 parser = argparse.ArgumentParser()
 # general
 from random import randint as rd   
-
+from itertools import product
 # model
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
 parser.add_argument('--connect_prob', dest='connect_prob', default=0.05, type=float)
@@ -57,6 +60,41 @@ args.SD = 0.1
 #args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/small_world/fully_connected/2_layer/SD01/sm_2full_connect01_sd01.npz'
 
 #3 layer path
-args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/small_world/fully_connected/3_layer/SD01/sm_3full_connect01_sd01.npz'
+#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/small_world/fully_connected/3_layer/SD01/sm_3full_connect01_sd01.npz'
+
+mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+#mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+
+structpath = ['small_world/','scale_free/','random_graph/']
+connectpath = ['disconnected/', 'fully_connected/']
+layerpath = ['2_layer/', '3_layer/']
+noisepath = ['SD01/','SD05/']
+
+
+struct_nm = ['smw_','sfr_','rdg_']
+connect_nm =['disc_', 'full_']
+layer_nm = ['2_layer_','3_layer_']
+noise_nm = ['SD01','SD05']
+
+struct = ['small world','scale free','random graph']
+connect = ['disc', 'full']
+layers = [2, 3]
+noise = [0.1, 0.5]
+
+
+
+grid1 = product(structpath, connectpath, layerpath, noisepath)
+grid2 = product(struct_nm, connect_nm, layer_nm, noise_nm)
+grid3 = product(struct, connect, layers, noise)
+
 #simulate
-pe, nodes_per_layer = simulate_graph(args)
+
+for idx, value in enumerate(zip(grid1, grid2, grid3)):
+    
+    args.subgraph_type = value[2][0]
+    args.connect = value[2][1]
+    args.layers = value[2][2]
+    args.SD = value[2][3]
+    args.savepath = mainpath+''.join(value[0])+''.join(value[1])+'.npz'
+    print('saving to {} '.format(args.savepath))
+    pe, nodes_per_layer = simulate_graph(args)
