@@ -179,7 +179,7 @@ def trace_comms(comm_list, comm_sizes):
         clusts = np.unique(layer[i])
         newlabs = np.arange(len(clusts))
         for j in range(0, len(clusts)):
-            comm_relabeled[i][layer[i] == clusts[j]] == newlabs[j]
+            comm_relabeled[i][layer[i] == clusts[j]] = newlabs[j]
             
     return comm_copy, comm_relabeled, layer
 
@@ -245,7 +245,7 @@ def build_true_graph(file='filename'):
     
     obj = np.load(file)
     num_files = len(obj.files)
-    num_layers = (num_files - 1)/2
+    num_layers = (num_files - 2)/2
     nodes_layer_i = []
     print('number of layers detected = {}, items in file = {}'.format(
         num_layers, obj.files
@@ -274,9 +274,8 @@ def build_true_graph(file='filename'):
 
 
 
-def Load_Simulation_Data(path, data = 'sm', layers='2', connectivity = ['full','disc'],
-                         connect_prob = '01',SD = ['01','05']):
-    true_labels = pd.DataFrame(pd.read_csv(path+'gexp.csv', index_col=0).columns.tolist(), columns = ['Nodes'])
+def LoadData(filename):
+    true_labels = pd.DataFrame(pd.read_csv(filename+'_gexp.csv', index_col=0).columns.tolist(), columns = ['Nodes'])
     new_list = []
     l = len(true_labels['Nodes'])
     for i in np.arange(l):
@@ -291,13 +290,13 @@ def Load_Simulation_Data(path, data = 'sm', layers='2', connectivity = ['full','
         indices_for_clusts.append(new_true_labels[new_true_labels['clustlabs'] == i].index.tolist())
         
 
-    pe = np.load(path+'gexp.npy').transpose()
+    pe = np.load(filename+'_gexp.npy').transpose()
     #reorganize pe so that nodes are sorted according to clusters 0,1,2..etc
     flat_list_indices = []
     for i in clusts:
         flat_list_indices.extend(indices_for_clusts[i])
 
-    true_adj = build_true_graph(path+data+'_'+layers+connectivity+'_connect'+connect_prob+'_sd'+SD+'.npz')
+    true_adj = build_true_graph(filename+'.npz')
     G = nx.from_numpy_array(true_adj)
     G = G.to_undirected()
     true_adj_undi = nx.adjacency_matrix(G).toarray()
