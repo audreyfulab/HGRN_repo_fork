@@ -64,13 +64,13 @@ A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
 
 
 #fit model
-out = fit(HCD_model, X, A, optimizer='Adam', epochs = 200, update_interval=50, 
+out = fit(HCD_model, X, A, optimizer='Adam', epochs = 100, update_interval=20, 
         lr = 1e-4, gamma = 0.5, delta = 1, comm_loss='Modularity',
         true_labels=true_labels.clustlabs.to_numpy(), verbose=False)
 
 
 
-S_sub, S_layer, S_all = trace_comms(out[-1], comm_sizes)
+S_sub, S_layer, S_all = trace_comms(out[4], comm_sizes)
 
 
 
@@ -81,7 +81,7 @@ sbn.heatmap(A_pred, ax = ax1[0])
 sbn.heatmap(A_true, ax = ax1[1])
 
 
-df = gen_labels_df(S_all, sort_true_labels, flat_list_indices)
+df = gen_labels_df(S_layer, sort_true_labels, flat_list_indices)
 
 
 sbn.heatmap(df, ax = ax2[0])
