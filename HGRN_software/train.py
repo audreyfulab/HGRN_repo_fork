@@ -17,6 +17,8 @@ import torch.optim as optimizers
 from utilities import Modularity, BCSS, WCSS, node_clust_eval
 import matplotlib.pyplot as plt
 import seaborn as sbn
+from tqdm import tqdm
+from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df
 
 #------------------------------------------------------
 #custom pytorch dataset
@@ -104,23 +106,19 @@ class ClusterLoss(nn.Module):
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interval=10, 
-        lr = 1e-4, prop_train = 0.8, gamma = 1, delta = 1, 
-        comm_loss = ['Modularity', 'Clustering'], **kwargs):
+        lr = 1e-4, prop_train = 0.8, gamma = 1, delta = 1, comm_loss = ['Modularity', 'Clustering'], 
+        save_output = False, output_path = 'path/to/output', **kwargs):
     """
     
     """
-    #train_results = []
-    #test_results = []
     
-    #train_data, test_data, train_size, test_size = train_test(X.transpose(0,1), 
-    #                                                          prop_train) 
-    #batched_train_data = batch_data(train_data, batch_size=batch)
-    
+    #preallocate storage
     loss_history=[]
     recon_A_loss_hist=[]
     recon_X_loss_hist=[]
     mod_loss_hist=[]
-    
+    performance_hist = []
+    updates = []
     print(model)
     
     #set optimizer Adam
@@ -139,8 +137,8 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
     elif comm_loss == 'Clustering':
         community_loss_fn = ClusterLoss(weighting='kmeans')
     
-    #begin training epochs
-    for idx, epoch in enumerate(range(epochs)):
+    #------------------begin training epochs----------------------------
+    for idx, epoch in enumerate(tqdm(range(epochs), desc="Fitting...", ascii=False, ncols=75)):
         #epoch printing
         start_epoch = time.time()
         if epoch % update_interval == 0:
@@ -162,29 +160,37 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         elif comm_loss == 'Clustering':
             community_loss = community_loss_fn(X, S)
         
-        
+        #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
         #sum up losses
         loss = X_loss+gamma*A_loss-delta*community_loss
 
-        # update
+        #compute backward pass
         loss.backward()
+        #update gradients
         optimizer.step()
+        #update total loss function
         total_loss += loss.cpu().item()
-        #evaluate epoch
+        #store loss component information
         loss_history.append(total_loss)
         recon_A_loss_hist.append(float(A_loss.detach().numpy()))
         recon_X_loss_hist.append(float(X_loss.detach().numpy()))
         mod_loss_hist.append(float(community_loss.detach().numpy()))
-        if epoch % update_interval == 0:
+        
+        #evaluate epoch
+        if (epoch+1) % update_interval == 0:
             
+            #store update interval
+            updates.append(epoch+1)
             model.eval()
-            #test_X = test_data.__getitem__(torch.arange(0, test_size).tolist())
+            #model forward
             X_pred, A_pred, A_list, P_list, S_pred = model.forward(X, A)
+            #extract predicted community labels
             pred_labels = S_pred[0].detach().numpy()
             
             #loss printing
+            #------------------------------
             print('Epoch {} total_loss = {:.3f}'.format(
                 epoch, total_loss
                 ))
@@ -195,14 +201,16 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
                 recon_A_loss_hist[-1]))
             
             #evaluating performance homogenity, completeness and NMI
+            S_sub, S_layer, S_all = trace_comms(S_pred, model.comm_sizes)
             eval_metrics = node_clust_eval(pred_labels=pred_labels, **kwargs)
+            performance_hist.append(eval_metrics)
             print('Evaluations: homogeniety = {:.3f}, completeness = {:.3f}, NMI = {:.3f}'.format(
                 eval_metrics[0], eval_metrics[1], eval_metrics[2]
                 ))
             print('-' * 80)
-            
+            #------------------------------
             #plotting training curves
-            if epoch >= 10:
+            if ((epoch+1) >= 10):
                 fig, (ax1, ax2) = plt.subplots(2,2, figsize=(12,10))
                 #total loss
                 ax1[0].plot(range(0, epoch+1), loss_history, label = 'Total Loss')
@@ -220,8 +228,30 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
                 ax2[1].plot(range(0, epoch+1), mod_loss_hist, label = 'Modularity Loss')
                 ax2[1].set_xlabel('Training Epochs')
                 ax2[1].set_ylabel('Modularity Loss')
-    
+                
+                #evaluation metrics
+                fig2, (ax12, ax22) = plt.subplots(2,2, figsize=(12,10))
+                #homogeneity
+                ax12[0].plot(updates, np.array(performance_hist)[:,0], label = 'Homogeneity')
+                ax12[0].set_xlabel('Training Epochs')
+                ax12[0].set_ylabel('Homogeneity')
+                #completeness
+                ax12[1].plot(updates, np.array(performance_hist)[:,1], label = 'Completeness')
+                ax12[1].set_xlabel('Training Epochs')
+                ax12[1].set_ylabel('Completeness')
+                #normalized mutual information
+                ax22[0].plot(updates, np.array(performance_hist)[:,2], label = 'NMI')
+                ax22[0].set_xlabel('Training Epochs')
+                ax22[0].set_ylabel('NMI')
+                
+                if save_output == True:
+                    fig.savefig(output_path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
+                    fig2.savefig(output_path+'performance_curve_epoch_'+str(epoch+1)+'.pdf')
+                
+            
+            end_time = time.time()
+            print('...........Epoch time = {}'.format(end_time-start_epoch))
     
     #return 
     X_final, A_final, A_all_final, P_all_final, S_final = model.forward(X, A)
-    return X_final, A_final, A_all_final, P_all_final, S_final
+    return X_final, A_final, A_all_final, P_all_final, S_final, mod_loss_hist, recon_A_loss_hist, recon_X_loss_hist, performance_hist
