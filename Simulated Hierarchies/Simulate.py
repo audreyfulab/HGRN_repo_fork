@@ -180,7 +180,7 @@ def simulate_graph(args):
         adj_all = [h1_undi_adj, h2_undi_adj]
         nx_all = [ts_h1_graph, ts_full]
     else:
-        np.savez(args.savepath+'.npz', llayer1 = h1_undi, 
+        np.savez(args.savepath+'.npz', layer1 = h1_undi, 
                  adj_layer1 = h1_undi_adj,
                  layer2 = h2_undi, 
                  adj_layer2 = h2_undi_adj,
