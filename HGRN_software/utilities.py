@@ -16,7 +16,7 @@ from sklearn.metrics import roc_auc_score, f1_score, normalized_mutual_info_scor
 from sklearn.neighbors import kneighbors_graph
 import scipy as spy
 import seaborn as sbn
-
+import matplotlib.pyplot as plt
 
 # A simple function which computes the modularity of a graph based on a set of 
 #community assignments
@@ -24,7 +24,7 @@ def Modularity(A,P):
     r = A.sum(dim = 1)
     n = A.sum()
     B = A - (torch.outer(r,r) / n)
-    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/n
+    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(2*n)
     return modularity
     
 
@@ -129,7 +129,7 @@ def node_clust_eval(true_labels, pred_labels, verbose = True):
                                      completeness_score(true_labels, pred_labels),\
                                      normalized_mutual_info_score(true_labels, pred_labels)
     if verbose is True:
-        print("\nhomogeneity = ",homogeneity,"\ncompleteness = ", completeness, "\nnmi = ", nmi)
+        print("\nHomogeneity = ",homogeneity,"\nCompleteness = ", completeness, "\nNMI = ", nmi)
     
     return np.array([homogeneity, completeness, nmi])
 
@@ -199,7 +199,7 @@ def trace_comms(comm_list, comm_sizes):
 
 
 # a simple function for quickly plotting clustering performance
-def gen_labels_df(pred_comms_list, truth, sorting):
+def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
     
     """
     pred_comms_list: the predicted communities as output by trace_comms
@@ -209,12 +209,17 @@ def gen_labels_df(pred_comms_list, truth, sorting):
     pred_comms_list_cp = pred_comms_list.copy()
     num_layers = np.arange(0, len(pred_comms_list_cp))
     layer_nm = ['Communities'+'_Layer'+str(i) for i in num_layers]
-    layer_nm.append('Truth')
     
     for i in range(0, len(pred_comms_list)):
-        pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()[sorting]
+        if sort == True:
+            pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()[sorting]
+        else:
+            pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()
     
-    pred_comms_list_cp.append(truth)
+    for j in range(0, len(truth)):
+        if len(truth[::-1][j]) > 0:    
+            pred_comms_list_cp.append(truth[::-1][j])
+            layer_nm.append('Truth_layer_'+str(j))
     df2 = pd.DataFrame(pred_comms_list_cp).T
     df2.columns = layer_nm
     
@@ -274,28 +279,69 @@ def build_true_graph(file='filename'):
 
 
 
-def LoadData(filename):
-    true_labels = pd.DataFrame(pd.read_csv(filename+'_gexp.csv', index_col=0).columns.tolist(), columns = ['Nodes'])
+
+
+def sort_labels(labels):
+    #pdb.set_trace()
+    true_labels = pd.DataFrame(labels, columns = ['Nodes'])
     new_list = []
     l = len(true_labels['Nodes'])
     for i in np.arange(l):
         new_list.append(list(map(int, true_labels['Nodes'][i].split('_'))))
         
-    new_true_labels = pd.DataFrame(np.array(new_list).reshape((l, len(new_list[0])))[:, :2])
+    new_list_array = np.array(new_list)
+    new_true_labels = pd.DataFrame(new_list_array[:,:2])
     new_true_labels.columns = ['clustlabs', 'nodelabs']
     clusts = np.unique(new_true_labels['clustlabs'])
+        
     indices_for_clusts = []
     #extract indices for nodes belonging to each cluster
     for i in clusts:
         indices_for_clusts.append(new_true_labels[new_true_labels['clustlabs'] == i].index.tolist())
         
 
-    pe = np.load(filename+'_gexp.npy').transpose()
+    #pe = np.load(path+'gexp.npy').transpose()
     #reorganize pe so that nodes are sorted according to clusters 0,1,2..etc
     flat_list_indices = []
     for i in clusts:
         flat_list_indices.extend(indices_for_clusts[i])
+        
+        
+    #construct labels for middle layer nodes
+    if new_list_array.shape[1]>2:
+        #num_middle_nodes = new_list_array.shape[0]/len(np.unique(new_list_array[:,1]))
+        #temp = [np.repeat(i,len(np.unique(new_list_array[:,1]))).tolist() for i in np.arange(num_middle_nodes)]
+        #middle_labels = np.array([int(i[0]) for i in np.array(temp).reshape((l,1)).tolist()])
+        temp = [str(i[0])+str(i[1]) for i in new_list]
+        middle_labels = np.array(temp.copy())
+        midclusts = np.unique(temp)
+        newclusts = np.arange(len(midclusts))
+        for i in range(0, len(midclusts)):
+            middle_labels[middle_labels == midclusts[i]] = newclusts[i]
+            
+        middle_labels_final = middle_labels.astype(int)
+        sorted_true_labels_middle = middle_labels_final[flat_list_indices]
+        new_true_labels['middlelabs'] = sorted_true_labels_middle
+    else:
+        sorted_true_labels_middle = []
 
+
+    #the true labels sorted by cluster
+    sort_true_labels = np.array(new_true_labels['clustlabs'][flat_list_indices])
+
+    return flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle
+
+
+
+
+
+
+
+
+def LoadData(filename):
+    unparsed_labels = pd.read_csv(filename+'_gexp.csv', index_col=0).columns.tolist()
+    flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle = sort_labels(unparsed_labels)
+    pe = np.load(filename+'_gexp.npy').transpose()
     true_adj = build_true_graph(filename+'.npz')
     G = nx.from_numpy_array(true_adj)
     G = G.to_undirected()
@@ -303,7 +349,7 @@ def LoadData(filename):
     #the true labels sorted by cluster
     sort_true_labels = np.array(new_true_labels['clustlabs'][flat_list_indices])
 
-    return pe, true_adj_undi, flat_list_indices, new_true_labels, sort_true_labels
+    return pe, true_adj_undi, flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle
     
 
 
@@ -459,6 +505,15 @@ def convert_adj_to_graph(adj):
     gx.add_edges_from(edge_tuples)
     return gx
 
+
+
+
+
+
+
+
+
+
     
 def merge(list1, list2):
       
@@ -467,4 +522,70 @@ def merge(list1, list2):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
+              path='path/to/file', save = True):
     
+    layers = len(mod_loss_hist[0])
+    fig, (ax1, ax2) = plt.subplots(2,2, figsize=(12,10))
+    #total loss
+    ax1[0].plot(range(0, epoch+1), loss_history, label = 'Total Loss')
+    ax1[0].set_xlabel('Training Epochs')
+    ax1[0].set_ylabel('Total Loss')
+    #reconstruction of graph adjacency
+    ax1[1].plot(range(0, epoch+1), recon_A_loss_hist, label = 'Graph Reconstruction Loss')
+    ax1[1].set_xlabel('Training Epochs')
+    ax1[1].set_ylabel('Graph Reconstruction Loss')
+    #reconstruction of node attributes
+    ax2[0].plot(range(0, epoch+1), recon_X_loss_hist, label = 'Attribute Reconstruction Loss')
+    ax2[0].set_xlabel('Training Epochs')
+    ax2[0].set_ylabel('Attribute Reconstruction Loss')
+    #modularity
+    ax2[1].plot(range(0, epoch+1), np.array(mod_loss_hist))
+    ax2[1].set_xlabel('Training Epochs')
+    ax2[1].set_ylabel('Modularity Loss')
+    ax2[1].legend(labels = ['layer'+str(i) for i in np.arange(layers)], loc = 'lower right')
+    
+    if save == True:
+        fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
+        
+    
+
+
+
+
+
+def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save = True):
+    #evaluation metrics
+    layers = len(performance_hist[0])
+    for i in range(0, layers):
+        fig, ax = plt.subplots(figsize=(12,10))
+        layer_hist = [j[i] for j in performance_hist]
+        #homogeneity
+        ax.plot(update_times, np.array(layer_hist)[:,0], label = 'Homogeneity')
+        ax.plot(update_times, np.array(layer_hist)[:,1], label = 'Completeness')
+        ax.plot(update_times, np.array(layer_hist)[:,2], label = 'NMI')
+        ax.set_xlabel('Training Epochs')
+        ax.set_ylabel('Performance')
+
+        if save == True:
+            fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'_layer_'+str(i)+'.pdf')

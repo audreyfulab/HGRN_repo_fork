@@ -19,13 +19,14 @@ sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity
+from simulation_utilities import compute_modularity, sort_labels
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph
 import seaborn as sbn
 import matplotlib.pyplot as plt
-from itertools import product
+from itertools import product, chain
 from tqdm import tqdm
 import pdb
+import ast
 
 
 def run_simulations():
@@ -67,20 +68,27 @@ def run_simulations():
                                          'Recon_X_r08_ingraph', 'true_ingraph_metrics',
                                          'r05_ingraph_metrics', 'r08_ingraph_metrics'])
     
+    case = ['A_ingraph_true/','A_ingraph05/', 'A_ingraph08/']
+    
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
         
+        #pdb.set_trace()
         #extract and use true community sizes
-        if len(stats.nodes_per_layer[idx]) == 9:    
-            comm_sizes = [int(stats.nodes_per_layer[idx][1:3]), int(stats.nodes_per_layer[idx][5:8])][::-1]
+        npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
+        if len(npl) == 2:    
+            comm_sizes = npl[::-1][1:]
         else:
-            comm_sizes = [int(stats.nodes_per_layer[idx][1:3]), int(stats.nodes_per_layer[idx][5:9])][::-1]
+            comm_sizes = npl[::-1][1:]
             
+        #pdb.set_trace()
         #set pathnames and read in simulated network
         print('-'*25+'loading in data'+'-'*25)
         loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
-        savepath = savepath_main+''.join(value[0])+''.join(value[1])
-        pe, true_adj_undi, sort_indices, true_labels, sort_true_labels = LoadData(filename=loadpath)
+        #pdb.set_trace()
+        pe, true_adj_undi, sort_indices, new_true_labels, sort_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
+        #combine target labels into list
+        target_labels = [sort_true_labels_top, sorted_true_labels_middle]
         #sort nodes in expression table 
         pe_sorted = pe[sort_indices,:]
         #generate input graphs for correlations r > 0.5 and r > 0.8
@@ -130,15 +138,18 @@ def run_simulations():
         for i in range(0, 3):
             print("*"*80)
             print(printing[i])
-            out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 500, update_interval=50, 
+            savepath = savepath_main+''.join(value[0])+case[i]+''.join(value[1])
+            out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 1000, 
+                      update_interval=100, 
                       lr = 1e-4, gamma = 0.5, delta = 1, comm_loss='Modularity',
-                      true_labels=sort_true_labels, verbose=False, 
-                      save_output=True, output_path=savepath)
+                      true_labels = target_labels, verbose=False, save_output=True, 
+                      output_path=savepath)
             
             #record best losses and best performances
-            total_loss = (np.array(out[-3])+np.array(out[-2]))-np.array(out[-4])
+            #pdb.set_trace()
+            total_loss = np.array(out[-5])
             best_loss_idx = total_loss.tolist().index(min(total_loss))
-            perf = np.array(out[-1])
+            perf = np.array([list(chain.from_iterable(i)) for i in out[-1]])
             best_perf_idx = perf.sum(axis = 1).tolist().index(max(perf.sum(axis = 1)))
             
             #update lists
@@ -152,13 +163,16 @@ def run_simulations():
             S_sub, S_layer, S_all = trace_comms(out[4], comm_sizes)
             
             #compare true and predicted graph adjacency 
-            A_pred = resort_graph(out[1].detach().numpy(), sort_indices)
-            A_true = resort_graph(Graphs[i].detach().numpy(), sort_indices)
+            #A_pred = resort_graph(out[1].detach().numpy(), sort_indices)
+            #A_true = resort_graph(Graphs[i].detach().numpy(), sort_indices)
+            #pdb.set_trace()
+            A_pred = out[1].detach().numpy()
+            A_true = Graphs[i].detach().numpy()
             fig, (ax1,ax2) = plt.subplots(2,2, figsize=(12,10))
             sbn.heatmap(A_pred, ax = ax1[0])
             sbn.heatmap(A_true, ax = ax1[1])
             
-            df = gen_labels_df(S_layer, sort_true_labels, sort_indices)
+            df = gen_labels_df(S_layer, target_labels, sort_indices, sort = False)
             
             sbn.heatmap(df, ax = ax2[0])
             

@@ -61,9 +61,9 @@ args.connect_prob = 0.01
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 args.subgraph_prob=0.01
-# args.nodes_per_super2=(5,5)
-# args.nodes_per_super3=(5, 5)
-# args.layers = 3
+args.nodes_per_super2=(5,5)
+args.nodes_per_super3=(5,5)
+#args.layers = 3
 args.sample_size = 500
 # args.SD = 0.1
 args.node_degree = 5
@@ -114,13 +114,13 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
         args.SD = value[2][3]
         
         print('-'*60)
-        args.savepath = mainpath+''.join(value[0])+''.join(value[1])
+        args.savepath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
         print('saving hierarchy to {} '.format(args.savepath))
         pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
         print('done')
         print('-'*60)
         print('computing statistics....')
-        
+        pdb.set_trace()
         mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
                                                                      comm_assign = nodelabs, 
                                                                      layers = args.layers)

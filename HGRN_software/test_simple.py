@@ -40,9 +40,9 @@ in_sorted1 = in_adj[flat_list_indices,:]
 in_adj_sorted = in_sorted1[:, flat_list_indices]
 nodes = pe.shape[0]
 attrib = pe.shape[1]
-epochs = 20
-encoder = GATE(in_nodes = nodes, in_attrib = attrib, attention_act='Sigmoid')
-decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], attention_act='Sigmoid')
+# epochs = 20
+# encoder = GATE(in_nodes = nodes, in_attrib = attrib, attention_act='Sigmoid')
+# decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], attention_act='Sigmoid')
 
 
 # Z, A = encoder.forward(torch.Tensor(pe), torch.Tensor(in_adj))
@@ -53,7 +53,7 @@ decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], a
 # X_top, A_top, S, A_all = communityDetector.forward(Z, A)
 
 
-comm_sizes = [60,10]
+comm_sizes = [10]
 #define HGRNgene model
 HCD_model = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
 
@@ -64,10 +64,9 @@ A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
 
 
 #fit model
-out = fit(HCD_model, X, A, optimizer='Adam', epochs = 100, update_interval=20, 
+out = fit(HCD_model, X, A, optimizer='Adam', epochs = 200, update_interval=50, 
         lr = 1e-4, gamma = 0.5, delta = 1, comm_loss='Modularity',
-        true_labels=true_labels.clustlabs.to_numpy(), verbose=False)
-
+        true_labels=[true_labels.clustlabs.to_numpy()], verbose=False)
 
 
 S_sub, S_layer, S_all = trace_comms(out[4], comm_sizes)
@@ -81,7 +80,7 @@ sbn.heatmap(A_pred, ax = ax1[0])
 sbn.heatmap(A_true, ax = ax1[1])
 
 
-df = gen_labels_df(S_layer, sort_true_labels, flat_list_indices)
+df = gen_labels_df(S_layer, [sort_true_labels], flat_list_indices)
 
 
 sbn.heatmap(df, ax = ax2[0])

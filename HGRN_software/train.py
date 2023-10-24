@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 import seaborn as sbn
 from tqdm import tqdm
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df
-
+from utilities import plot_loss, plot_perf
+import pdb
 #------------------------------------------------------
 #custom pytorch dataset
 class CustomDataset(Dataset):
@@ -59,9 +60,12 @@ class ModularityLoss(nn.Module):
         
     def forward(self, all_A, all_P):
         loss = torch.Tensor([0])
+        loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
-            loss+= Modularity(A, P)
-        return loss
+            mod = Modularity(A, P)
+            loss+= mod
+            loss_list.append(float(mod.detach().numpy()))
+        return loss, loss_list
     
 #------------------------------------------------------  
 class ClusterLoss(nn.Module):
@@ -98,6 +102,11 @@ class ClusterLoss(nn.Module):
             loss += between_ss/within_ss
 
         return loss
+    
+    
+    
+    
+
 
     
    
@@ -107,18 +116,19 @@ class ClusterLoss(nn.Module):
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interval=10, 
         lr = 1e-4, prop_train = 0.8, gamma = 1, delta = 1, comm_loss = ['Modularity', 'Clustering'], 
-        save_output = False, output_path = 'path/to/output', **kwargs):
+        true_labels = [], save_output = False, output_path = 'path/to/output', **kwargs):
     """
     
     """
     
     #preallocate storage
     loss_history=[]
-    recon_A_loss_hist=[]
-    recon_X_loss_hist=[]
+    A_loss_hist=[]
+    X_loss_hist=[]
     mod_loss_hist=[]
-    performance_hist = []
+    perf_hist = []
     updates = []
+    time_hist = []
     print(model)
     
     #set optimizer Adam
@@ -156,14 +166,15 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         
         #compute community detection loss
         if comm_loss == 'Modularity':    
-            community_loss = community_loss_fn(A_all, P_all)
+            community_loss, mod_values = community_loss_fn(A_all, P_all)
         elif comm_loss == 'Clustering':
             community_loss = community_loss_fn(X, S)
         
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
-        #sum up losses
+        
+        #compute total loss function
         loss = X_loss+gamma*A_loss-delta*community_loss
 
         #compute backward pass
@@ -172,11 +183,12 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         optimizer.step()
         #update total loss function
         total_loss += loss.cpu().item()
+        
         #store loss component information
         loss_history.append(total_loss)
-        recon_A_loss_hist.append(float(A_loss.detach().numpy()))
-        recon_X_loss_hist.append(float(X_loss.detach().numpy()))
-        mod_loss_hist.append(float(community_loss.detach().numpy()))
+        A_loss_hist.append(float(A_loss.detach().numpy()))
+        X_loss_hist.append(float(X_loss.detach().numpy()))
+        mod_loss_hist.append(mod_values)
         
         #evaluate epoch
         if (epoch+1) % update_interval == 0:
@@ -187,71 +199,67 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             #model forward
             X_pred, A_pred, A_list, P_list, S_pred = model.forward(X, A)
             #extract predicted community labels
-            pred_labels = S_pred[0].detach().numpy()
+            
             
             #loss printing
             #------------------------------
-            print('Epoch {} total_loss = {:.3f}'.format(
-                epoch, total_loss
+            print('\nEpoch {} \nTotal Loss = {:.4f}'.format(
+                epoch+1, total_loss
                 ))
             
-            print('Community Detection Loss = {:.4f}, X Recontrstuction = {:.4f}, A Recontructions = {:.4f}'.format(
-                mod_loss_hist[-1], 
-                recon_X_loss_hist[-1], 
-                recon_A_loss_hist[-1]))
+            if comm_loss == 'Modularity':
+                print('\nModularity = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
+                    np.round(mod_loss_hist[-1],4), 
+                    X_loss_hist[-1], 
+                    A_loss_hist[-1]))
+            else:
+                print('\nClustering Loss = {:.4f}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
+                    mod_loss_hist[-1], 
+                    X_loss_hist[-1], 
+                    A_loss_hist[-1]))
             
             #evaluating performance homogenity, completeness and NMI
-            S_sub, S_layer, S_all = trace_comms(S_pred, model.comm_sizes)
-            eval_metrics = node_clust_eval(pred_labels=pred_labels, **kwargs)
-            performance_hist.append(eval_metrics)
-            print('Evaluations: homogeniety = {:.3f}, completeness = {:.3f}, NMI = {:.3f}'.format(
-                eval_metrics[0], eval_metrics[1], eval_metrics[2]
-                ))
+            S_sub, S_relab, S_all = trace_comms(S_pred, model.comm_sizes)
+            perf_layers = []
+            #pdb.set_trace()
+            for i in range(0, len(S_all)):
+                print('-' * 25 + 'layer_{}'.format(i) + '-' * 25)
+                if len(S_all)>1:    
+                    preds = S_relab[::-1][i].detach().numpy()
+                else:
+                    preds = S_relab[i].detach().numpy()
+                eval_metrics = node_clust_eval(true_labels=true_labels[i],
+                                               pred_labels=preds, 
+                                               verbose=True)
+                perf_layers.append(eval_metrics.tolist())
+                
+            perf_hist.append(perf_layers)
             print('-' * 80)
             #------------------------------
             #plotting training curves
             if ((epoch+1) >= 10):
-                fig, (ax1, ax2) = plt.subplots(2,2, figsize=(12,10))
-                #total loss
-                ax1[0].plot(range(0, epoch+1), loss_history, label = 'Total Loss')
-                ax1[0].set_xlabel('Training Epochs')
-                ax1[0].set_ylabel('Total Loss')
-                #reconstruction of graph adjacency
-                ax1[1].plot(range(0, epoch+1), recon_A_loss_hist, label = 'Graph Reconstruction Loss')
-                ax1[1].set_xlabel('Training Epochs')
-                ax1[1].set_ylabel('Graph Reconstruction Loss')
-                #reconstruction of node attributes
-                ax2[0].plot(range(0, epoch+1), recon_X_loss_hist, label = 'Attribute Reconstruction Loss')
-                ax2[0].set_xlabel('Training Epochs')
-                ax2[0].set_ylabel('Attribute Reconstruction Loss')
-                #modularity
-                ax2[1].plot(range(0, epoch+1), mod_loss_hist, label = 'Modularity Loss')
-                ax2[1].set_xlabel('Training Epochs')
-                ax2[1].set_ylabel('Modularity Loss')
+                #loss plot
+                plot_loss(epoch = epoch, 
+                          loss_history = loss_history, 
+                          recon_A_loss_hist = A_loss_hist, 
+                          recon_X_loss_hist = X_loss_hist, 
+                          mod_loss_hist = mod_loss_hist,
+                          path=output_path, 
+                          save = save_output)
                 
-                #evaluation metrics
-                fig2, (ax12, ax22) = plt.subplots(2,2, figsize=(12,10))
-                #homogeneity
-                ax12[0].plot(updates, np.array(performance_hist)[:,0], label = 'Homogeneity')
-                ax12[0].set_xlabel('Training Epochs')
-                ax12[0].set_ylabel('Homogeneity')
-                #completeness
-                ax12[1].plot(updates, np.array(performance_hist)[:,1], label = 'Completeness')
-                ax12[1].set_xlabel('Training Epochs')
-                ax12[1].set_ylabel('Completeness')
-                #normalized mutual information
-                ax22[0].plot(updates, np.array(performance_hist)[:,2], label = 'NMI')
-                ax22[0].set_xlabel('Training Epochs')
-                ax22[0].set_ylabel('NMI')
+            if len(perf_hist)>1:
+                #performance plot
+                plot_perf(update_times = updates, 
+                          performance_hist = perf_hist, 
+                          epoch = epoch, 
+                          path= output_path, 
+                          save = save_output)
                 
-                if save_output == True:
-                    fig.savefig(output_path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
-                    fig2.savefig(output_path+'performance_curve_epoch_'+str(epoch+1)+'.pdf')
                 
             
-            end_time = time.time()
-            print('...........Epoch time = {}'.format(end_time-start_epoch))
-    
+            print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
+        time_hist.append(time.time() - start_epoch)
+            
     #return 
     X_final, A_final, A_all_final, P_all_final, S_final = model.forward(X, A)
-    return X_final, A_final, A_all_final, P_all_final, S_final, mod_loss_hist, recon_A_loss_hist, recon_X_loss_hist, performance_hist
+    return X_final, A_final, A_all_final, P_all_final, S_final, loss_history, mod_loss_hist, A_loss_hist, X_loss_hist, perf_hist

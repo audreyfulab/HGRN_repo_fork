@@ -47,7 +47,7 @@ parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=10, typ
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(10,20), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(5,10), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(10,20), type=tuple)
 parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
 parser.add_argument('--layers',dest='layers',default = 2, type=int)
@@ -60,13 +60,12 @@ args.toplayer_connect_prob = 0.3
 args.connect_prob = 0.01
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
-args.subgraph_prob=0.01
 # args.nodes_per_super2=(5,5)
 # args.nodes_per_super3=(5, 5)
 # args.layers = 3
-args.sample_size = 500
+#args.sample_size = 500
 # args.SD = 0.1
-args.node_degree = 5
+#args.node_degree = 5
 
 #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
 mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
@@ -155,6 +154,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('saving hierarchy statistics...')
     info_table.loc[idx] = row_info
     info_table.to_csv(mainpath+'network_statistics.csv')
+    np.savez(mainpath+'network_statistics.npz', data = info_table.to_numpy())
     print('done')
     
 print('Simulation Complete')

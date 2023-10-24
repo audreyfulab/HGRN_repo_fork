@@ -16,6 +16,7 @@ from hierarchicalgraph import hierachical_graph
 from hierarchicalgraph import generate_pseudo_expression
 from hierarchicalgraph import same_cluster
 from random import randint as rd   
+import pdb
 
 def simulate_graph(args): 
     
@@ -46,8 +47,10 @@ def simulate_graph(args):
         ts_h2_graph = list(nx.topological_sort(h2_graph))
         adj_h2_graph = nx.adjacency_matrix(h2_graph, ts_h2_graph).todense()
         #draw top layer
-        nx.draw_networkx(nx.from_numpy_matrix(adj_h1_graph),arrows=True)
-    
+        topfig, topax = plt.subplots(1,1, figsize = (10,12))
+        nx.draw_networkx(nx.from_numpy_matrix(adj_h1_graph),arrows=True, ax = topax)
+        topfig.savefig(args.savepath+'top_layer_graph.pdf')
+        
         #print toplayer attributes
         print('-'*60)
         print("Number of edges:" ,h1_graph.number_of_edges())
@@ -58,10 +61,17 @@ def simulate_graph(args):
         nodes_by_layer.append(h1_graph.number_of_nodes())
         edges_by_layer.append(h1_graph.number_of_edges())
         if args.layers == 2:
+            
+            #draw bottom layer
+            botfig, botax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = botax)
+            botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
+            #print and store network statistics
             print("Bottom Layer")
             print("Number of edges:" ,h2_graph.number_of_edges())
             print("Number of nodes:",h2_graph.number_of_nodes())
             print('-'*60)
+            
             nodes_by_layer.append(h2_graph.number_of_nodes())
             edges_by_layer.append(h2_graph.number_of_edges())
     
@@ -73,7 +83,20 @@ def simulate_graph(args):
                                          sub_graph_prob=args.subgraph_prob, 
                                          connection_prob=args.connect_prob, 
                                          degree=args.node_degree)
-        
+            
+            
+            ts_h3_graph = list(nx.topological_sort(h3_graph))
+            adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
+            #draw middle layer
+            midfig, midax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = midax)
+            midfig.savefig(args.savepath+'middle_layer_graph.pdf')
+            #draw bottom layer
+            botfig, botax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h3_graph),arrows=True, ax = botax)
+            botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
+            
+            #print and store network statistics
             print("Middle Layer")
             print("Number of edges:" ,h2_graph.number_of_edges())
             print("Number of nodes:",h2_graph.number_of_nodes())
@@ -82,9 +105,12 @@ def simulate_graph(args):
             print("Number of edges:" ,h3_graph.number_of_edges())
             print("Number of nodes:",h3_graph.number_of_nodes())
             print('-'*60)
+            nodes_by_layer.append(h2_graph.number_of_nodes())
+            edges_by_layer.append(h2_graph.number_of_edges())
             nodes_by_layer.append(h3_graph.number_of_nodes())
             edges_by_layer.append(h3_graph.number_of_nodes())
     
+    #---------------------disconnected networks-------------------------
     else:
         h1_graph =  np.zeros((args.top_layer_nodes,args.top_layer_nodes))
         h1_graph = nx.from_numpy_array(h1_graph)
@@ -102,8 +128,13 @@ def simulate_graph(args):
                                      connection_prob=0, 
                                      degree=args.node_degree)
         
+        #sort middle layer
         ts_h2_graph = list(nx.topological_sort(h2_graph))
         adj_h2_graph = nx.adjacency_matrix(h2_graph, ts_h2_graph).todense()
+        #draw top layer
+        topfig, topax = plt.subplots(1,1, figsize = (10,12))
+        nx.draw_networkx(nx.from_numpy_matrix(adj_h1_graph),arrows=True, ax = topax)
+        topfig.savefig(args.savepath+'top_layer_graph.pdf')
         #print toplayer attributes
         print('-'*60)
         print('Top Layer')
@@ -113,6 +144,12 @@ def simulate_graph(args):
         nodes_by_layer.append(h1_graph.number_of_nodes())
         edges_by_layer.append(h1_graph.number_of_edges())
         if args.layers == 2:
+            
+            #draw bottom layer
+            botfig, botax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = botax)
+            botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
+            #print network statistics
             print("Bottom Layer")
             print("Number of edges:" ,h2_graph.number_of_edges())
             print("Number of nodes:",h2_graph.number_of_nodes())
@@ -128,7 +165,19 @@ def simulate_graph(args):
                                          sub_graph_prob=args.subgraph_prob, 
                                          connection_prob=0, 
                                          degree=args.node_degree)
-        
+            
+            ts_h3_graph = list(nx.topological_sort(h3_graph))
+            adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
+            #draw middle layer
+            midfig, midax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = midax)
+            midfig.savefig(args.savepath+'middle_layer_graph.pdf')
+            #draw bottom layer
+            botfig, botax = plt.subplots(1,1, figsize = (10,12))
+            nx.draw_networkx(nx.from_numpy_matrix(adj_h3_graph),arrows=True, ax = botax)
+            botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
+            
+            #print and store network statistics
             print("Middle Layer")
             print("Number of edges:" ,h2_graph.number_of_edges())
             print("Number of nodes:",h2_graph.number_of_nodes())
@@ -137,6 +186,8 @@ def simulate_graph(args):
             print("Number of edges:" ,h3_graph.number_of_edges())
             print("Number of nodes:",h3_graph.number_of_nodes())
             print('-'*60)
+            nodes_by_layer.append(h2_graph.number_of_nodes())
+            edges_by_layer.append(h2_graph.number_of_edges())
             nodes_by_layer.append(h3_graph.number_of_nodes())
             edges_by_layer.append(h3_graph.number_of_edges())
 
@@ -167,7 +218,7 @@ def simulate_graph(args):
     print('Generating pseudoexpression...')
     pe = generate_pseudo_expression(ts_full, adj_full, args.sample_size)
     print('data dimension = {}'.format(pe.shape))
-
+    #pdb.set_trace()
     #save as .npz
     if args.layers == 2:
         np.savez(args.savepath, layer1 = h1_undi, 

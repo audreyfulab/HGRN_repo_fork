@@ -98,7 +98,7 @@ class HCD(nn.Module):
         decode_dims = hidden_dims.copy()
         decode_dims.reverse()
         decode_dims.append(attrib)
-        self.comm_size = comm_sizes
+        self.comm_sizes = comm_sizes
         self.hidden_dims = hidden_dims
         #set up encoder
         self.encoder = GATE(in_nodes = nodes, in_attrib = attrib, hid_sizes=hidden_dims,
