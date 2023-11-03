@@ -16,11 +16,12 @@ from hierarchicalgraph import hierachical_graph
 from hierarchicalgraph import generate_pseudo_expression
 from hierarchicalgraph import same_cluster
 from random import randint as rd   
+from random import seed
 import pdb
 
 def simulate_graph(args): 
     
-    
+    seed(args.seed_number)
     nodes_by_layer = []
     edges_by_layer = []
     if args.connect == 'full':

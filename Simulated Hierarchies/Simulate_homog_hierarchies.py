@@ -52,6 +52,7 @@ parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
 parser.add_argument('--layers',dest='layers',default = 2, type=int)
 parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
+parser.add_argument('--seed_number',dest='seed_number',default = 555, type=int)
 args = parser.parse_args()
 
 
@@ -98,9 +99,8 @@ info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers'
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
                                      'sample_size','modularity_bottom','avg_node_degree_bottom',
                                      'avg_connect_within_bottom','avg_connect_between_bottom',
-                                     'modularity_middle',
-                                     'avg_node_degree_middle','avg_connect_within_middle',
-                                     'avg_connect_between_middle',
+                                     'modularity_middle','avg_node_degree_middle',
+                                     'avg_connect_within_middle','avg_connect_between_middle',
                                      ])
 
 for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hierarchies…", ascii=False, ncols=75):
@@ -120,7 +120,10 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     
     mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
                                                                  comm_assign = nodelabs, 
-                                                                 layers = args.layers)
+                                                                 layers = args.layers,
+                                                                 sp = args.savepath)
+    
+
     
     print('*'*25+'top layer stats'+'*'*25)
     print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
@@ -149,6 +152,8 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
                    tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
                    mod[0], node_deg[0], deg_within[0], deg_between[0], 
                    'NA', 'NA', 'NA', 'NA']
+        
+    print(pd.DataFrame(row_info))
     
     print('done')
     print('saving hierarchy statistics...')

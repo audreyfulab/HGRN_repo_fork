@@ -6,6 +6,8 @@ Created on Fri Oct 13 11:19:48 2023
 """
 
 from utilities import Modularity, build_true_graph, resort_graph, sort_labels
+import matplotlib.pyplot as plt
+import seaborn as sbn
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -14,29 +16,65 @@ import torch.nn.functional as F
 import pdb
 
 
-def compute_graph_STATs(A_all, comm_assign, layers):
+def compute_graph_STATs(A_all, comm_assign, layers, sp):
     
     mod = []
     node_deg = []
     deg_within = []
     deg_between = []
     
-    sort_indices, true_labels, sorted_labels, sorted_labels_mid = sort_labels(comm_assign)
-    A_sorted = A_all[-1]
+    indices_top, indices_mid, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(comm_assign)
+    A_sorted_by_top = A_all[-1]
     #compute statistics for bottom layer
-    mod.append(compute_modularity(Adj = A_sorted, sort_labels = sorted_labels))
-    node_deg.append(compute_node_degree(A_sorted))
-    deg_within.append(compute_node_degree_within(A=A_sorted, comm_labels = sorted_labels))
-    deg_between.append(compute_node_degree_between(A=A_sorted, comm_labels = sorted_labels))
+    mod.append(compute_modularity(Adj = A_sorted_by_top, 
+                                  sort_labels = sorted_true_labels_top))
+    node_deg.append(compute_node_degree(A_sorted_by_top))
+    deg_within.append(compute_node_degree_within(A=A_sorted_by_top, 
+                                                 comm_labels = sorted_true_labels_top))
+    deg_between.append(compute_node_degree_between(A=A_sorted_by_top, 
+                                                   comm_labels = sorted_true_labels_top))
     
     #compute middle layer statistics 
     if layers > 2:
-        mod.append(compute_modularity(Adj = A_sorted, sort_labels = sorted_labels_mid))
-        node_deg.append(compute_node_degree(A_sorted))
-        deg_within.append(compute_node_degree_within(A=A_sorted, comm_labels = sorted_labels_mid))
-        deg_between.append(compute_node_degree_between(A=A_sorted, comm_labels = sorted_labels_mid))
+        A_sorted_by_middle = resort_graph(A_all[-1], indices_mid)
+        mod.append(compute_modularity(Adj = A_sorted_by_middle, 
+                                      sort_labels = sorted_true_labels_middle))
+        node_deg.append(compute_node_degree(A_sorted_by_middle))
+        deg_within.append(compute_node_degree_within(A=A_sorted_by_middle, 
+                                                     comm_labels = sorted_true_labels_middle))
+        deg_between.append(compute_node_degree_between(A=A_sorted_by_middle, 
+                                                       comm_labels = sorted_true_labels_middle))
+        print('plotting middle graph')
+        plot_nodes(A_sorted_by_middle, sorted_true_labels_middle, sp+'middle_graph')
+        plot_adj(A_sorted_by_middle, sorted_true_labels_middle, sp+'middle_graph_adj')
         
+    print('plotting top graphs')
+    plot_nodes(A_sorted_by_top, sorted_true_labels_top, sp+'top_graph')
+    plot_adj(A_sorted_by_top, sorted_true_labels_top, sp+'top_graph_adj')
+    
+    
     return mod, node_deg, deg_within, deg_between
+
+
+
+#A simple wrapper to plot and save the networkx graph
+def plot_nodes(A, labels, path):
+    fig, ax = plt.subplots()
+    G = nx.from_numpy_array(A)
+    nx.draw_networkx(G, node_color = labels, 
+                     ax = ax, 
+                     node_size = 5, 
+                     with_labels = False)
+    fig.savefig(path+'.pdf')
+    
+    
+    
+#A simple wrapper to plot and save the adjacency heatmap
+def plot_adj(A, labels, path):
+    fig, ax = plt.subplots()
+    sbn.heatmap(A, ax = ax)
+    fig.savefig(path+'.png', dpi = 300)
+
 
 
 
