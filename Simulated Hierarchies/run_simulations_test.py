@@ -29,14 +29,14 @@ import pdb
 import ast
 
 
-def run_simulations():
+def run_simulations(save_results = False):
     
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     #loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
-    #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Simulation_Results/'
+    #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
     loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Simulation_Results/'
+    savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/test/'
     structpath = ['small_world/','scale_free/','random_graph/']
     connectpath = ['disconnected/', 'fully_connected/']
     layerpath = ['2_layer/', '3_layer/']
@@ -72,8 +72,9 @@ def run_simulations():
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
         
         
-        if idx == 2:
+        if idx == 3:
             #pdb.set_trace()
+            lays = value[2][2]
             #extract and use true community sizes
             npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
             if len(npl) == 2:    
@@ -85,13 +86,19 @@ def run_simulations():
             #set pathnames and read in simulated network
             print('-'*25+'loading in data'+'-'*25)
             loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
-            savepath = savepath_main+''.join(value[0])+''.join(value[1])
             #pdb.set_trace()
-            pe, true_adj_undi, sort_indices, new_true_labels, sort_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
+            pe, true_adj_undi, sort_indices_top, sort_indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
             #combine target labels into list
-            target_labels = [sort_true_labels_top, sorted_true_labels_middle]
+            if lays == 2:
+                target_labels = [sorted_true_labels_top, []]
+            else:
+                target_labels = [new_true_labels['toplabs'].to_numpy(), 
+                                 new_true_labels['middlelabs'].to_numpy()[sort_indices_top]]
             #sort nodes in expression table 
-            pe_sorted = pe[sort_indices,:]
+            #pe_sorted = pe
+            pe_sorted = pe[sort_indices_top,:]
+            #target_labels = [sort_true_labels_top, sorted_true_labels_middle]
+            #sort nodes in expression table 
             #generate input graphs for correlations r > 0.5 and r > 0.8
             in_graph05, in_adj05 = get_input_graph(X = pe_sorted, 
                                                method = 'Correlation', 
@@ -106,8 +113,8 @@ def run_simulations():
             print('...done')
             
             #nodes and attributes
-            nodes = pe_sorted.shape[0]
-            attrib = pe_sorted.shape[1]
+            nodes = pe.shape[0]
+            attrib = pe.shape[1]
             #set up three separate models for true input graph, r > 0.5 input graph, and
             #r > 0.8 input graph scenarios
             print('-'*25+'setting up and fitting models'+'-'*25)
@@ -131,7 +138,7 @@ def run_simulations():
             
             #preallocate metrics
             metrics = []
-            modularity = []
+            comm_loss = []
             recon_A = []
             recon_X = []
             print('...done')
@@ -139,61 +146,79 @@ def run_simulations():
             for i in range(0, 3):
                 print("*"*80)
                 print(printing[i])
-                out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 1000, 
-                          update_interval=100, 
-                          lr = 1e-4, gamma = 0.5, delta = 1, comm_loss='Modularity',
-                          true_labels = target_labels, verbose=False, save_output=False, 
-                          output_path=savepath)
+                out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 10, 
+                          update_interval=10, 
+                          lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
+                          true_labels = target_labels, verbose=False, 
+                          save_output=save_results, output_path=savepath_main)
                 
                 #record best losses and best performances
                 #pdb.set_trace()
-                total_loss = (np.array(out[-3])+np.array(out[-2]))-np.array(out[-4])
+                total_loss = np.array(out[-5])
                 best_loss_idx = total_loss.tolist().index(min(total_loss))
                 perf = np.array([list(chain.from_iterable(i)) for i in out[-1]])
                 best_perf_idx = perf.sum(axis = 1).tolist().index(max(perf.sum(axis = 1)))
                 
                 #update lists
-                modularity.append(np.round(out[-4][best_loss_idx], 4))
+                comm_loss.append(np.round(out[-4][best_loss_idx], 4))
                 recon_A.append(np.round(out[-3][best_loss_idx], 4))
                 recon_X.append(np.round(out[-2][best_loss_idx], 4))
                 metrics.append(out[-1][best_perf_idx])
                 
                 
                 #output assigned labels for all layers
-                S_sub, S_layer, S_all = trace_comms(out[4], comm_sizes)
+                S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
                 
+                #print(S_layer)
                 #compare true and predicted graph adjacency 
                 #A_pred = resort_graph(out[1].detach().numpy(), sort_indices)
                 #A_true = resort_graph(Graphs[i].detach().numpy(), sort_indices)
                 #pdb.set_trace()
                 A_pred = out[1].detach().numpy()
                 A_true = Graphs[i].detach().numpy()
+                print('plotting heatmaps...')
                 fig, (ax1,ax2) = plt.subplots(2,2, figsize=(12,10))
                 sbn.heatmap(A_pred, ax = ax1[0])
                 sbn.heatmap(A_true, ax = ax1[1])
                 
-                df = gen_labels_df(S_layer, target_labels, sort_indices, sort = False)
+                fig, ax3 = plt.subplots(1,2, figsize=(12,10))
+                if lays == 3:
+                    TL = target_labels.copy()
+                    TL.reverse()
+                    df_top = gen_labels_df(S_layer, TL, sort_indices_top, sort = True)
+                    df_middle = gen_labels_df(S_layer, TL, sort_indices_middle, sort = True)
+                    first_layer = df_top[df_top.columns.to_numpy()[[0,2]].tolist()]
+                    second_layer = df_middle[df_top.columns.to_numpy()[[1,3]].tolist()]
+                    sbn.heatmap(first_layer, ax = ax2[0])
+                    sbn.heatmap(second_layer, ax = ax2[1])
+                    
+                else:
+                    TL = target_labels.copy()
+                    TL.reverse()
+                    df = gen_labels_df(S_layer, TL, sort_indices_top, sort = True)
+                    sbn.heatmap(df, ax = ax2[0])
                 
-                sbn.heatmap(df, ax = ax2[0])
-                
-                fig.savefig(savepath+'_heatmaps.pdf')
+                if save_results == True:
+                    fig.savefig(savepath_main+'_heatmaps.png', dpi = 300)
                 
             #update performance table
-            row_add = [modularity[0], modularity[1], modularity[2],
+            row_add = [comm_loss[0].tolist(), 
+                       comm_loss[1].tolist(), 
+                       comm_loss[2].tolist(),
                        recon_A[0], recon_A[1], recon_A[2],
                        recon_X[0], recon_X[1], recon_X[2],
-                       tuple(np.round(metrics[0], 4)), 
-                       tuple(np.round(metrics[1], 4)),
-                       tuple(np.round(metrics[2], 4))]
+                       tuple(np.round(metrics[0], 4).tolist()), 
+                       tuple(np.round(metrics[1], 4).tolist()),
+                       tuple(np.round(metrics[2], 4).tolist())]
             
             print('saving performance statistics...')
             res_table.loc[idx] = row_add
-            res_table.to_csv(savepath_main+'simulation_results.csv')
+            if save_results == True:
+                res_table.to_csv(savepath_main+'simulation_results.csv')
+            
+            return out, res_table, df
             print('done')
-        
-        
-        
-        
-        
-run_simulations()
+
+    
+out, res, df = run_simulations(save_results=True)
         
