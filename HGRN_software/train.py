@@ -83,7 +83,8 @@ class ClusterLoss(nn.Module):
         computes forward loss
         """
         loss = torch.Tensor([0])
-        for idx, labels in enumerate(cluster_labels):
+        loss_list = []
+        for idx, (features,labels) in enumerate(zip(Attributes, cluster_labels)):
             #compute total number of clusters
             number_of_clusters = torch.tensor(torch.unique(labels).shape[0])
             #within cluster sum of squares
@@ -99,9 +100,13 @@ class ClusterLoss(nn.Module):
                               norm_degree = self.norm_deg, 
                               weight_by = self.weighting)
             #add loss
-            loss += between_ss/within_ss
+            #loss_list.append(float((between_ss/within_ss).detach().numpy()))
+            #loss += between_ss/within_ss
+            
+            loss_list.append(float((between_ss/number_of_clusters).detach().numpy()))
+            loss += between_ss/number_of_clusters
 
-        return loss
+        return loss, loss_list
     
     
     
@@ -125,10 +130,11 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
     loss_history=[]
     A_loss_hist=[]
     X_loss_hist=[]
-    mod_loss_hist=[]
+    comm_loss_hist=[]
     perf_hist = []
     updates = []
     time_hist = []
+    h_layers = len(model.comm_sizes)
     print(model)
     
     #set optimizer Adam
@@ -161,14 +167,13 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         optimizer.zero_grad()
         #batch = data.transpose(0,1)
         #compute forward output
-        X_hat, A_hat, A_all, P_all, S = model.forward(X, A)
-
+        X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
         
         #compute community detection loss
         if comm_loss == 'Modularity':    
-            community_loss, mod_values = community_loss_fn(A_all, P_all)
+            community_loss, comloss_values = community_loss_fn(A_all, P_all)
         elif comm_loss == 'Clustering':
-            community_loss = community_loss_fn(X, S)
+            community_loss, comloss_values = community_loss_fn(X_all[:h_layers][0], S)
         
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
@@ -188,7 +193,7 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         loss_history.append(total_loss)
         A_loss_hist.append(float(A_loss.detach().numpy()))
         X_loss_hist.append(float(X_loss.detach().numpy()))
-        mod_loss_hist.append(mod_values)
+        comm_loss_hist.append(comloss_values)
         
         #evaluate epoch
         if (epoch+1) % update_interval == 0:
@@ -197,7 +202,7 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             updates.append(epoch+1)
             model.eval()
             #model forward
-            X_pred, A_pred, A_list, P_list, S_pred = model.forward(X, A)
+            X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
             #extract predicted community labels
             
             
@@ -209,12 +214,12 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             
             if comm_loss == 'Modularity':
                 print('\nModularity = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
-                    np.round(mod_loss_hist[-1],4), 
+                    np.round(comm_loss_hist[-1],4), 
                     X_loss_hist[-1], 
                     A_loss_hist[-1]))
             else:
-                print('\nClustering Loss = {:.4f}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
-                    mod_loss_hist[-1], 
+                print('\nClustering Loss = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
+                    np.round(comm_loss_hist[-1],4), 
                     X_loss_hist[-1], 
                     A_loss_hist[-1]))
             
@@ -224,7 +229,7 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             #pdb.set_trace()
             for i in range(0, len(S_all)):
                 print('-' * 25 + 'layer_{}'.format(i) + '-' * 25)
-                if len(S_all)>1:    
+                if h_layers>1:    
                     preds = S_relab[::-1][i].detach().numpy()
                 else:
                     preds = S_relab[i].detach().numpy()
@@ -243,8 +248,9 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
                           loss_history = loss_history, 
                           recon_A_loss_hist = A_loss_hist, 
                           recon_X_loss_hist = X_loss_hist, 
-                          mod_loss_hist = mod_loss_hist,
+                          mod_loss_hist = comm_loss_hist,
                           path=output_path, 
+                          loss_func=comm_loss,
                           save = save_output)
                 
             if len(perf_hist)>1:
@@ -261,5 +267,5 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         time_hist.append(time.time() - start_epoch)
             
     #return 
-    X_final, A_final, A_all_final, P_all_final, S_final = model.forward(X, A)
-    return X_final, A_final, A_all_final, P_all_final, S_final, loss_history, mod_loss_hist, A_loss_hist, X_loss_hist, perf_hist
+    X_final, A_final, X_all_final, A_all_final, P_all_final, S_final = model.forward(X, A)
+    return X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, loss_history, comm_loss_hist, A_loss_hist, X_loss_hist, perf_hist

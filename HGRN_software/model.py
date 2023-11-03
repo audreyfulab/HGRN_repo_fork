@@ -72,7 +72,7 @@ class CommClassifer(nn.Module):
         
         
     def forward(self, Z, A):
-        H_layers = self.model([Z, A, [], [], []])
+        H_layers = self.model([Z, A, [], [], [], []])
         
         return H_layers
         
@@ -123,10 +123,11 @@ class HCD(nn.Module):
         #reconstruct node features
         X_hat, A = self.decoder(Z, A)
         #fit hierarchy
-        X_top, A_top, A_all, P_all, S = self.commModule(Z, A)
+        X_top, A_top, X_all, A_all, P_all, S = self.commModule(Z, A)
         
         A_all_final = [A]+A_all
+        X_all_final = [Z]+X_all
         #return 
-        return X_hat, A_hat, A_all_final, P_all, S
+        return X_hat, A_hat, X_all_final, A_all_final, P_all, S
         #return X_hat
         

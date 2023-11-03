@@ -198,7 +198,8 @@ def trace_comms(comm_list, comm_sizes):
 
 
 
-# a simple function for quickly plotting clustering performance
+# a simple function for quickly combining predicted and true community labels
+# into a dataframe for plotting
 def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
     
     """
@@ -217,8 +218,8 @@ def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
             pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()
     
     for j in range(0, len(truth)):
-        if len(truth[::-1][j]) > 0:    
-            pred_comms_list_cp.append(truth[::-1][j])
+        if len(truth[j]) > 0:    
+            pred_comms_list_cp.append(truth[j])
             layer_nm.append('Truth_layer_'+str(j))
     df2 = pd.DataFrame(pred_comms_list_cp).T
     df2.columns = layer_nm
@@ -291,13 +292,13 @@ def sort_labels(labels):
         
     new_list_array = np.array(new_list)
     new_true_labels = pd.DataFrame(new_list_array[:,:2])
-    new_true_labels.columns = ['clustlabs', 'nodelabs']
-    clusts = np.unique(new_true_labels['clustlabs'])
+    new_true_labels.columns = ['toplabs', 'nodelabs']
+    clusts = np.unique(new_true_labels['toplabs'])
         
     indices_for_clusts = []
     #extract indices for nodes belonging to each cluster
     for i in clusts:
-        indices_for_clusts.append(new_true_labels[new_true_labels['clustlabs'] == i].index.tolist())
+        indices_for_clusts.append(new_true_labels[new_true_labels['toplabs'] == i].index.tolist())
         
 
     #pe = np.load(path+'gexp.npy').transpose()
@@ -312,24 +313,31 @@ def sort_labels(labels):
         #num_middle_nodes = new_list_array.shape[0]/len(np.unique(new_list_array[:,1]))
         #temp = [np.repeat(i,len(np.unique(new_list_array[:,1]))).tolist() for i in np.arange(num_middle_nodes)]
         #middle_labels = np.array([int(i[0]) for i in np.array(temp).reshape((l,1)).tolist()])
-        temp = [str(i[0])+str(i[1]) for i in new_list]
+        temp = [int(str(i[0])+str(i[1])) for i in new_list]
         middle_labels = np.array(temp.copy())
         midclusts = np.unique(temp)
         newclusts = np.arange(len(midclusts))
         for i in range(0, len(midclusts)):
             middle_labels[middle_labels == midclusts[i]] = newclusts[i]
             
-        middle_labels_final = middle_labels.astype(int)
-        sorted_true_labels_middle = middle_labels_final[flat_list_indices]
-        new_true_labels['middlelabs'] = sorted_true_labels_middle
+        new_true_labels['middlelabs'] = middle_labels
+        indices_for_clusts2 = []
+        flat_list_indices2 = []
+        #extract indices for nodes belonging to each cluster
+        for i in newclusts:
+            indices_for_clusts2.append(new_true_labels[new_true_labels['middlelabs'] == i].index.tolist())
+            flat_list_indices2.extend(indices_for_clusts2[i])
+        
+        sorted_true_labels_middle = middle_labels[flat_list_indices2]
     else:
+        flat_list_indices2 = []
         sorted_true_labels_middle = []
 
 
     #the true labels sorted by cluster
-    sort_true_labels = np.array(new_true_labels['clustlabs'][flat_list_indices])
+    sorted_true_labels_top = np.array(new_true_labels['toplabs'][flat_list_indices])
 
-    return flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle
+    return flat_list_indices, flat_list_indices2, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle
 
 
 
@@ -340,16 +348,15 @@ def sort_labels(labels):
 
 def LoadData(filename):
     unparsed_labels = pd.read_csv(filename+'_gexp.csv', index_col=0).columns.tolist()
-    flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle = sort_labels(unparsed_labels)
+    flat_list_indices, flat_list_indices2, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(unparsed_labels)
     pe = np.load(filename+'_gexp.npy').transpose()
     true_adj = build_true_graph(filename+'.npz')
     G = nx.from_numpy_array(true_adj)
     G = G.to_undirected()
     true_adj_undi = nx.adjacency_matrix(G).toarray()
     #the true labels sorted by cluster
-    sort_true_labels = np.array(new_true_labels['clustlabs'][flat_list_indices])
 
-    return pe, true_adj_undi, flat_list_indices, new_true_labels, sort_true_labels, sorted_true_labels_middle
+    return pe, true_adj_undi, flat_list_indices, flat_list_indices2, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle
     
 
 
@@ -543,7 +550,7 @@ def merge(list1, list2):
 
 
 def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
-              path='path/to/file', save = True):
+              path='path/to/file', loss_func = ['Modularity','Clustering'], save = True):
     
     layers = len(mod_loss_hist[0])
     fig, (ax1, ax2) = plt.subplots(2,2, figsize=(12,10))
@@ -559,11 +566,14 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
     ax2[0].plot(range(0, epoch+1), recon_X_loss_hist, label = 'Attribute Reconstruction Loss')
     ax2[0].set_xlabel('Training Epochs')
     ax2[0].set_ylabel('Attribute Reconstruction Loss')
-    #modularity
+    #community loss
     ax2[1].plot(range(0, epoch+1), np.array(mod_loss_hist))
     ax2[1].set_xlabel('Training Epochs')
-    ax2[1].set_ylabel('Modularity Loss')
-    ax2[1].legend(labels = ['layer'+str(i) for i in np.arange(layers)], loc = 'lower right')
+    if loss_func == 'Modularity':
+        ax2[1].set_ylabel('Modularity Loss')
+    else:
+        ax2[1].set_ylabel('Clustering Loss')
+    ax2[1].legend(labels = [i for i in ['middle','top'][:layers]], loc = 'lower right')
     
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')

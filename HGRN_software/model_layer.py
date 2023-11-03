@@ -151,9 +151,10 @@ class Comm_DenseLayer(nn.Module):
         #get assignment labels
         S = torch.argmax(P, dim = 1)
         #store subgraphs, assignment probs, and node labels
-        inputs[2].append(A_tilde)
-        inputs[3].append(P)
-        inputs[4].append(S)
+        inputs[2].append(X_tilde)
+        inputs[3].append(A_tilde)
+        inputs[4].append(P)
+        inputs[5].append(S)
         
         return inputs
     
