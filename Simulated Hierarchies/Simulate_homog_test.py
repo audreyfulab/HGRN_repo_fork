@@ -15,14 +15,14 @@ import seaborn as sbn
 import matplotlib.pyplot as plt
 import sys
 import pandas as pd
-# sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
-# sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
-# sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
-# sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
+sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+# sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from Simulate import simulate_graph
 from simulation_utilities import compute_graph_STATs
 #import os
@@ -46,8 +46,8 @@ parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', def
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=10, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(10,20), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(10,20), type=tuple)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5,6), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(5,6), type=tuple)
 parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
 parser.add_argument('--layers',dest='layers',default = 2, type=int)
@@ -69,7 +69,7 @@ args.connect_prob = 0.01
 #args.node_degree = 5
 
 #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
+mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
 
 structpath = ['small_world/','scale_free/','random_graph/']
 connectpath = ['disconnected/', 'fully_connected/']
@@ -105,61 +105,63 @@ info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers'
 
 for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hierarchies…", ascii=False, ncols=75):
     
-    args.subgraph_type = value[2][0]
-    args.connect = value[2][1]
-    args.layers = value[2][2]
-    args.SD = value[2][3]
     
-    print('-'*60)
-    args.savepath = mainpath+''.join(value[0])+''.join(value[1])
-    print('saving hierarchy to {} '.format(args.savepath))
-    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
-    print('done')
-    print('-'*60)
-    print('computing statistics....')
-    
-    mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
-                                                                 comm_assign = nodelabs, 
-                                                                 layers = args.layers,
-                                                                 sp = args.savepath)
-    
+    if idx == 2:
+        args.subgraph_type = value[2][0]
+        args.connect = value[2][1]
+        args.layers = value[2][2]
+        args.SD = value[2][3]
+        
+        print('-'*60)
+        args.savepath = mainpath+''.join(value[1])
+        print('saving hierarchy to {} '.format(args.savepath))
+        pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
+        print('done')
+        print('-'*60)
+        print('computing statistics....')
+        
+        mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
+                                                                     comm_assign = nodelabs, 
+                                                                     layers = args.layers,
+                                                                     sp = args.savepath)
+        
 
-    
-    print('*'*25+'top layer stats'+'*'*25)
-    print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
-        mod[0], node_deg[0]
-        )) 
-    print('mean within community degree = {:.4f}, mean edges between communities = {:.4f}'.format(
-        deg_within[0], deg_between[0] 
-        ))
-    if args.layers > 2:
-        print('*'*25+'middle layer stats'+'*'*25)
+        
+        print('*'*25+'top layer stats'+'*'*25)
         print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
-            mod[1], node_deg[1]
+            mod[0], node_deg[0]
             )) 
-        print('mean within community degree = {}, mean edges between communities = {}'.format(
-            deg_within[1], deg_between[1] 
+        print('mean within community degree = {:.4f}, mean edges between communities = {:.4f}'.format(
+            deg_within[0], deg_between[0] 
             ))
-        print('*'*60)
-    if args.layers == 3:
+        if args.layers > 2:
+            print('*'*25+'middle layer stats'+'*'*25)
+            print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
+                mod[1], node_deg[1]
+                )) 
+            print('mean within community degree = {}, mean edges between communities = {}'.format(
+                deg_within[1], deg_between[1] 
+                ))
+            print('*'*60)
+        if args.layers == 3:
+            
+            row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+                       tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
+                       mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                       mod[1], node_deg[1], deg_within[1], deg_between[1]]
+        else:
+            row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+                       tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
+                       mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                       'NA', 'NA', 'NA', 'NA']
+            
+        print(pd.DataFrame(row_info))
         
-        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                   tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
-                   mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                   mod[1], node_deg[1], deg_within[1], deg_between[1]]
-    else:
-        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                   tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
-                   mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                   'NA', 'NA', 'NA', 'NA']
-        
-    print(pd.DataFrame(row_info))
-    
-    print('done')
-    print('saving hierarchy statistics...')
-    info_table.loc[idx] = row_info
-    info_table.to_csv(mainpath+'network_statistics.csv')
-    np.savez(mainpath+'network_statistics.npz', data = info_table.to_numpy())
-    print('done')
+        print('done')
+        print('saving hierarchy statistics...')
+        info_table.loc[idx] = row_info
+        info_table.to_csv(mainpath+'network_statistics.csv')
+        np.savez(mainpath+'network_statistics.npz', data = info_table.to_numpy())
+        print('done')
     
 print('Simulation Complete')

@@ -23,7 +23,7 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
     deg_within = []
     deg_between = []
     
-    indices_top, indices_mid, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(comm_assign)
+    indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(comm_assign)
     A_sorted_by_top = A_all[-1]
     #compute statistics for bottom layer
     mod.append(compute_modularity(Adj = A_sorted_by_top, 
@@ -36,21 +36,35 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
     
     #compute middle layer statistics 
     if layers > 2:
-        A_sorted_by_middle = resort_graph(A_all[-1], indices_mid)
-        mod.append(compute_modularity(Adj = A_sorted_by_middle, 
+        #A_sorted_by_middle = resort_graph(A_all[-1], indices_mid)
+        
+        mod.append(compute_modularity(Adj = A_sorted_by_top, 
                                       sort_labels = sorted_true_labels_middle))
-        node_deg.append(compute_node_degree(A_sorted_by_middle))
-        deg_within.append(compute_node_degree_within(A=A_sorted_by_middle, 
+        
+        node_deg.append(compute_node_degree(A_sorted_by_top))
+        
+        deg_within.append(compute_node_degree_within(A=A_sorted_by_top, 
                                                      comm_labels = sorted_true_labels_middle))
-        deg_between.append(compute_node_degree_between(A=A_sorted_by_middle, 
+        
+        deg_between.append(compute_node_degree_between(A=A_sorted_by_top, 
                                                        comm_labels = sorted_true_labels_middle))
         print('plotting middle graph')
-        plot_nodes(A_sorted_by_middle, sorted_true_labels_middle, sp+'middle_graph')
-        plot_adj(A_sorted_by_middle, sorted_true_labels_middle, sp+'middle_graph_adj')
+        print(labels_df)
+        print(pd.DataFrame(sorted_true_labels_middle, columns = ['labels middle']))
+        plot_nodes(A_sorted_by_top, 
+                   sorted_true_labels_middle, 
+                   sp+'middle_graph', 
+                   cmap = 'plasma')
+        plot_adj(A_sorted_by_top, 
+                 sp+'middle_graph_adj')
         
     print('plotting top graphs')
-    plot_nodes(A_sorted_by_top, sorted_true_labels_top, sp+'top_graph')
-    plot_adj(A_sorted_by_top, sorted_true_labels_top, sp+'top_graph_adj')
+    plot_nodes(A_sorted_by_top, 
+               sorted_true_labels_top, 
+               sp+'top_graph',
+               cmap = 'plasma')
+    plot_adj(A_sorted_by_top,  
+             sp+'top_graph_adj')
     
     
     return mod, node_deg, deg_within, deg_between
@@ -58,21 +72,22 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
 
 
 #A simple wrapper to plot and save the networkx graph
-def plot_nodes(A, labels, path):
+def plot_nodes(A, labels, path, **kwargs):
     fig, ax = plt.subplots()
     G = nx.from_numpy_array(A)
     nx.draw_networkx(G, node_color = labels, 
                      ax = ax, 
                      node_size = 5, 
-                     with_labels = False)
+                     with_labels = False, **kwargs)
+    ax.legend()
     fig.savefig(path+'.pdf')
     
     
     
 #A simple wrapper to plot and save the adjacency heatmap
-def plot_adj(A, labels, path):
+def plot_adj(A, path, **kwargs):
     fig, ax = plt.subplots()
-    sbn.heatmap(A, ax = ax)
+    sbn.heatmap(A, ax = ax, **kwargs)
     fig.savefig(path+'.png', dpi = 300)
 
 
