@@ -26,7 +26,9 @@ def simulate_graph(args):
     edges_by_layer = []
     if args.connect == 'full':
         #randomly generate first layer of hierarchy
-        h1_graph = nx.watts_strogatz_graph(args.top_layer_nodes, args.node_degree, args.subgraph_prob)
+        h1_graph = nx.watts_strogatz_graph(args.top_layer_nodes, 
+                                           args.top_layer_nodes, 
+                                           args.subgraph_prob)
         #h1_graph = nx.erdos_renyi_graph(args.top_layer_nodes, args.toplayer_connect_prob, directed=True)
         h1_graph = nx.DiGraph([(u,v) for (u,v) in h1_graph.edges() if u!=v])
         plt.figure(figsize=(10,7))
@@ -126,7 +128,7 @@ def simulate_graph(args):
                                      subgraph_node_number=args.nodes_per_super2, 
                                      subgraph_type =args.subgraph_type, 
                                      sub_graph_prob=args.subgraph_prob, 
-                                     connection_prob=0, 
+                                     connection_prob=args.connect_prob, 
                                      degree=args.node_degree)
         
         #sort middle layer
@@ -164,7 +166,7 @@ def simulate_graph(args):
                                          subgraph_node_number=args.nodes_per_super3, 
                                          subgraph_type =args.subgraph_type, 
                                          sub_graph_prob=args.subgraph_prob, 
-                                         connection_prob=0, 
+                                         connection_prob=args.connect_prob, 
                                          degree=args.node_degree)
             
             ts_h3_graph = list(nx.topological_sort(h3_graph))
@@ -245,7 +247,7 @@ def simulate_graph(args):
         nx_all = [ts_h1_graph, ts_h2_graph, ts_full]
         
     #EL = nx.to_pandas_edgelist(nx.DiGraph(adj_full)).head()
-    gene_list, sample_list = ts_full, range(500)
+    gene_list, sample_list = ts_full, range(args.sample_size)
     gexp = pd.DataFrame(data=np.transpose(pe), index=sample_list, columns=gene_list)
     print(gexp.shape)
     gexp.to_csv(args.savepath+'_gexp.csv')

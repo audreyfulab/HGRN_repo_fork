@@ -12,10 +12,10 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import sys
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
-#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
+#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
+sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
@@ -33,32 +33,34 @@ def run_simulations(save_results = False):
     
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
-    savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
-    #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    #savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/test/'
-    structpath = ['small_world/','scale_free/','random_graph/']
+    #loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
+    #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
+    loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/'
+    savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Toy_test/'
+    #structpath = ['small_world/','scale_free/','random_graph/']
     connectpath = ['disconnected/', 'fully_connected/']
     layerpath = ['2_layer/', '3_layer/']
-    noisepath = ['SD01/','SD05/']
-    
-    
-    struct_nm = ['smw_','sfr_','rdg_']
+    #noisepath = ['SD01/','SD05/']
+
+
+    #struct_nm = ['smw_','sfr_','rdg_']
     connect_nm =['disc_', 'full_']
     layer_nm = ['2_layer_','3_layer_']
-    noise_nm = ['SD01','SD05']
-    
-    struct = ['small world','scale free','random graph']
+    #noise_nm = ['SD01','SD05']
+
+    #struct = ['small world','scale free','random graph']
     connect = ['disc', 'full']
     layers = [2, 3]
-    noise = [0.1, 0.5]
-    
+    #noise = [0.1, 0.5]
+
+
+
     #read in network statistics 
-    stats = pd.read_csv(loadpath_main+'network_statistics.csv')
+    stats = pd.read_csv(loadpath_main+'toy_examples_network_statistics.csv')
     #combine pathname and filename pieces
-    grid1 = product(structpath, connectpath, layerpath, noisepath)
-    grid2 = product(struct_nm, connect_nm, layer_nm, noise_nm)
-    grid3 = product(struct, connect, layers, noise)
+    grid1 = product(connectpath, layerpath)
+    grid2 = product(connect_nm, layer_nm)
+    grid3 = product(connect, layers)
     
     #preallocate results table
     res_table = pd.DataFrame(columns = ['Modularity_True_ingraph', 'Modularity_r05_ingraph',
@@ -67,22 +69,24 @@ def run_simulations(save_results = False):
                                          'Recon_X_true_ingraph','Recon_X_r05_ingraph',
                                          'Recon_X_r08_ingraph', 'true_ingraph_metrics',
                                          'r05_ingraph_metrics', 'r08_ingraph_metrics',
-                                         'Number_Predicted_comms'])
+                                         'Number_Predicted_Comms'])
+    
+    case = ['A_ingraph_true/','A_ingraph05/', 'A_ingraph08/']
     
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
         
         
-        if idx == 2:
+        if idx == 3:
             #pdb.set_trace()
-            lays = value[2][2]
+            lays = value[2][1]
             #extract and use true community sizes
             npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
             if len(npl) == 2:    
                 comm_sizes = npl[::-1][1:]
             else:
                 comm_sizes = npl[::-1][1:]
-                
+                    
             #pdb.set_trace()
             #set pathnames and read in simulated network
             print('-'*25+'loading in data'+'-'*25)
@@ -90,6 +94,7 @@ def run_simulations(save_results = False):
             #pdb.set_trace()
             pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
             #combine target labels into list
+            print(pe.shape)
             if lays == 2:
                 target_labels = [sorted_true_labels_top, []]
             else:
@@ -102,9 +107,9 @@ def run_simulations(save_results = False):
             #sort nodes in expression table 
             #generate input graphs for correlations r > 0.5 and r > 0.8
             in_graph05, in_adj05 = get_input_graph(X = pe_sorted, 
-                                               method = 'Correlation', 
-                                               r_cutoff = 0.5)
-            
+                                                   method = 'Correlation', 
+                                                   r_cutoff = 0.5)
+                
             in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
                                                method = 'Correlation', 
                                                r_cutoff = 0.8)
@@ -112,7 +117,7 @@ def run_simulations(save_results = False):
             print('network statistics:')
             print(stats.loc[idx])
             print('...done')
-            
+                
             #nodes and attributes
             nodes = pe.shape[0]
             attrib = pe.shape[1]
@@ -143,15 +148,17 @@ def run_simulations(save_results = False):
             recon_A = []
             recon_X = []
             print('...done')
+            sp = savepath_main+''.join(value[0])
             #fit the three models
             for i in range(0, 3):
                 print("*"*80)
                 print(printing[i])
-                out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 100, 
+                out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 200, 
                           update_interval=50, 
                           lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
                           true_labels = target_labels, verbose=False, 
-                          save_output=save_results, output_path=savepath_main)
+                          save_output=save_results, 
+                          output_path=sp+case[i])
                 
                 #record best losses and best performances
                 #pdb.set_trace()
@@ -180,7 +187,7 @@ def run_simulations(save_results = False):
                 fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
                 sbn.heatmap(A_pred, ax = ax1[0])
                 sbn.heatmap(A_true, ax = ax1[1])
-                
+                    
                 fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
                 if lays == 3:
                     TL = target_labels.copy()
@@ -188,7 +195,7 @@ def run_simulations(save_results = False):
                     first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[0])).T,
                                                columns = ['Predicted_Middle','Truth_middle'])
                     second_layer = pd.DataFrame(np.vstack((S_layer[1], TL[1])).T,
-                                               columns = ['Predicted_Top','Truth_Top'])
+                                                columns = ['Predicted_Top','Truth_Top'])
                     # df = gen_labels_df(S_layer, TL, [], sort = False)
                     # first_layer = df[df.columns.to_numpy()[[0,2]].tolist()]
                     # second_layer = df[df.columns.to_numpy()[[1,3]].tolist()]
@@ -204,18 +211,19 @@ def run_simulations(save_results = False):
                     sbn.heatmap(first_layer, ax = ax2[0])
                 
                 if save_results == True:
-                    fig1.savefig(savepath_main+'_Adjacency_maps.png', dpi = 300)
-                    fig2.savefig(savepath_main+'_heatmaps.png', dpi = 300)
+                    fig1.savefig(sp+case[i]+'_Adjacency_maps.png', dpi = 300)
+                    fig2.savefig(sp+case[i]+'_heatmaps.png', dpi = 300)
                     plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
                                labels=S_layer[-1], 
-                               path = savepath_main+'Top_Clusters_result_'+str(i),
-                               node_size=10,
-                               cmap = 'plasma')
+                               path = sp+case[i]+'Top_Clusters_result_'+str(i),
+                               node_size=20, 
+                               add_labels = True)
                     if lays == 3:
                         plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
                                    labels=S_layer[0], 
-                                   path = savepath_main+'midde_Clusters_result_'+str(i),
-                                   cmap = 'plasma')
+                                   add_labels = True,
+                                   node_size=20,
+                                   path = sp+case[i]+'midde_Clusters_result_'+str(i))
                 
             #update performance table
             row_add = [comm_loss[0].tolist(), 
@@ -231,10 +239,11 @@ def run_simulations(save_results = False):
             print('saving performance statistics...')
             res_table.loc[idx] = row_add
             if save_results == True:
-                res_table.to_csv(savepath_main+'simulation_results.csv')
-            
-            return out, res_table
+                res_table.to_csv(savepath_main+'Toy_simulation_results.csv')
+                
             print('done')
+    return out, res_table
+    
 
     
 out, res = run_simulations(save_results=True)

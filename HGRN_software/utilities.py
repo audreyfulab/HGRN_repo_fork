@@ -24,7 +24,7 @@ def Modularity(A,P):
     r = A.sum(dim = 1)
     n = A.sum()
     B = A - (torch.outer(r,r) / n)
-    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(2*n)
+    modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(n)
     return modularity
     
 
@@ -596,6 +596,7 @@ def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save =
         ax.plot(update_times, np.array(layer_hist)[:,2], label = 'NMI')
         ax.set_xlabel('Training Epochs')
         ax.set_ylabel('Performance')
+        ax.legend()
 
         if save == True:
             fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'_layer_'+str(i)+'.pdf')

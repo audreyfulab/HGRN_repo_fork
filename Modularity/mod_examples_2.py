@@ -12,7 +12,9 @@ import numpy as np
 import pandas as pd
 from networkx import community as comm
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 from utilities import Modularity
+from simulation_utilities import compute_modularity
 import matplotlib.pyplot as plt
 from random import seed
 path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/'

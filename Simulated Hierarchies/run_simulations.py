@@ -66,7 +66,8 @@ def run_simulations():
                                          'Recon_A_r05_ingraph', 'Recon_A_r08_ingraph',
                                          'Recon_X_true_ingraph','Recon_X_r05_ingraph',
                                          'Recon_X_r08_ingraph', 'true_ingraph_metrics',
-                                         'r05_ingraph_metrics', 'r08_ingraph_metrics'])
+                                         'r05_ingraph_metrics', 'r08_ingraph_metrics',
+                                         'Number_Predicted_Comms'])
     
     case = ['A_ingraph_true/','A_ingraph05/', 'A_ingraph08/']
     
@@ -86,13 +87,14 @@ def run_simulations():
         #set pathnames and read in simulated network
         print('-'*25+'loading in data'+'-'*25)
         loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
-        pdb.set_trace()
+        #pdb.set_trace()
         pe, true_adj_undi, sort_indices_top, sort_indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
         #combine target labels into list
         if lays == 2:
-            target_labels = [new_true_labels['toplabs'], []]
+            target_labels = [sorted_true_labels_top, []]
         else:
-            target_labels = [new_true_labels['toplabs'], new_true_labels['middlelabs']]
+            target_labels = [sorted_true_labels_top, 
+                             sorted_true_labels_middle]
         #sort nodes in expression table 
         #pe_sorted = pe
         pe_sorted = pe[sort_indices_top,:]
@@ -175,28 +177,34 @@ def run_simulations():
             A_pred = out[1].detach().numpy()
             A_true = Graphs[i].detach().numpy()
             print('plotting heatmaps...')
-            fig, (ax1,ax2) = plt.subplots(2,2, figsize=(12,10))
-            sbn.heatmap(A_pred, ax = ax1[1])
-            sbn.heatmap(A_true, ax = ax1[0])
+            fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
+            sbn.heatmap(A_pred, ax = ax1[0])
+            sbn.heatmap(A_true, ax = ax1[1])
+            fig1.savefig(savepath+'_Adjacency_maps.png', dpi = 300)
             
-            fig, ax3 = plt.subplots(1,2, figsize=(12,10))
+            fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
             if lays == 3:
                 TL = target_labels.copy()
-                TL.reverse()
-                df_top = gen_labels_df(S_layer, TL, sort_indices_top, sort = True)
-                df_middle = gen_labels_df(S_layer, TL, sort_indices_middle, sort = True)
-                first_layer = df_top[df_top.columns.to_numpy()[[0,2]].tolist()]
-                second_layer = df_middle[df_top.columns.to_numpy()[[1,3]].tolist()]
+                TL.reverse()   
+                first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[0])).T,
+                                           columns = ['Predicted_Middle','Truth_middle'])
+                second_layer = pd.DataFrame(np.vstack((S_layer[1], TL[1])).T,
+                                           columns = ['Predicted_Top','Truth_Top'])
+                # df = gen_labels_df(S_layer, TL, [], sort = False)
+                # first_layer = df[df.columns.to_numpy()[[0,2]].tolist()]
+                # second_layer = df[df.columns.to_numpy()[[1,3]].tolist()]
                 sbn.heatmap(first_layer, ax = ax2[0])
                 sbn.heatmap(second_layer, ax = ax2[1])
+                
                 
             else:
                 TL = target_labels.copy()
                 TL.reverse()
-                df = gen_labels_df(S_layer, TL, sort_indices_top, sort = True)
-                sbn.heatmap(df, ax = ax2[0])
+                first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[1])).T,
+                                           columns = ['Predicted_Top','Truth_Top'])
+                sbn.heatmap(first_layer, ax = ax2[0])
             
-            fig.savefig(savepath+'_heatmaps.png', dpi = 300)
+            fig2.savefig(savepath+'_heatmaps.png', dpi = 300)
             
         #update performance table
         row_add = [modularity[0].tolist(), 
@@ -206,7 +214,8 @@ def run_simulations():
                    recon_X[0], recon_X[1], recon_X[2],
                    tuple(np.round(metrics[0], 4).tolist()), 
                    tuple(np.round(metrics[1], 4).tolist()),
-                   tuple(np.round(metrics[2], 4).tolist())]
+                   tuple(np.round(metrics[2], 4).tolist()),
+                   tuple([len(np.unique(i)) for i in S_layer])]
         
         print('saving performance statistics...')
         res_table.loc[idx] = row_add

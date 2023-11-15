@@ -7,6 +7,7 @@ Created on Fri Oct 13 11:19:48 2023
 
 from utilities import Modularity, build_true_graph, resort_graph, sort_labels
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import seaborn as sbn
 import networkx as nx
 import numpy as np
@@ -16,7 +17,7 @@ import torch.nn.functional as F
 import pdb
 
 
-def compute_graph_STATs(A_all, comm_assign, layers, sp):
+def compute_graph_STATs(A_all, comm_assign, layers, sp, **kwargs):
     
     mod = []
     node_deg = []
@@ -53,8 +54,8 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
         print(pd.DataFrame(sorted_true_labels_middle, columns = ['labels middle']))
         plot_nodes(A_sorted_by_top, 
                    sorted_true_labels_middle, 
-                   sp+'middle_graph', 
-                   cmap = 'plasma')
+                   sp+'middle_graph',
+                   **kwargs)
         plot_adj(A_sorted_by_top, 
                  sp+'middle_graph_adj')
         
@@ -62,7 +63,7 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
     plot_nodes(A_sorted_by_top, 
                sorted_true_labels_top, 
                sp+'top_graph',
-               cmap = 'plasma')
+               **kwargs)
     plot_adj(A_sorted_by_top,  
              sp+'top_graph_adj')
     
@@ -72,14 +73,24 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp):
 
 
 #A simple wrapper to plot and save the networkx graph
-def plot_nodes(A, labels, path, **kwargs):
+def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = False):
     fig, ax = plt.subplots()
     G = nx.from_numpy_array(A)
-    nx.draw_networkx(G, node_color = labels, 
-                     ax = ax, 
-                     node_size = 5, 
-                     with_labels = False, **kwargs)
-    ax.legend()
+    if add_labels == True:
+        clust_labels = {list(G.nodes)[i]: labels.tolist()[i] for i in range(len(labels))}
+        nx.draw_networkx(G, node_color = labels, 
+                         labels = clust_labels,
+                         font_size = font_size,
+                         node_size = node_size,
+                         cmap = 'plasma')
+    else:
+        nx.draw_networkx(G, node_color = labels, 
+                         ax = ax, 
+                         font_size = font_size,
+                         node_size = node_size, 
+                         with_labels = False,
+                         cmap = 'plasma')
+        
     fig.savefig(path+'.pdf')
     
     

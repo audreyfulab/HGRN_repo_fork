@@ -1,0 +1,436 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage [left=25.4mm,top=25.4mm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+%\usepackage{apacite}
+\usepackage{url}
+\usepackage{subfig}
+\usepackage{csvsimple}
+\usepackage{float}
+\usepackage{lineno}
+\usepackage[affil-it]{authblk}
+\usepackage{setspace}
+\usepackage{makecell} 
+\usepackage{tikz}
+\usepackage{csvsimple}
+\usepackage{newfloat}
+\usepackage{xcolor}
+\usepackage{tabularx,booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage{tocbasic}
+\usepackage{sectsty}
+
+\sectionfont{\fontsize{12}{15}\selectfont}
+\chapterfont{\fontsize{14}{15}\selectfont}
+\subsectionfont{\fontsize{10}{15}\selectfont}
+
+\newcommand\hcancel[2][black]{\setbox0=\hbox{$#2$}%
+	\rlap{\raisebox{.45\ht0}{\textcolor{#1}{\rule{\wd0}{1pt}}}}#2} 
+\newcommand{\forceindent}{\leavevmode{\parindent=2em\indent}}
+
+\DeclareFloatingEnvironment[name={Supplementary Figure},fileext=lsf,listname={List of Supplementary Figures}]{suppfigure}
+\DeclareFloatingEnvironment[name={Supplementary Table},fileext=lsf,listname={List of Supplementary Tables}]{supptable}
+\DeclareFloatingEnvironment[name={Supplementary Material},fileext=lsf,listname={List of Supplementary Material}]{suppmat}
+
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\indep}{\perp \!\!\! \perp}
+\renewcommand*\contentsname{TABLE OF CONTENTS}
+\renewcommand{\listfigurename}{LIST OF FIGURES}
+\renewcommand{\listtablename}{LIST OF TABLES}
+
+\renewcommand{\arraystretch}{1.5}
+\begin{document}
+	\begin{titlepage}
+		\title{Modularity Examples}
+		\author[1]{Jarred M. Kvamme}
+		\affil[1]{Department of Bioinformatics and Computational Biology - University of Idaho}
+		\maketitle
+	\end{titlepage}
+	
+	
+	\newpage
+	\tableofcontents{}
+	\addcontentsline{toc}{section}{LIST OF TABLES}
+	\addcontentsline{toc}{section}{LIST OF FIGURES}
+	\listoftables
+	\listoffigures
+	\newpage
+	
+	\section{Case 1: Two completely disconnected communities}
+	In this first case, we explore how modularity is influenced by community structure exploring an elementary example consisting of two completely disconnected sub-networks of $5$ nodes each. These two sub-networks correspond to two communities. We focus on two examples: \textbf{Example 1} consists of calculating the modularity when the nodes in sub-networks assigned to their correct communities and \textbf{Example 2} consists of calculating the modularity when all the nodes are assigned to a single community \textbf{Figure \ref{fig:case1}}. For all examples, we use the following formulation of the modularity 
+	\[Q = \sum_{k=1}^K\frac{\Sigma_{in,k}}{2m} - \left(\frac{\Sigma_{tot,k}}{2m}\right)^2 \]
+	where $\Sigma_{in,k}$ is the total number of edges within the $k^{th}$ community (multiplied by 2), $\sigma_{tot,k}$ is the total number of edges incident to each node in community $k$, and $m$ is the total number of edges in the network
+	\begin{figure}[H]
+		\centering
+		\caption{Case 1 graph}
+		\includegraphics[scale=0.65]{C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf}
+		\label{fig:case1}
+	\end{figure}
+	\subsection*{Example 1: Modularity for two communities of 5 nodes}
+	We start by computing the modularity for community one (teal). The structure of each sub-network is identical which greatly simplified the calculations. For community 1, the number of edges within is $\Sigma_{in,1} = 2\times5$, the number of incident edges is $\Sigma_{tot,1} = 10$ and $m = 10$. Therefore the modularity of community 1 is 
+	\[Q_1 = \frac{10}{2(10)} - \frac{10^2}{4(100)} = 0.25\]
+	similarly for community 2 we have 
+	\[Q_2 = \frac{10}{2(10)} - \frac{10^2}{4(100)} = 0.25\]
+	Therefore the total modularity is the sum of the modularity of each community:
+	
+	\[ Q = \sum_{k=1}^2 Q_k = 0.5\]
+	\subsection*{Example 2: Modularity for a single community of 10 nodes}
+	In our second example we compute the modularity when all of the nodes are grouped into a single community. The is gives $\Sigma_{in,1} = 2(10) = 20$, $\Sigma_{tot,1} = 2(10) = 20$,  $m = 10$ which gives:
+	
+	\[ Q = \frac{20}{2(10)}-\frac{20^2}{4(100)} = 1-1 = 0 \]
+	
+	
+
+	\section{Case 2: A single network divided into 2 communities}
+	In this second case, we explore how modularity is influenced by community structure through another elementary example in which we have a single ring-structured community which is divided evenly into two sub-networks of $5$ nodes each \textbf{\textbf{Figure \ref{fig:case2}}}. We again focus on two examples: \textbf{Example 1} calculating the modularity when the nodes are divided into two communities and \textbf{Example 2} calculating the modularity when all the nodes in the ring are assigned to a single community. 
+	\begin{figure}[H]
+		\centering
+		\caption{Case 2 graph}
+		\includegraphics[scale=0.65]{C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.pdf}
+		\label{fig:case2}
+	\end{figure}
+	
+	
+	\subsection*{Example 1: Modularity for a ring divided into two communities of 5 nodes}
+		We start by computing the individual modularities for each community. Again structure of each sub-network is identical making the calculations simple. For community 1, the number of edges within is $\Sigma_{in,1} = 2\times4$, the number of incident edges is $\Sigma_{tot,1} = 10$ and $m = 10$. Therefore the modularity of community 1 is 
+		\[Q_1 = \frac{8}{2(10)} - \frac{10^2}{4(20)} = 0.15\]
+		similarly for community 2 we have 
+		\[Q_2 = \frac{10}{2(20)} - \frac{10^2}{4(20)} = 0.15\]
+		Therefore the total modularity is the sum of the modularity of each community:
+	
+	\[ Q = \sum_{k=1}^2 Q_k = 0.3\]
+	\newpage
+	\subsection*{Example 2: Modularity for all nodes in a single community}
+		In our second example we compute the modularity when all of the nodes are grouped into a single community. The is gives $\Sigma_{in,1} = 2(10) = 20$, $\Sigma_{tot,1} = 2(10) = 20$,  $m = 10$ which gives:
+	
+		\[ Q = \frac{20}{2(10)}-\frac{20^2}{4(100)} = 1-1 = 0 \]
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	\section{Case 3: The case of a singleton community}
+	In this second example, we explore how modularity is affected by the presence of a singleton community \textbf{Figure \ref{fig:case3}}. In \textbf{Example 1} we calculate the modularity when there are two communities where one community consists of a single isolated node (singleton) and the other community consists of a community of 5 nodes. In \textbf{Example 2} we expand on \textbf{Example 1} by allowing the singleton community to have a single edge connecting it the primary network of 5 nodes \textbf{Figure \ref{fig:case3b}}. Lastly, in \textbf{Examples 3-4} we calculate the modularity for \textbf{Examples 1-2} when grouping all nodes into a single community. 
+	
+	\begin{figure}[H]
+		\centering
+		\caption{Case 3 graph}
+		\includegraphics[scale=0.65]{C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf}
+		\label{fig:case3}
+	\end{figure}
+	
+	\subsection*{Example 1: Modularity for a ring divided into two communities of 5 nodes}
+	We start by computing the individual modularities for each community. For the singleton community, the number of edges within is $\Sigma_{in,1} = 0$, the number of incident edges is $\Sigma_{tot,1} = 5$ and $m = 5$. Therefore the modularity of the singleton community is 
+	\[Q_1 = \frac{0}{2(5)} - \frac{5^2}{4(25)} = -0.25\]
+	For the second community of five nodes in a ring structure, we have 
+	\[Q_2 = \frac{10}{2(5)} - \frac{5^2}{4(25)} = 0.5\]
+	Therefore the total modularity is the sum of the modularity of each community:
+	
+	\[ Q = \sum_{k=1}^K Q_k = 0.5\]
+	\subsection*{Example 2: Modularity for all nodes in a single community}
+	In our second example we compute the modularity similar to \textbf{Example 1} but now the singleton community share a single edge to the other community of give nodes. The choice of which node the edge connects to is arbitrary and does not effect the modularity.  
+	
+	\begin{figure}[H]
+		\centering
+		\caption{Case 3(b) graph}
+		\includegraphics[scale=0.65]{C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.pdf}
+		\label{fig:case3b}
+	\end{figure}
+	
+	For the singleton community, the number of edges within is still $\Sigma_{in,1} = 0$, the number of incident edges is now $\Sigma_{tot,1} = 6$ and $m = 6$. Therefore the modularity of the singleton community is 
+	\[Q_1 = \frac{0}{2(6)} - \frac{6^2}{4(36)} = -0.25\]
+	The same value as before. For the second community of five nodes in a ring structure, we have 
+	\[Q_2 = \frac{10}{2(6)} - \frac{10^2}{4(100)} = 0.25\]
+	Therefore the total modularity is the sum of the modularity of each community:
+	
+	\[ Q = \sum_{k=1}^K Q_k = 0\]
+	
+	\subsection*{Example 3: Example 1 with a single community}
+	
+	\subsection*{Example 4: Example 2 with a single community}
+	
+	
+	
+	
+	
+	\appendix
+	
+	\section*{Case 1 In Linear Form}
+	Please refer to the network in \textbf{Figure \ref{fig:case1}}:
+	
+	\subsection*{Example 1: Modularity for two communities of 5 nodes}
+	Let $\bf{C}$ be the the community assignment matrix 
+	\[ {\bf C} = \begin{bmatrix}1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 0 & 1 \\ 0 & 1 \\ 0 & 1 \\ 0 & 1 \\ 0 & 1 \\
+	\end{bmatrix}\] 
+	
+	Let $\bf A$ be the graph adjacency matrix
+	\[ {\bf A} = \begin{bmatrix}
+		0& 1& 0& 0& 1& 0& 0& 0& 0& 0\\
+		1& 0& 1& 0& 0& 0& 0& 0& 0& 0\\
+		0& 1& 0& 1& 0& 0& 0& 0& 0& 0\\
+		0& 0& 1& 0& 1& 0& 0& 0& 0& 0\\
+		1& 0& 0& 1& 0& 0& 0& 0& 0& 0\\
+		0& 0& 0& 0& 0& 0& 1& 0& 0& 1\\
+		0& 0& 0& 0& 0& 1& 0& 1& 0& 0\\
+		0& 0& 0& 0& 0& 0& 1& 0& 1& 0\\
+		0& 0& 0& 0& 0& 0& 0& 1& 0& 1\\
+		0& 0& 0& 0& 0& 1& 0& 0& 1& 0
+	\end{bmatrix}\] 
+	
+	Further let $\bf B$ be the modularity matrix defined as 
+	
+	\[ {\bf B} = {\bf A} - \frac{1}{2m}{\bf r}\otimes {\bf r} \]
+	
+	where 
+	
+	\[ {\bf r} = \begin{bmatrix}
+		0& 1& 0& 0& 1& 0& 0& 0& 0& 0\\
+		1& 0& 1& 0& 0& 0& 0& 0& 0& 0\\
+		0& 1& 0& 1& 0& 0& 0& 0& 0& 0\\
+		0& 0& 1& 0& 1& 0& 0& 0& 0& 0\\
+		1& 0& 0& 1& 0& 0& 0& 0& 0& 0\\
+		0& 0& 0& 0& 0& 0& 1& 0& 0& 1\\
+		0& 0& 0& 0& 0& 1& 0& 1& 0& 0\\
+		0& 0& 0& 0& 0& 0& 1& 0& 1& 0\\
+		0& 0& 0& 0& 0& 0& 0& 1& 0& 1\\
+		0& 0& 0& 0& 0& 1& 0& 0& 1& 0
+	\end{bmatrix} \cdot \begin{bmatrix}
+		1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\ 1 & \\
+	\end{bmatrix} = \begin{bmatrix}
+		2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\ 2 & \\
+	\end{bmatrix} \]
+	
+	therefore
+	
+	\[ {\bf r}\otimes {\bf r} = \begin{bmatrix}
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4\\
+		4& 4& 4& 4& 4& 4& 4& 4& 4& 4
+	\end{bmatrix}\]
+	
+	we also have that 
+	
+	\[ m = \frac{1}{2} \sum_i \sum_j {\bf A}_{i,j} = 10\]
+	
+	therefore the modularity matrix can be expressed as 
+	\[ {\bf B} = \begin{bmatrix}
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}
+	\end{bmatrix} \]
+	
+	We compute the modularity using the following equation
+	
+	\[M = \frac{1}{4m}Tr({\bf C^T B C}) \]
+	
+	where 
+	\[ {\bf C^T B C} = \] 
+	\[\small \begin{bmatrix}
+		1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 0 \\
+		0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1 \\
+	\end{bmatrix}\cdot  \begin{bmatrix}
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}
+	\end{bmatrix} \cdot 
+	\begin{bmatrix}
+		1 & 0 \\ 
+		1 & 0 \\
+		1 & 0 \\
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 
+	\end{bmatrix}\]
+	
+	\[\small =\begin{bmatrix}
+		1&  1&  1&  1&  1& -1& -1& -1& -1& -1 \\
+		-1& -1& -1& -1& -1&  1&  1&  1&  1&  1 \\
+	\end{bmatrix} \cdot 
+	\begin{bmatrix}
+		1 & 0 \\ 
+		1 & 0 \\
+		1 & 0 \\
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 \\ 
+		0 & 1 
+	\end{bmatrix}\]
+	
+	
+	\[ =\begin{bmatrix}
+		5 & -5 \\
+		-5 & 5 \\
+	\end{bmatrix} \]
+	
+	Therefore the modularity equals 
+	
+	\[ M = \frac{1}{40} \times Tr\left( \begin{bmatrix}
+		5 & -5 \\
+		-5 & 5 \\
+	\end{bmatrix} \right) \]
+	
+	\[ = \frac{1}{40} \times 10 = 0.25\]
+	
+	
+	\subsection*{Example 2: Modularity for a single community of 10 nodes}
+	In our second example we compute the modularity when all of the nodes are grouped into a single cluster. The only computation which we much change is ${\bf C^T B C}$. In this scenario, the community assignment matrix is as follows
+	
+	\[ {\bf C} = \begin{bmatrix}1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\
+	\end{bmatrix}\] 
+	
+	
+	\[ {\bf C^T B C} = \] 
+	\[\small \begin{bmatrix}
+		1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 \\
+		0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+	\end{bmatrix}\cdot  \begin{bmatrix}
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		\frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& \frac{16}{20}\\
+		-\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}& -\frac{4}{20}& \frac{16}{20}& -\frac{4}{20}
+	\end{bmatrix} \cdot 
+	\begin{bmatrix}
+		1 & 0 \\ 
+		1 & 0 \\
+		1 & 0 \\
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 
+	\end{bmatrix}\]
+	
+	\[\small =\begin{bmatrix}
+		0&  0&  0&  0&  0& 0& 0& 0& 0& 0 \\
+		0& 0& 0& 0& 0& 0& 0& 0& 0&  0 \\
+	\end{bmatrix} \cdot 
+	\begin{bmatrix}
+		1 & 0 \\ 
+		1 & 0 \\
+		1 & 0 \\
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 \\ 
+		1 & 0 
+	\end{bmatrix}\]
+	
+	
+	\[ =\begin{bmatrix}
+		0 & 0 \\
+		0 & 0 \\
+	\end{bmatrix} \]
+	
+	\[M = \frac{1}{40} \times 0 = 0\]
+	
+	
+	\section{Case 3}
+	\[ {\bf C} = \begin{bmatrix}1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 0 \\ 0 & 1 \\	\end{bmatrix}\] 
+	
+	Let $\bf A$ be the graph adjacency matrix
+	\[ {\bf A} = \begin{bmatrix}
+		0& 1& 0& 0& 1& 0 \\
+		1& 0& 1& 0& 0& 0 \\
+		0& 1& 0& 1& 0& 0 \\
+		0& 0& 1& 0& 1& 0 \\
+		1& 0& 0& 1& 0& 0 \\
+		0& 0& 0& 0& 0& 0 \\
+	\end{bmatrix}\] 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	\clearpage
+	\newpage
+	
+	\bibliographystyle{unsrt}
+	\bibliography{pseudocode_bibs}
+	
+	
+	
+	
+	
+	
+\end{document}
