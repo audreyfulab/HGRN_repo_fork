@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import seaborn as sbn
 from tqdm import tqdm
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df
-from utilities import plot_loss, plot_perf
+from utilities import plot_loss, plot_perf, plot_adj, plot_nodes, plot_clust_heatmaps
 import pdb
 #------------------------------------------------------
 #custom pytorch dataset
@@ -160,6 +160,7 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         if epoch % update_interval == 0:
             print('Epoch {} starts !'.format(epoch))
             print('=' * 80)
+            print('=' * 80)
         total_loss = 0
         model.train()
 
@@ -244,6 +245,7 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             #plotting training curves
             if ((epoch+1) >= 10):
                 #loss plot
+                print('plotting loss curve...')
                 plot_loss(epoch = epoch, 
                           loss_history = loss_history, 
                           recon_A_loss_hist = A_loss_hist, 
@@ -253,13 +255,45 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
                           loss_func=comm_loss,
                           save = save_output)
                 
+                #plotting graphs in networkx 
+                print('plotting nx graphs...')
+                plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
+                           labels=S_relab[-1], 
+                           path = output_path+'Top_Clusters_result',
+                           node_size=20, 
+                           save = save_output,
+                           add_labels = True)
+                if h_layers == 2:
+                    plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
+                               labels=S_relab[0], 
+                               add_labels = True,
+                               node_size=20,
+                               save=save_output,
+                               path = output_path+'midde_Clusters_result')
+                    
+                #plotting heatmaps: 
+                print('plotting heatmaps...')
+                plot_clust_heatmaps(A = A, 
+                                    A_pred = A_pred, 
+                                    true_labels = true_labels, 
+                                    pred_labels = S_relab, 
+                                    layers = h_layers+1, 
+                                    epoch = epoch+1, 
+                                    save_plot = save_output, 
+                                    sp = output_path)
+                
+                
+                
             if len(perf_hist)>1:
+                print('plotting performance curves')
                 #performance plot
                 plot_perf(update_times = updates, 
                           performance_hist = perf_hist, 
                           epoch = epoch, 
                           path= output_path, 
                           save = save_output)
+                
+            
                 
                 
             

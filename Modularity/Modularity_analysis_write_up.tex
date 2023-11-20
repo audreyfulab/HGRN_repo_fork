@@ -147,12 +147,12 @@
 	
 	\subsection*{Example 1: Modularity for a ring divided into two communities of 5 nodes}
 	We start by computing the individual modularities for each community. For the singleton community, the number of edges within is $\Sigma_{in,1} = 0$, the number of incident edges is $\Sigma_{tot,1} = 5$ and $m = 5$. Therefore the modularity of the singleton community is 
-	\[Q_1 = \frac{0}{2(5)} - \frac{5^2}{4(25)} = -0.25\]
+	\[Q_1 = \frac{0}{2(5)} - \frac{0^2}{4(25)} = 0\]
 	For the second community of five nodes in a ring structure, we have 
-	\[Q_2 = \frac{10}{2(5)} - \frac{5^2}{4(25)} = 0.5\]
+	\[Q_2 = \frac{10}{2(5)} - \frac{10^2}{4(25)} = 0\]
 	Therefore the total modularity is the sum of the modularity of each community:
 	
-	\[ Q = \sum_{k=1}^K Q_k = 0.5\]
+	\[ Q = \sum_{k=1}^K Q_k = 0\]
 	\subsection*{Example 2: Modularity for all nodes in a single community}
 	In our second example we compute the modularity similar to \textbf{Example 1} but now the singleton community share a single edge to the other community of give nodes. The choice of which node the edge connects to is arbitrary and does not effect the modularity.  
 	
@@ -164,21 +164,25 @@
 	\end{figure}
 	
 	For the singleton community, the number of edges within is still $\Sigma_{in,1} = 0$, the number of incident edges is now $\Sigma_{tot,1} = 6$ and $m = 6$. Therefore the modularity of the singleton community is 
-	\[Q_1 = \frac{0}{2(6)} - \frac{6^2}{4(36)} = -0.25\]
+	\[Q_1 = \frac{0}{2(6)} - \frac{1^2}{4(36)} = -0.00694\]
 	The same value as before. For the second community of five nodes in a ring structure, we have 
-	\[Q_2 = \frac{10}{2(6)} - \frac{10^2}{4(100)} = 0.25\]
+	\[Q_2 = \frac{10}{2(6)} - \frac{11^2}{4(100)} = -0.00694\]
 	Therefore the total modularity is the sum of the modularity of each community:
 	
-	\[ Q = \sum_{k=1}^K Q_k = 0\]
+	\[ Q = \sum_{k=1}^K Q_k = -0.01389\]
 	
 	\subsection*{Example 3: Example 1 with a single community}
+	In this third example we compute the modularity when all of the nodes from the graph in \textbf{Example 1} are grouped into a single community. The is gives $\Sigma_{in} = 2(5) = 10$, $\Sigma_{tot} = 2(5) = 10$,  $m = 5$ which gives:
 	
+	\[ Q = \frac{10}{2(5)}-\frac{10^2}{4(25)} = 1-1 = 0 \]
 	\subsection*{Example 4: Example 2 with a single community}
+	Lastly, for the fourth example we compute the modularity when all of the nodes from the graph in \textbf{Example 2} are grouped into a single community. The is gives $\Sigma_{in} = 2(6) = 12$, $\Sigma_{tot} = 2(6) = 12$,  $m = 6$ which gives:
+	
+	\[ Q = \frac{12}{2(6)}-\frac{12^2}{4(36)} = 1-1 = 0 \]
 	
 	
 	
-	
-	
+	\newpage
 	\appendix
 	
 	\section*{Case 1 In Linear Form}

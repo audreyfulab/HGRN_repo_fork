@@ -133,10 +133,19 @@ graph_adj, comm_assign = create_singletons(num_singletons = 1,
                                           nodes_in_full_comm = 5,
                                           sp = path+'case2_singleton.pdf')
 
+graph_adj2 = graph_adj.copy()
+graph_adj2[3,5] = 1
+graph_adj2[5,3] = 1
+fig, ax =plt.subplots()
+
+nx.draw_networkx(nx.from_numpy_array(graph_adj2), 
+                 node_color = comm_assign.argmax(1), 
+                 cmap = 'cool', ax = ax)
+fig.savefig(path+'singleton_with_edge.pdf')
 
 graph_adj, comm_assign = one_net_multi_comms(comms = 2, 
-                                                           degree = 2, 
-                                                           connect_prob = 0.05, 
-                                                           nodes_per_comm = [5,5], 
-                                                           sp=path+'on_net_multi_comms.pdf')
+                                             degree = 2, 
+                                             connect_prob = 0.05, 
+                                             nodes_per_comm = [5,5], 
+                                             sp=path+'on_net_multi_comms.pdf')
     

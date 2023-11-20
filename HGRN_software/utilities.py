@@ -548,7 +548,7 @@ def merge(list1, list2):
 
 
 
-
+# a simple function to plot the loss curves during training
 def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
               path='path/to/file', loss_func = ['Modularity','Clustering'], save = True):
     
@@ -583,7 +583,7 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
 
 
 
-
+# a simple function for plotting the performance curves during training
 def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save = True):
     #evaluation metrics
     layers = len(performance_hist[0])
@@ -600,3 +600,80 @@ def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save =
 
         if save == True:
             fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'_layer_'+str(i)+'.pdf')
+            
+            
+            
+#A simple wrapper to plot and save the networkx graph
+def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = False,
+               save = True):
+    fig, ax = plt.subplots()
+    G = nx.from_numpy_array(A)
+    if add_labels == True:
+        clust_labels = {list(G.nodes)[i]: labels.tolist()[i] for i in range(len(labels))}
+        nx.draw_networkx(G, node_color = labels, 
+                         labels = clust_labels,
+                         font_size = font_size,
+                         node_size = node_size,
+                         cmap = 'plasma')
+    else:
+        nx.draw_networkx(G, node_color = labels, 
+                         ax = ax, 
+                         font_size = font_size,
+                         node_size = node_size, 
+                         with_labels = False,
+                         cmap = 'plasma')
+    if save == True:    
+        fig.savefig(path+'.pdf')
+    
+  
+    
+  
+    
+  
+    
+#A simple wrapper to plot and save the adjacency heatmap
+def plot_adj(A, path, **kwargs):
+    fig, ax = plt.subplots()
+    sbn.heatmap(A, ax = ax, **kwargs)
+    fig.savefig(path+'.png', dpi = 300)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+#a simple function to plot the clustering heatmaps 
+def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
+    fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
+    sbn.heatmap(A_pred.detach().numpy(), ax = ax1[0])
+    sbn.heatmap(A.detach().numpy(), ax = ax1[1])
+    
+    fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
+    TL = true_labels.copy()
+    TL.reverse()   
+    if layers == 3:
+
+        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[0])).T,
+                                   columns = ['Predicted_Middle','Truth_middle'])
+        second_layer = pd.DataFrame(np.vstack((pred_labels[1], TL[1])).T,
+                                        columns = ['Predicted_Top','Truth_Top'])
+        sbn.heatmap(first_layer, ax = ax2[0])
+        sbn.heatmap(second_layer, ax = ax2[1])
+            
+            
+    else:
+        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[1])).T,
+                                       columns = ['Predicted_Top','Truth_Top'])
+        sbn.heatmap(first_layer, ax = ax2[0])
+        
+        
+    if save_plot == True:
+        fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)
+        fig2.savefig(sp+'epoch_'+str(epoch)+'_heatmaps.png', dpi = 300) 

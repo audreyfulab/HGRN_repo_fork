@@ -3,4 +3,4 @@
 \contentsline {section}{\numberline {1}Case 1: Two completely disconnected communities}{2}%
 \contentsline {section}{\numberline {2}Case 2: A single network divided into 2 communities}{3}%
 \contentsline {section}{\numberline {3}Case 3: The case of a singleton community}{5}%
-\contentsline {section}{\numberline {A}Case 3}{12}%
+\contentsline {section}{\numberline {A}Case 3}{13}%
