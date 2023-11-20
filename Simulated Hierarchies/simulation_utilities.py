@@ -5,7 +5,8 @@ Created on Fri Oct 13 11:19:48 2023
 @author: Bruin
 """
 
-from utilities import Modularity, build_true_graph, resort_graph, sort_labels
+from utilities import Modularity, build_true_graph, resort_graph 
+from utilities import sort_labels, plot_adj, plot_nodes
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sbn
@@ -72,34 +73,7 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp, **kwargs):
 
 
 
-#A simple wrapper to plot and save the networkx graph
-def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = False):
-    fig, ax = plt.subplots()
-    G = nx.from_numpy_array(A)
-    if add_labels == True:
-        clust_labels = {list(G.nodes)[i]: labels.tolist()[i] for i in range(len(labels))}
-        nx.draw_networkx(G, node_color = labels, 
-                         labels = clust_labels,
-                         font_size = font_size,
-                         node_size = node_size,
-                         cmap = 'plasma')
-    else:
-        nx.draw_networkx(G, node_color = labels, 
-                         ax = ax, 
-                         font_size = font_size,
-                         node_size = node_size, 
-                         with_labels = False,
-                         cmap = 'plasma')
-        
-    fig.savefig(path+'.pdf')
-    
-    
-    
-#A simple wrapper to plot and save the adjacency heatmap
-def plot_adj(A, path, **kwargs):
-    fig, ax = plt.subplots()
-    sbn.heatmap(A, ax = ax, **kwargs)
-    fig.savefig(path+'.png', dpi = 300)
+
 
 
 

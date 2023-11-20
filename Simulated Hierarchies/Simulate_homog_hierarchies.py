@@ -121,10 +121,13 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
                                                                  comm_assign = nodelabs, 
                                                                  layers = args.layers,
-                                                                 sp = args.savepath)
-    
+                                                                 sp = args.savepath,
+                                                                 node_size=12,
+                                                                 font_size = 0,
+                                                                 add_labels=True)
+        
 
-    
+        
     print('*'*25+'top layer stats'+'*'*25)
     print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
         mod[0], node_deg[0]
@@ -136,7 +139,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
         print('*'*25+'middle layer stats'+'*'*25)
         print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
             mod[1], node_deg[1]
-            )) 
+        )) 
         print('mean within community degree = {}, mean edges between communities = {}'.format(
             deg_within[1], deg_between[1] 
             ))
@@ -144,14 +147,14 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     if args.layers == 3:
         
         row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                   tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
-                   mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                   mod[1], node_deg[1], deg_within[1], deg_between[1]]
+                    tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
+                    mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                    mod[1], node_deg[1], deg_within[1], deg_between[1]]
     else:
         row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                   tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
-                   mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                   'NA', 'NA', 'NA', 'NA']
+                    tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
+                    mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                    'NA', 'NA', 'NA', 'NA']
         
     print(pd.DataFrame(row_info))
     
