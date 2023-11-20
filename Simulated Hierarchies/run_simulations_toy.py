@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import pandas as pd
+import networkx as nx
 import sys
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
@@ -27,6 +28,8 @@ from itertools import product, chain
 from tqdm import tqdm
 import pdb
 import ast
+import random as rd
+rd.seed(123)
 
 
 def run_simulations(save_results = False):
@@ -63,186 +66,203 @@ def run_simulations(save_results = False):
     grid3 = product(connect, layers)
     
     #preallocate results table
-    res_table = pd.DataFrame(columns = ['Modularity_True_ingraph', 'Modularity_r05_ingraph',
-                                         'Modularity_r08_igraph', 'Recon_A_true_ingraph',
-                                         'Recon_A_r05_ingraph', 'Recon_A_r08_ingraph',
-                                         'Recon_X_true_ingraph','Recon_X_r05_ingraph',
-                                         'Recon_X_r08_ingraph', 'true_ingraph_metrics',
-                                         'r05_ingraph_metrics', 'r08_ingraph_metrics',
-                                         'Number_Predicted_Comms'])
+    res_table = pd.DataFrame(columns = ['Modularity',
+                                        'Reconstruction_A',
+                                        'Reconstruction_X', 
+                                        'Metrics',
+                                        'Number_Predicted_Comms'])
+    tables = [res_table.copy(),res_table.copy(),res_table.copy(),res_table.copy(),
+              res_table.copy()]
     
-    case = ['A_ingraph_true/','A_ingraph05/', 'A_ingraph08/']
+    case = ['A_ingraph_true/','A_corr_no_cutoff/','A_ingraph02/', 
+            'A_ingraph05/', 'A_ingraph08/']
+    case_nm = ['A_ingraph_true','A_corr_no_cutoff','A_ingraph02', 
+               'A_ingraph05', 'A_ingraph08']
     
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
         
         
-        if idx == 3:
-            #pdb.set_trace()
-            lays = value[2][1]
-            #extract and use true community sizes
-            npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
-            if len(npl) == 2:    
-                comm_sizes = npl[::-1][1:]
-            else:
-                comm_sizes = npl[::-1][1:]
-                    
-            #pdb.set_trace()
-            #set pathnames and read in simulated network
-            print('-'*25+'loading in data'+'-'*25)
-            loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
-            #pdb.set_trace()
-            pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
-            #combine target labels into list
-            print(pe.shape)
-            if lays == 2:
-                target_labels = [sorted_true_labels_top, []]
-            else:
-                target_labels = [sorted_true_labels_top, 
-                                 sorted_true_labels_middle]
+        #if idx == 2:
+        #pdb.set_trace()
+        lays = value[2][1]
+        #extract and use true community sizes
+        npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
+        if len(npl) == 2:    
+            comm_sizes = npl[::-1][1:]
+        else:
+            comm_sizes = npl[::-1][1:]
+                
+        #pdb.set_trace()
+        #set pathnames and read in simulated network
+        print('-'*25+'loading in data'+'-'*25)
+        loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
+        #pdb.set_trace()
+        pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
+       
+        #combine target labels into list
+        print('Read in expression data of dimension = {}'.format(pe.shape))
+        if lays == 2:
+            target_labels = [sorted_true_labels_top, []]
             #sort nodes in expression table 
-            #pe_sorted = pe
             pe_sorted = pe[indices_top,:]
-            #target_labels = [sort_true_labels_top, sorted_true_labels_middle]
+        else:
+            target_labels = [sorted_true_labels_top, 
+                             sorted_true_labels_middle]
             #sort nodes in expression table 
-            #generate input graphs for correlations r > 0.5 and r > 0.8
-            in_graph05, in_adj05 = get_input_graph(X = pe_sorted, 
-                                                   method = 'Correlation', 
-                                                   r_cutoff = 0.5)
-                
-            in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
+            pe_sorted = pe[indices_middle,:]
+        
+
+        #generate input graphs for correlations r > 0.2, r > 0.5 and r > 0.8
+        in_graph02, in_adj02 = get_input_graph(X = pe_sorted, 
                                                method = 'Correlation', 
-                                               r_cutoff = 0.8)
-            #print network statistics
-            print('network statistics:')
-            print(stats.loc[idx])
-            print('...done')
-                
-            #nodes and attributes
-            nodes = pe.shape[0]
-            attrib = pe.shape[1]
-            #set up three separate models for true input graph, r > 0.5 input graph, and
-            #r > 0.8 input graph scenarios
-            print('-'*25+'setting up and fitting models'+'-'*25)
-            HCD_model_truth = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+                                               r_cutoff = 0.2)
+        
+        in_graph05, in_adj05 = get_input_graph(X = pe_sorted, 
+                                               method = 'Correlation', 
+                                               r_cutoff = 0.5)
             
-            #set attribute and input graph(s) to torch tensors with grad attached
-            X = torch.Tensor(pe_sorted).requires_grad_()
-            #three input graph scenarios -- add self loops
-            A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
-            A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
-            A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
+        in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
+                                           method = 'Correlation', 
+                                           r_cutoff = 0.8)
+        
+        rmat = np.corrcoef(pe_sorted)
+        in_graph_rmat = nx.from_numpy_array(rmat)
+        #print network statistics
+        print('network statistics:')
+        print(stats.loc[idx])
+        print('...done')
             
-            #combine input items into lists for iteration
-            Mods = [HCD_model_truth, HCD_model_r05, HCD_model_r08]
-            Graphs = [A_truth, A_r05, A_r08]
-            printing = ['fitting model using true input graph',
-                        'fitting model using r > 0.5 input graph',
-                        'fitting model using r > 0.8 input graph']
+        #nodes and attributes
+        nodes = pe.shape[0]
+        attrib = pe.shape[1]
+        #set up three separate models for true input graph, r > 0.5 input graph, and
+        #r > 0.8 input graph scenarios
+        print('-'*25+'setting up and fitting models'+'-'*25)
+        HCD_model_truth = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        
+        #set attribute and input graph(s) to torch tensors with grad attached
+        X = torch.Tensor(pe_sorted).requires_grad_()
+        #three input graph scenarios -- add self loops
+        A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
+        A_rmat = torch.Tensor(rmat).requires_grad_()+torch.eye(nodes)
+        A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
+        A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
+        A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
+        
+        #combine input items into lists for iteration
+        Mods = [HCD_model_truth, HCD_model_rmat, HCD_model_r02, 
+                HCD_model_r05, HCD_model_r08]
+        Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r08]
+        printing = ['fitting model using true input graph',
+                    'fitting model using r matrix as input graph',
+                    'fitting model using r > 0.2 input graph',
+                    'fitting model using r > 0.5 input graph',
+                    'fitting model using r > 0.8 input graph']
+        
+        #preallocate metrics
+        metrics = []
+        comm_loss = []
+        recon_A = []
+        recon_X = []
+        predicted_comms = []
+        print('...done')
+        sp = savepath_main+''.join(value[0])
+        #fit the three models
+        for i in range(0, 5):
+            print("*"*80)
+            print(printing[i])
+            out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 50, 
+                      update_interval=5, 
+                      lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
+                      true_labels = target_labels, verbose=False, 
+                      save_output=save_results, 
+                      output_path=sp+case[i])
             
-            #preallocate metrics
-            metrics = []
-            comm_loss = []
-            recon_A = []
-            recon_X = []
-            print('...done')
-            sp = savepath_main+''.join(value[0])
-            #fit the three models
-            for i in range(0, 3):
-                print("*"*80)
-                print(printing[i])
-                out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 200, 
-                          update_interval=50, 
-                          lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
-                          true_labels = target_labels, verbose=False, 
-                          save_output=save_results, 
-                          output_path=sp+case[i])
-                
-                #record best losses and best performances
-                #pdb.set_trace()
-                total_loss = np.array(out[-5])
-                best_loss_idx = total_loss.tolist().index(min(total_loss))
-                perf = np.array([list(chain.from_iterable(i)) for i in out[-1]])
-                best_perf_idx = perf.sum(axis = 1).tolist().index(max(perf.sum(axis = 1)))
-                
-                #update lists
-                comm_loss.append(np.round(out[-4][best_loss_idx], 4))
-                recon_A.append(np.round(out[-3][best_loss_idx], 4))
-                recon_X.append(np.round(out[-2][best_loss_idx], 4))
-                metrics.append(out[-1][best_perf_idx])
-                
-                
-                #output assigned labels for all layers
-                S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
-                #print(S_layer)
-                #compare true and predicted graph adjacency 
-                #A_pred = resort_graph(out[1].detach().numpy(), sort_indices)
-                #A_true = resort_graph(Graphs[i].detach().numpy(), sort_indices)
-                #pdb.set_trace()
-                A_pred = out[1].detach().numpy()
-                A_true = Graphs[i].detach().numpy()
-                print('plotting heatmaps...')
-                fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
-                sbn.heatmap(A_pred, ax = ax1[0])
-                sbn.heatmap(A_true, ax = ax1[1])
-                    
-                fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
-                if lays == 3:
-                    TL = target_labels.copy()
-                    TL.reverse()   
-                    first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[0])).T,
-                                               columns = ['Predicted_Middle','Truth_middle'])
-                    second_layer = pd.DataFrame(np.vstack((S_layer[1], TL[1])).T,
-                                                columns = ['Predicted_Top','Truth_Top'])
-                    # df = gen_labels_df(S_layer, TL, [], sort = False)
-                    # first_layer = df[df.columns.to_numpy()[[0,2]].tolist()]
-                    # second_layer = df[df.columns.to_numpy()[[1,3]].tolist()]
-                    sbn.heatmap(first_layer, ax = ax2[0])
-                    sbn.heatmap(second_layer, ax = ax2[1])
-                    
-                    
-                else:
-                    TL = target_labels.copy()
-                    TL.reverse()
-                    first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[1])).T,
-                                               columns = ['Predicted_Top','Truth_Top'])
-                    sbn.heatmap(first_layer, ax = ax2[0])
-                
-                if save_results == True:
-                    fig1.savefig(sp+case[i]+'_Adjacency_maps.png', dpi = 300)
-                    fig2.savefig(sp+case[i]+'_heatmaps.png', dpi = 300)
-                    plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
-                               labels=S_layer[-1], 
-                               path = sp+case[i]+'Top_Clusters_result_'+str(i),
-                               node_size=20, 
-                               add_labels = True)
-                    if lays == 3:
-                        plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
-                                   labels=S_layer[0], 
-                                   add_labels = True,
-                                   node_size=20,
-                                   path = sp+case[i]+'midde_Clusters_result_'+str(i))
-                
-            #update performance table
-            row_add = [comm_loss[0].tolist(), 
-                       comm_loss[1].tolist(), 
-                       comm_loss[2].tolist(),
-                       recon_A[0], recon_A[1], recon_A[2],
-                       recon_X[0], recon_X[1], recon_X[2],
-                       tuple(np.round(metrics[0], 4).tolist()), 
-                       tuple(np.round(metrics[1], 4).tolist()),
-                       tuple(np.round(metrics[2], 4).tolist()),
-                       tuple([len(np.unique(i)) for i in S_layer])]
+            #record best losses and best performances
+            #pdb.set_trace()
+            total_loss = np.array(out[-5])
+            best_loss_idx = total_loss.tolist().index(min(total_loss))
+            perf = np.array([list(chain.from_iterable(i)) for i in out[-1]])
+            best_perf_idx = perf.sum(axis = 1).tolist().index(max(perf.sum(axis = 1)))
             
-            print('saving performance statistics...')
-            res_table.loc[idx] = row_add
+            #update lists
+            comm_loss.append(np.round(out[-4][best_loss_idx], 4))
+            recon_A.append(np.round(out[-3][best_loss_idx], 4))
+            recon_X.append(np.round(out[-2][best_loss_idx], 4))
+            metrics.append(out[-1][best_perf_idx][0])
+            
+            #output assigned labels for all layers
+            S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
+            predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
+           
+            #plotting
+            A_pred = out[1].detach().numpy()
+            A_true = Graphs[i].detach().numpy()
+            print('plotting heatmaps...')
+            fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
+            sbn.heatmap(A_pred, ax = ax1[0])
+            sbn.heatmap(A_true, ax = ax1[1])
+                
+            fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
+            if lays == 3:
+                TL = target_labels.copy()
+                TL.reverse()   
+                first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[0])).T,
+                                           columns = ['Predicted_Middle','Truth_middle'])
+                second_layer = pd.DataFrame(np.vstack((S_layer[1], TL[1])).T,
+                                            columns = ['Predicted_Top','Truth_Top'])
+                # df = gen_labels_df(S_layer, TL, [], sort = False)
+                # first_layer = df[df.columns.to_numpy()[[0,2]].tolist()]
+                # second_layer = df[df.columns.to_numpy()[[1,3]].tolist()]
+                sbn.heatmap(first_layer, ax = ax2[0])
+                sbn.heatmap(second_layer, ax = ax2[1])
+                
+                
+            else:
+                TL = target_labels.copy()
+                TL.reverse()
+                first_layer = pd.DataFrame(np.vstack((S_layer[0], TL[1])).T,
+                                           columns = ['Predicted_Top','Truth_Top'])
+                sbn.heatmap(first_layer, ax = ax2[0])
+            
             if save_results == True:
-                res_table.to_csv(savepath_main+'Toy_simulation_results.csv')
-                
-            print('done')
+                fig1.savefig(sp+case[i]+'_Adjacency_maps.png', dpi = 300)
+                fig2.savefig(sp+case[i]+'_heatmaps.png', dpi = 300)
+                plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
+                           labels=S_layer[-1], 
+                           path = sp+case[i]+'Top_Clusters_result',
+                           node_size=20, 
+                           add_labels = True)
+                if lays == 3:
+                    plot_nodes(A = (A_truth-torch.eye(nodes)).detach().numpy(), 
+                               labels=S_layer[0], 
+                               add_labels = True,
+                               node_size=20,
+                               path = sp+case[i]+'midde_Clusters_result')
+            
+            #update performance table
+            row_add = [tuple(comm_loss[i].tolist()), 
+                       recon_A[i], 
+                       recon_X[i],
+                       tuple(np.round(metrics[i], 4)), 
+                       predicted_comms[i]]
+        
+            print('updating performance statistics...')
+            tables[i].loc[idx] = row_add
+        
+            if save_results == True:
+                tables[i].to_csv(savepath_main+'Toy_sim_results_'+case_nm[i]+'.csv')
+            
+        
+            
+        print('done')
     return out, res_table
+            
     
 
     
