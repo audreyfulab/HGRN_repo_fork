@@ -121,7 +121,7 @@ class ClusterLoss(nn.Module):
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interval=10, 
         lr = 1e-4, prop_train = 0.8, gamma = 1, delta = 1, comm_loss = ['Modularity', 'Clustering'], 
-        true_labels = [], save_output = False, output_path = 'path/to/output', **kwargs):
+        true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, **kwargs):
     """
     
     """
@@ -228,8 +228,9 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
             S_sub, S_relab, S_all = trace_comms(S_pred, model.comm_sizes)
             perf_layers = []
             #pdb.set_trace()
+            lnm = ['top','middle']
             for i in range(0, len(S_all)):
-                print('-' * 25 + 'layer_{}'.format(i) + '-' * 25)
+                print('-' * 25 + 'layer_{}'.format(lnm[i]) + '-' * 25)
                 if h_layers>1:    
                     preds = S_relab[::-1][i].detach().numpy()
                 else:
@@ -259,17 +260,19 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
                 print('plotting nx graphs...')
                 plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
                            labels=S_relab[-1], 
-                           path = output_path+'Top_Clusters_result',
-                           node_size=20, 
+                           path = output_path+'Top_Clusters_result_'+str(epoch+1),
+                           node_size=ns, 
+                           font_size=fs,
                            save = save_output,
                            add_labels = True)
                 if h_layers == 2:
                     plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
                                labels=S_relab[0], 
                                add_labels = True,
-                               node_size=20,
+                               node_size=ns,
+                               font_size=fs,
                                save=save_output,
-                               path = output_path+'midde_Clusters_result')
+                               path = output_path+'midde_Clusters_result_'+str(epoch+1))
                     
                 #plotting heatmaps: 
                 print('plotting heatmaps...')
