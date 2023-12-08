@@ -24,6 +24,7 @@ from simulation_utilities import compute_modularity, plot_nodes
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph
 import seaborn as sbn
 import matplotlib.pyplot as plt
+from community import community_louvain as cl
 from itertools import product, chain
 from tqdm import tqdm
 import pdb
@@ -66,11 +67,17 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
     grid3 = product(connect, layers)
     
     #preallocate results table
-    res_table = pd.DataFrame(columns = ['Modularity',
+    #preallocate results table
+    res_table = pd.DataFrame(columns = ['Communities_Upper_Limit',
+                                        'Max_Modularity',
+                                        'Modularity',
                                         'Reconstruction_A',
                                         'Reconstruction_X', 
                                         'Metrics',
-                                        'Number_Predicted_Comms'])
+                                        'Number_Predicted_Comms',
+                                        'Louvain_Modularity',
+                                        'Louvain_Metrics',
+                                        'Louvain_Predicted_comms'])
     tables = [res_table.copy(),res_table.copy(),res_table.copy(),res_table.copy(),
               res_table.copy()]
     
@@ -126,7 +133,7 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                                                method = 'Correlation', 
                                                r_cutoff = 0.8)
             
-            rmat = np.corrcoef(pe_sorted)
+            rmat = np.absolute(np.corrcoef(pe_sorted))
             in_graph_rmat = nx.from_numpy_array(rmat)
             #print network statistics
             print('network statistics:')
@@ -149,7 +156,7 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
             X = torch.Tensor(pe_sorted).requires_grad_()
             #three input graph scenarios -- add self loops
             A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
-            A_rmat = torch.Tensor(rmat).requires_grad_()+torch.eye(nodes)
+            A_rmat = torch.Tensor(rmat).requires_grad_()
             A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
             A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
             A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
@@ -170,6 +177,9 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
             recon_A = []
             recon_X = []
             predicted_comms = []
+            louv_metrics = []
+            louv_mod = []
+            louv_num_comms = []
             print('...done')
             sp = savepath_main+''.join(value[0])
             #fit the three models
@@ -178,12 +188,14 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                 if i == input_graph_number:
                     print("*"*80)
                     print(printing[i])
-                    out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 50, 
+                    out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 100, 
                               update_interval=50, 
                               lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
                               true_labels = target_labels, verbose=False, 
                               save_output=save_results, 
-                              output_path=sp+case[i])
+                              output_path=sp+case[i],
+                              ns = 25,
+                              fs = 10)
                     
                     #record best losses and best performances
                     #pdb.set_trace()
@@ -198,33 +210,75 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                     recon_X.append(np.round(out[-2][best_loss_idx], 4))
                     metrics.append(out[-1][best_perf_idx][0])
                     
+                    #compute the upper limit of communities and modularity
+                    upper_limit = torch.sqrt(torch.sum(Graphs[i]-torch.eye(nodes)))
+                    max_modularity = 1 - (2/upper_limit)
+                    
                     #output assigned labels for all layers
                     S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
                     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
-                   
-                
                     
-                    
+                    #get prediction using louvain method
+                    comms = cl.best_partition(nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).detach().numpy()))
+                    louv_mod = cl.modularity(comms, nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).detach().numpy()))
+                    #extract cluster labels
+                    louv_preds = list(comms.values())
+                    louv_num_comms = len(np.unique(louv_preds))
+                    #make heatmap for louvain results and get metrics
+                    fig, ax = plt.subplots()
+                    if lays == 2:
+                        louv_metrics = {'Top': tuple(np.round(node_clust_eval(target_labels[0], 
+                                                                     np.array(louv_preds), verbose=False), 4))}
+                        sbn.heatmap(pd.DataFrame(np.array([louv_preds,  
+                                                           target_labels[0].tolist()]).T,
+                                                 columns = ['Louvain','Truth_Top']),
+                                    ax = ax)
+                    else:
+                        lnm=['Top','Middle']
+                        for j in range(0, 2):
+                            louv_metrics.append({lnm[j]: tuple(np.round(node_clust_eval(target_labels[j], 
+                                                                                 np.array(louv_preds), verbose=False), 4))})
+                            sbn.heatmap(pd.DataFrame(np.array([louv_preds, 
+                                                               target_labels[1].tolist(), 
+                                                               target_labels[0].tolist()]).T,
+                                                     columns = ['Louvain','Truth_Middle','Truth_Top']),
+                                        ax = ax)
+                    #make heatmap for louvain results
+                    fig.savefig(savepath_main+'Louvain_results.pdf')
+                    plot_nodes((Graphs[i]-torch.eye(nodes)).detach().numpy(), 
+                               labels = np.array(louv_preds), 
+                               path = savepath_main+'Louvain_graph_'+case_nm[i], 
+                               node_size = 25, 
+                               font_size = 10, 
+                               add_labels = True,
+                               save = True)
                     #update performance table
-                    row_add = [tuple(comm_loss[i].tolist()), 
-                               recon_A[i], 
-                               recon_X[i],
-                               tuple(np.round(metrics[i], 4)), 
-                               predicted_comms[i]]
-                
+                    row_add = [np.round(upper_limit.detach().numpy()),
+                               np.round(max_modularity.detach().numpy(),4),
+                               tuple(comm_loss[-1].tolist()), 
+                               recon_A[-1], 
+                               recon_X[-1],
+                               tuple(np.round(metrics[-1], 4)), 
+                               predicted_comms[-1],
+                               np.round(louv_mod, 4),
+                               louv_metrics,
+                               louv_num_comms]
+                    print(row_add)
                     print('updating performance statistics...')
                     tables[i].loc[idx] = row_add
-                
+                    print('*'*80)
+                    print(tables[i].loc[idx])
+                    print('*'*80)
                     if save_results == True:
                         tables[i].to_csv(savepath_main+'Toy_sim_results_'+case_nm[i]+'.csv')
             
         
             
         print('done')
-    return out, tables
+    return out, tables, Graphs
             
     
 
     
-out, res = run_simulations(toy_net_number = 3, input_graph_number = 0, save_results=False)
+out, res, ingraphs = run_simulations(toy_net_number = 1, input_graph_number = 0, save_results=False)
         
