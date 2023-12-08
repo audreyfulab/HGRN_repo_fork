@@ -58,11 +58,11 @@ class ModularityLoss(nn.Module):
     def __init__(self):
         super(ModularityLoss, self).__init__()
         
-    def forward(self, all_A, all_P):
+    def forward(self, all_A, all_P, resolutions):
         loss = torch.Tensor([0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
-            mod = Modularity(A, P)
+            mod = Modularity(A, P, resolutions[index])
             loss+= mod
             loss_list.append(float(mod.detach().numpy()))
         return loss, loss_list
@@ -103,8 +103,8 @@ class ClusterLoss(nn.Module):
             #loss_list.append(float((between_ss/within_ss).detach().numpy()))
             #loss += between_ss/within_ss
             
-            loss_list.append(float((between_ss/number_of_clusters).detach().numpy()))
-            loss += between_ss/number_of_clusters
+            loss_list.append(float((within_ss-between_ss).detach().numpy()))
+            loss += torch.subtract(within_ss, between_ss)
 
         return loss, loss_list
     
@@ -119,9 +119,10 @@ class ClusterLoss(nn.Module):
 
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
-def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interval=10, 
-        lr = 1e-4, prop_train = 0.8, gamma = 1, delta = 1, comm_loss = ['Modularity', 'Clustering'], 
-        true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, **kwargs):
+def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
+        gamma = 1, delta = 1, layer_resolutions = [1,1], comm_loss = ['Modularity', 'Clustering'], 
+        true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
+        ns = 10, **kwargs):
     """
     
     """
@@ -169,19 +170,19 @@ def fit(model, X, A, optimizer='Adam', batch = 128, epochs = 100, update_interva
         #batch = data.transpose(0,1)
         #compute forward output
         X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
-        
+        S_sub, S_relab, S_all = trace_comms(S, model.comm_sizes)
         #compute community detection loss
         if comm_loss == 'Modularity':    
-            community_loss, comloss_values = community_loss_fn(A_all, P_all)
+            community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
         elif comm_loss == 'Clustering':
-            community_loss, comloss_values = community_loss_fn(X_all[:h_layers][0], S)
+            community_loss, comloss_values = community_loss_fn(X, S_all)
         
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
         
         #compute total loss function
-        loss = X_loss+gamma*A_loss-delta*community_loss
+        loss = A_loss+gamma*X_loss-delta*community_loss
 
         #compute backward pass
         loss.backward()

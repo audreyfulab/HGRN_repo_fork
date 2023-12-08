@@ -20,10 +20,10 @@ import matplotlib.pyplot as plt
 
 # A simple function which computes the modularity of a graph based on a set of 
 #community assignments
-def Modularity(A,P):
+def Modularity(A,P,res=1):
     r = A.sum(dim = 1)
     n = A.sum()
-    B = A - (torch.outer(r,r) / n)
+    B = A - res*(torch.outer(r,r) / n)
     modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(n)
     return modularity
     
