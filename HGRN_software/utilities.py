@@ -605,23 +605,25 @@ def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save =
             
 #A simple wrapper to plot and save the networkx graph
 def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = False,
-               save = True):
+               save = True, **kwargs):
     fig, ax = plt.subplots()
     G = nx.from_numpy_array(A)
     if add_labels == True:
         clust_labels = {list(G.nodes)[i]: labels.tolist()[i] for i in range(len(labels))}
         nx.draw_networkx(G, node_color = labels, 
+                         pos = nx.spring_layout(G, seed = 123),
                          labels = clust_labels,
                          font_size = font_size,
                          node_size = node_size,
-                         cmap = 'plasma')
+                         cmap = 'plasma', **kwargs)
     else:
         nx.draw_networkx(G, node_color = labels, 
                          ax = ax, 
+                         pos = nx.spring_layout(G, seed = 123),
                          font_size = font_size,
                          node_size = node_size, 
                          with_labels = False,
-                         cmap = 'plasma')
+                         cmap = 'plasma', **kwargs)
     if save == True:    
         fig.savefig(path+'.pdf')
     
