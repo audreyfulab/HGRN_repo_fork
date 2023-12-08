@@ -36,37 +36,37 @@ from itertools import product
 from tqdm import tqdm
 import time
 #set seed
-rd.seed(123)
+#rd.seed(333)
 
 
 # simulation default arguments
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
-parser.add_argument('--connect_prob', dest='connect_prob', default=0.05, type=float)
+parser.add_argument('--connect_prob', dest='connect_prob', default='use_baseline', type=str)
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=2, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(4,5), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(4,5), type=tuple)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(3,3), type=tuple)
 parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
-parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
+parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
 parser.add_argument('--layers',dest='layers', default = 2, type=int)
-parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
-parser.add_argument('--seed_number',dest='seed_number',default = 555, type=int)
+parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
+parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
 args = parser.parse_args()
 
 
 # args.connect = 'full'
-args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.05
+# args.toplayer_connect_prob = 0.3
+args.connect_prob = 0.01
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
 # args.nodes_per_super3=(5, 5)
 # args.layers = 3
-#args.sample_size = 500
+# args.sample_size = 500
 # args.SD = 0.1
-#args.node_degree = 5
+# args.node_degree = 5
 
 mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/'
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
@@ -97,8 +97,8 @@ grid3 = product(connect, layers)
 
 info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers','StDev',
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
-                                     'sample_size','modularity_bottom','avg_node_degree_bottom',
-                                     'avg_connect_within_bottom','avg_connect_between_bottom',
+                                     'sample_size','modularity_top','avg_node_degree_top',
+                                     'avg_connect_within_bottom','avg_connect_between_top',
                                      'modularity_middle','avg_node_degree_middle',
                                      'avg_connect_within_middle','avg_connect_between_middle',
                                      ])
@@ -110,7 +110,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     args.connect = value[2][0]
     args.layers = value[2][1]
     args.SD = 0.1
-    args.node_degree = 4
+    args.node_degree = 3
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])
     print('saving hierarchy to {} '.format(args.savepath))
