@@ -154,6 +154,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     elif comm_loss == 'Clustering':
         community_loss_fn = ClusterLoss(weighting='kmeans')
     
+    #pre-allocate storage space for training info
+    all_out = []
+    
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(tqdm(range(epochs), desc="Fitting...", ascii=False, ncols=75)):
         #epoch printing
@@ -171,6 +174,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #compute forward output
         X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
         S_sub, S_relab, S_all = trace_comms(S, model.comm_sizes)
+        
+        #update all output list
+        all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i)) for i in S_all]])
         #compute community detection loss
         if comm_loss == 'Modularity':    
             community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
@@ -197,6 +203,21 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         X_loss_hist.append(float(X_loss.detach().numpy()))
         comm_loss_hist.append(comloss_values)
         
+        #evaluating performance homogenity, completeness and NMI
+        perf_layers = []
+        lnm = ['top','middle']
+        for i in range(0, len(S_all)):
+            if h_layers>1:    
+                preds = S_relab[::-1][i].detach().numpy()
+            else:
+                preds = S_relab[i].detach().numpy()
+            eval_metrics = node_clust_eval(true_labels=true_labels[i],
+                                           pred_labels=preds, 
+                                           verbose=False)
+            perf_layers.append(eval_metrics.tolist())
+        perf_hist.append(perf_layers)
+        
+        
         #evaluate epoch
         if (epoch+1) % update_interval == 0:
             
@@ -205,7 +226,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             model.eval()
             #model forward
             X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
-            #extract predicted community labels
+            #print update of performance metrics
+            for i in range(0, len(lnm)):
+                print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
+                print('homogeneity = {:.4f}, Completeness = {:.4f}, NMI = {:.4f}'.format(
+                    perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
+                print('-' * 80)
             
             
             #loss printing
@@ -225,24 +251,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                     X_loss_hist[-1], 
                     A_loss_hist[-1]))
             
-            #evaluating performance homogenity, completeness and NMI
-            S_sub, S_relab, S_all = trace_comms(S_pred, model.comm_sizes)
-            perf_layers = []
-            #pdb.set_trace()
-            lnm = ['top','middle']
-            for i in range(0, len(S_all)):
-                print('-' * 25 + 'layer_{}'.format(lnm[i]) + '-' * 25)
-                if h_layers>1:    
-                    preds = S_relab[::-1][i].detach().numpy()
-                else:
-                    preds = S_relab[i].detach().numpy()
-                eval_metrics = node_clust_eval(true_labels=true_labels[i],
-                                               pred_labels=preds, 
-                                               verbose=True)
-                perf_layers.append(eval_metrics.tolist())
-                
-            perf_hist.append(perf_layers)
-            print('-' * 80)
+            
             #------------------------------
             #plotting training curves
             if ((epoch+1) >= 10):
@@ -291,7 +300,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             if len(perf_hist)>1:
                 print('plotting performance curves')
                 #performance plot
-                plot_perf(update_times = updates, 
+                plot_perf(update_time = updates[-1], 
                           performance_hist = perf_hist, 
                           epoch = epoch, 
                           path= output_path, 
@@ -306,4 +315,4 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
     #return 
     X_final, A_final, X_all_final, A_all_final, P_all_final, S_final = model.forward(X, A)
-    return X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, loss_history, comm_loss_hist, A_loss_hist, X_loss_hist, perf_hist
+    return all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, loss_history, comm_loss_hist, A_loss_hist, X_loss_hist, perf_hist

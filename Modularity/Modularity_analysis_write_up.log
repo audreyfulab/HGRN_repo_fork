@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  14 NOV 2023 21:00
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  20 DEC 2023 18:00
 entering extended mode
 **./Modularity_analysis_write_up.tex
 (Modularity_analysis_write_up.tex
@@ -817,104 +817,165 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 \openout6 = `Modularity_analysis_write_up.lot'.
 
 
-(Modularity_analysis_write_up.lof)
+(Modularity_analysis_write_up.lof [1])
 \tf@lof=\write7
 \openout7 = `Modularity_analysis_write_up.lof'.
 
- [1]
-<C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf, id=16,
+ [2]
+Underfull \hbox (badness 10000) in paragraph at lines 72--74
+
+ []
+
+<C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf, id=20,
  433.62pt x 289.08pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf Gr
 aphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/c
-ase1_2clusts.pdf  used on input line 74.
+ase1_2clusts.pdf  used on input line 82.
 (pdftex.def)             Requested size: 281.84966pt x 187.89977pt.
- [2 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf>]
+[3]
 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.pdf, i
-d=42, 433.62pt x 289.08pt>
+d=29, 433.62pt x 289.08pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.p
 df Graphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.pd
 f>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/o
-n_net_multi_comms.pdf  used on input line 97.
+n_net_multi_comms.pdf  used on input line 105.
 (pdftex.def)             Requested size: 281.84966pt x 187.89977pt.
- [3 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.pd
-f>] [4]
+ [4 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case1_2clusts.pdf>] [
+5 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/on_net_multi_comms.pdf>
+]
 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf, id=6
-5, 433.62pt x 289.08pt>
+9, 433.62pt x 289.08pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf 
 Graphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/c
-ase2_singleton.pdf  used on input line 144.
+ase2_singleton.pdf  used on input line 152.
 (pdftex.def)             Requested size: 281.84966pt x 187.89977pt.
- [5 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf>]
+ [6 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/case2_singleton.pdf>]
 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.pdf, 
-id=81, 433.62pt x 289.08pt>
+id=86, 433.62pt x 289.08pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.
 pdf Graphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.p
 df>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/s
-ingleton_with_edge.pdf  used on input line 162.
+ingleton_with_edge.pdf  used on input line 170.
 (pdftex.def)             Requested size: 281.84966pt x 187.89977pt.
- [6 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.p
-df>] [7] [8] [9]
+ [7 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/singleton_with_edge.p
+df>]
+<C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/simplest_case_3community_
+iteradd_sim_plots.png, id=102, 840.89156pt x 615.80063pt>
+File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/simplest_case_3commu
+nity_iteradd_sim_plots.png Graphic file (type png)
+<use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/simplest_case_3commun
+ity_iteradd_sim_plots.png>
+Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/s
+implest_case_3community_iteradd_sim_plots.png  used on input line 199.
+(pdftex.def)             Requested size: 462.49178pt x 338.69139pt.
 
-LaTeX Font Warning: Command \small invalid in math mode on input line 272.
+Overfull \hbox (26.88097pt too wide) in paragraph at lines 199--201
+[][]
+ []
+
+[8]
+<C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/complex_case1_3community_
+iteradd_sim_plots.png, id=106, 837.88031pt x 601.4972pt>
+File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/complex_case1_3commu
+nity_iteradd_sim_plots.png Graphic file (type png)
+<use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/complex_case1_3commun
+ity_iteradd_sim_plots.png>
+Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/c
+omplex_case1_3community_iteradd_sim_plots.png  used on input line 205.
+(pdftex.def)             Requested size: 502.73207pt x 360.9011pt.
+
+Overfull \hbox (67.12126pt too wide) in paragraph at lines 205--207
+[][]
+ []
+
+[9 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/simplest_case_3communi
+ty_iteradd_sim_plots.png>] [10 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modul
+arity/complex_case1_3community_iteradd_sim_plots.png>]
+Overfull \hbox (4.59752pt too wide) detected at line 224
+\OT1/cmr/m/n/12 2 \OMS/cmsy/m/n/12  [] \OT1/cmr/m/n/12 = 2 \OMS/cmsy/m/n/12  
+[] \OT1/cmr/m/n/12 = 2 \OMS/cmsy/m/n/12  \OT1/cmr/m/n/12 0\OML/cmm/m/it/12 :\O
+T1/cmr/m/n/12 229 \OMS/cmsy/m/n/12  \OT1/cmr/m/n/12 0\OML/cmm/m/it/12 :\OT1/cm
+r/m/n/12 46
+ []
+
+<C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/Hierarchy_Example_fig.png
+, id=113, 989.94844pt x 525.46312pt>
+File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/Hierarchy_Example_fi
+g.png Graphic file (type png)
+<use C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/Hierarchy_Example_fig
+.png>
+Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/H
+ierarchy_Example_fig.png  used on input line 230.
+(pdftex.def)             Requested size: 494.973pt x 262.73091pt.
+
+Overfull \hbox (59.3622pt too wide) in paragraph at lines 230--232
+[][]
+ []
+
+[11] [12 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/Hierarchy_Exampl
+e_fig.png>] [13] [14]
+
+LaTeX Font Warning: Command \small invalid in math mode on input line 363.
 
 
-Overfull \hbox (68.92447pt too wide) detected at line 299
+Overfull \hbox (68.92447pt too wide) detected at line 390
 [] \OMS/cmsy/m/n/12  []  []
  []
 
 
-LaTeX Font Warning: Command \small invalid in math mode on input line 301.
+LaTeX Font Warning: Command \small invalid in math mode on input line 392.
 
-[10] [11]
+[15] [16]
 
-LaTeX Font Warning: Command \small invalid in math mode on input line 343.
+LaTeX Font Warning: Command \small invalid in math mode on input line 434.
 
 
-Overfull \hbox (68.92447pt too wide) detected at line 370
+Overfull \hbox (68.92447pt too wide) detected at line 461
 [] \OMS/cmsy/m/n/12  []  []
  []
 
 
-LaTeX Font Warning: Command \small invalid in math mode on input line 372.
+LaTeX Font Warning: Command \small invalid in math mode on input line 463.
 
-[12] [13] (Modularity_analysis_write_up.bbl
+[17] [18] (Modularity_analysis_write_up.bbl
 
 LaTeX Warning: Empty `thebibliography' environment on input line 3.
 
-) [14
+) [19
 
 ] (Modularity_analysis_write_up.aux) ) 
 Here is how much of TeX's memory you used:
- 17511 strings out of 480811
- 339349 string characters out of 2905907
- 641256 words of memory out of 3000000
- 33163 multiletter control sequences out of 15000+200000
+ 17533 strings out of 480811
+ 340977 string characters out of 2905907
+ 641282 words of memory out of 3000000
+ 33181 multiletter control sequences out of 15000+200000
  544579 words of font info for 70 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,8n,60p,814b,283s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 62i,8n,60p,1033b,313s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/
 public/amsfonts/cm/cmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
 msfonts/cm/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/
 cm/cmbx8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10
 .pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:
-/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Program 
-Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiK
-TeX 2.9/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/f
-onts/type1/public/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type
-1/public/amsfonts/cm/cmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
-msfonts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/
-cm/cmti12.pfb>
-Output written on Modularity_analysis_write_up.pdf (15 pages, 183992 bytes).
+/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Program 
+Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Program Files/MiK
+TeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/f
+onts/type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type
+1/public/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/
+amsfonts/cm/cmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/c
+m/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12
+.pfb>
+Output written on Modularity_analysis_write_up.pdf (20 pages, 425277 bytes).
 PDF statistics:
- 162 PDF objects out of 1000 (max. 8388607)
+ 185 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 33 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 48 words of extra memory for PDF output out of 10000 (max. 10000000)
 

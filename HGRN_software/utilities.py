@@ -584,19 +584,21 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
 
 
 # a simple function for plotting the performance curves during training
-def plot_perf(update_times, performance_hist, epoch, path='path/to/file', save = True):
+def plot_perf(update_time, performance_hist, epoch, path='path/to/file', save = True):
     #evaluation metrics
     layers = len(performance_hist[0])
+    titles = ['Top Layer', 'Middle Layer']
+    fig, ax = plt.subplots(1, 2, figsize=(12,10))
     for i in range(0, layers):
-        fig, ax = plt.subplots(figsize=(12,10))
         layer_hist = [j[i] for j in performance_hist]
         #homogeneity
-        ax.plot(update_times, np.array(layer_hist)[:,0], label = 'Homogeneity')
-        ax.plot(update_times, np.array(layer_hist)[:,1], label = 'Completeness')
-        ax.plot(update_times, np.array(layer_hist)[:,2], label = 'NMI')
-        ax.set_xlabel('Training Epochs')
-        ax.set_ylabel('Performance')
-        ax.legend()
+        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,0], label = 'Homogeneity')
+        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,1], label = 'Completeness')
+        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,2], label = 'NMI')
+        ax[i].set_xlabel('Training Epochs')
+        ax[i].set_ylabel('Performance')
+        ax[i].set_title(titles[i]+' Performance')
+        ax[i].legend()
 
         if save == True:
             fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'_layer_'+str(i)+'.pdf')

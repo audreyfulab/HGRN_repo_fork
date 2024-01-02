@@ -20,7 +20,7 @@ sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity, plot_nodes
+from simulation_utilities import compute_modularity, plot_nodes, compute_beth_hess_comms
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph
 import seaborn as sbn
 from community import community_louvain as cl
@@ -31,6 +31,7 @@ import pdb
 import ast
 import random as rd
 rd.seed(123)
+torch.manual_seed(123)
 
 
 def run_simulations(save_results = False):
@@ -69,7 +70,8 @@ def run_simulations(save_results = False):
     grid3 = product(connect, layers)
     
     #preallocate results table
-    res_table = pd.DataFrame(columns = ['Communities_Upper_Limit',
+    res_table = pd.DataFrame(columns = ['Beth_Hessian_Comms',
+                                        'Communities_Upper_Limit',
                                         'Max_Modularity',
                                         'Modularity',
                                         'Reconstruction_A',
@@ -207,12 +209,13 @@ def run_simulations(save_results = False):
             recon_X.append(np.round(out[-2][best_loss_idx], 4))
     
             
-            #compute the upper limit of communities and modularity
+            #compute the upper limit of communities, the beth hessian, and max modularity
             upper_limit = torch.sqrt(torch.sum(Graphs[i]-torch.eye(nodes)))
+            beth_hessian = compute_beth_hess_comms((Graphs[i]-torch.eye(nodes)).detach().numpy())
             max_modularity = 1 - (2/upper_limit)
             
             #output assigned labels for all layers
-            S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
+            S_sub, S_layer, S_all = trace_comms(out[6], comm_sizes)
             predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
             
             #get prediction using louvain method
@@ -255,7 +258,8 @@ def run_simulations(save_results = False):
                        add_labels = True,
                        save = True)
             #update performance table
-            row_add = [np.round(upper_limit.detach().numpy()),
+            row_add = [beth_hessian,
+                       np.round(upper_limit.detach().numpy()),
                        np.round(max_modularity.detach().numpy(),4),
                        tuple(comm_loss[-1].tolist()), 
                        recon_A[-1], 

@@ -30,7 +30,9 @@ from itertools import product, chain
 from tqdm import tqdm
 import pdb
 import ast
-
+import random as rd
+rd.seed(123)
+torch.manual_seed(123)
 
 # def run_simulations(save_results = True):
     
@@ -78,9 +80,9 @@ import ast
 #               res_table.copy()]
     
 #     case = ['A_ingraph_true/','A_corr_no_cutoff/','A_ingraph02/', 
-#             'A_ingraph05/', 'A_ingraph08/']
+#             'A_ingraph05/', 'A_ingraph07/']
 #     case_nm = ['A_ingraph_true','A_corr_no_cutoff','A_ingraph02', 
-#                'A_ingraph05', 'A_ingraph08']
+#                'A_ingraph05', 'A_ingraph07']
     
 #     #run simulations
 #     for idx, value in enumerate(zip(grid1, grid2, grid3)):
@@ -121,7 +123,7 @@ import ast
 #                                                method = 'Correlation', 
 #                                                r_cutoff = 0.5)
             
-#         in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
+#         in_graph07, in_adj07 = get_input_graph(X = pe_sorted, 
 #                                            method = 'Correlation', 
 #                                            r_cutoff = 0.8)
 #         #get correlation matrix
@@ -142,7 +144,7 @@ import ast
 #         HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
 #         HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
 #         HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-#         HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+#         HCD_model_r07 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
         
 #         #set attribute and input graph(s) to torch tensors with grad attached
 #         X = torch.Tensor(pe_sorted).requires_grad_()
@@ -151,13 +153,13 @@ import ast
 #         A_rmat = torch.Tensor(rmat).requires_grad_()
 #         A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
 #         A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
-#         A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
+#         A_r07 = torch.Tensor(in_adj07).requires_grad_()+torch.eye(nodes)
         
 #         #combine input items into lists for iteration
 #         Mods = [HCD_model_truth, HCD_model_rmat, HCD_model_r02, 
-#                 HCD_model_r05, HCD_model_r08]
+#                 HCD_model_r05, HCD_model_r07]
         
-#         Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r08]
+#         Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r07]
 #         printing = ['fitting model using true input graph',
 #                     'fitting model using r matrix as input graph',
 #                     'fitting model using r > 0.2 input graph',
@@ -273,7 +275,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
     
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    nm = 'gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(resolu[0])+str(resolu[1])
+    nm = 'gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(resolu[0])+'_'+str(resolu[1])
     loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
     savepath_main = sp
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
@@ -316,9 +318,9 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
               res_table.copy()]
     
     case = ['A_ingraph_true/','A_corr_no_cutoff/','A_ingraph02/', 
-            'A_ingraph05/', 'A_ingraph08/']
+            'A_ingraph05/', 'A_ingraph07/']
     case_nm = ['A_ingraph_true','A_corr_no_cutoff','A_ingraph02', 
-               'A_ingraph05', 'A_ingraph08']
+               'A_ingraph05', 'A_ingraph07']
     
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
@@ -358,9 +360,9 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
                                                method = 'Correlation', 
                                                r_cutoff = 0.5)
             
-        in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
+        in_graph07, in_adj07 = get_input_graph(X = pe_sorted, 
                                            method = 'Correlation', 
-                                           r_cutoff = 0.8)
+                                           r_cutoff = 0.7)
         #get correlation matrix
         rmat = np.absolute(np.corrcoef(pe_sorted))
         in_graph_rmat = nx.from_numpy_array(rmat)
@@ -379,7 +381,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
         HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
         HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
         HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-        HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+        HCD_model_r07 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
         
         #set attribute and input graph(s) to torch tensors with grad attached
         X = torch.Tensor(pe_sorted).requires_grad_()
@@ -388,13 +390,13 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
         A_rmat = torch.Tensor(rmat).requires_grad_()
         A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
         A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
-        A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
+        A_r07 = torch.Tensor(in_adj07).requires_grad_()+torch.eye(nodes)
         
         #combine input items into lists for iteration
         Mods = [HCD_model_truth, HCD_model_rmat, HCD_model_r02, 
-                HCD_model_r05, HCD_model_r08]
+                HCD_model_r05, HCD_model_r07]
         
-        Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r08]
+        Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r07]
         printing = ['fitting model using true input graph',
                     'fitting model using r matrix as input graph',
                     'fitting model using r > 0.2 input graph',
@@ -452,7 +454,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
             louv_num_comms = len(np.unique(louv_preds))
             
             #make heatmap for louvain results and get metrics
-            fig, ax = plt.subplots()
+            fig, (axx, axy) = plt.subplots(1,2, figsize=(12,10))
             if lays == 2:
                 metrics.append({'Top': tuple(np.round(out[-1][best_perf_idx][0], 4))})
                 louv_metrics = {'Top': tuple(np.round(node_clust_eval(target_labels[0], 
@@ -460,7 +462,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
                 sbn.heatmap(pd.DataFrame(np.array([louv_preds,  
                                                    target_labels[0].tolist()]).T,
                                          columns = ['Louvain','Truth_Top']),
-                            ax = ax)
+                            ax = axy)
             else:
                 metrics.append({'Top': tuple(np.round(out[-1][best_perf_idx][0], 4)),
                                 'Middle': tuple(np.round(out[-1][best_perf_idx][-1], 4))})
@@ -469,11 +471,17 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
                 for j in range(0, 2):
                     louv_metrics.append({lnm[j]: tuple(np.round(node_clust_eval(target_labels[j], 
                                                                          np.array(louv_preds), verbose=False), 4))})
-                    sbn.heatmap(pd.DataFrame(np.array([louv_preds, 
-                                                       target_labels[1].tolist(), 
+                    
+                    sbn.heatmap(pd.DataFrame(np.array([louv_preds,  
                                                        target_labels[0].tolist()]).T,
-                                             columns = ['Louvain','Truth_Middle','Truth_Top']),
-                                ax = ax)
+                                             columns = ['Louvain','Truth_Top']),
+                                ax = axy)
+                    
+                    
+                    sbn.heatmap(pd.DataFrame(np.array([louv_preds, 
+                                                       target_labels[1].tolist() ]).T,
+                                             columns = ['Louvain','Truth_Middle']),
+                                ax = axx)
            
             fig.savefig(savepath+'Louvain_results.pdf')
             plot_nodes((Graphs[i]-torch.eye(nodes)).detach().numpy(), 
@@ -502,7 +510,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
             print(tables[i].loc[idx])
             print('*'*80)
             if save_results == True:
-                tables[i].to_csv(savepath_main+'Simulation_Results_'+case_nm[i]+'.csv')
+                tables[i].to_csv(savepath_main+'Simulation_Results_'+case_nm[i]+'_'+nm+'.csv')
         
     
         

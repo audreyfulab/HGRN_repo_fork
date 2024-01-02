@@ -132,7 +132,7 @@ class Comm_DenseLayer(nn.Module):
     
     def forward(self, inputs):
         """
-        inputs: a list [Z,A,A_tilde, S] where 
+        inputs: a list [Z, A, A_tilde, S] where 
                 Z: Node representations   N x q
                 A: Adjacency matrix   N x N
                 A_tilde:

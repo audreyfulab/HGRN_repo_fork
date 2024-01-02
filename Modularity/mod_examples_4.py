@@ -19,6 +19,9 @@ from simulation_utilities import compute_modularity
 import torch.nn.functional as F
 import random as rd
 
+
+
+sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Modularity/'
 def apply_edge(mat, node1, node2):
     
     mat[node1, node2] = 1
@@ -114,7 +117,7 @@ def easy_modularity(adj, nd_list):
 
 
 def mod_sim_3g(nds = [3,3,3], gtype = ['wattz','random','scalef'], seeding = 555, 
-                connect2comms = True, **kwargs):
+                connect2comms = True, savepath='', **kwargs):
     
     all_Gs = []
     color_labels = []
@@ -211,7 +214,7 @@ def mod_sim_3g(nds = [3,3,3], gtype = ['wattz','random','scalef'], seeding = 555
     ax1[0].legend()
     
     #graph plot
-    nx.draw_networkx(Gnew, ax = ax1[1], node_color = color_labels, node_size = 25)
+    nx.draw_networkx(Gnew, ax = ax1[1], node_color = color_labels, node_size = 100)
     ax1[1].set_title('Starting Graph With 3 Communities')
     
     #individual modularities
@@ -241,6 +244,9 @@ def mod_sim_3g(nds = [3,3,3], gtype = ['wattz','random','scalef'], seeding = 555
         ax2[1].set_xlabel('Max Edges Between Adjacenct Communities')
     ax2[1].legend()
     
+    
+    fig.savefig(savepath+'_sim_plots.pdf')
+    
     fig2, ax0 = plt.subplots(figsize = (14,10))
     ax0.plot(np.array(edges_between_comms), diffs, label = 'Absolute Difference In Modularity')
     if connect2comms == True:
@@ -251,11 +257,22 @@ def mod_sim_3g(nds = [3,3,3], gtype = ['wattz','random','scalef'], seeding = 555
     ax0.set_title('Difference In Modularity For 2 and 3 communities')
     ax0.axhline(0, linestyle = '--', color = 'black')
     
+    fig2.savefig(savepath+'_mod_diff.pdf')
+    
     return mod_by_comm, total_mod2, total_mod3, all_Gs, color_labels
 
 #mbc43, tm2, tm3, Gs, cl = mod_sim_3g([5,5,5],'scalef', connect2comms=True)
-mbc43, tm2, tm3, Gs, cl = mod_sim_3g([20,15,10],'wattz', connect2comms=True, 
-                             k=2, p = 0.05)
+mbc43, tm2, tm3, Gs, cl = mod_sim_3g([3,3,3],'wattz', connect2comms=True, 
+                             k=2, p = 0.05,
+                             savepath = sp+'simplest_case_3community_iteradd')
 
-fig, ax = plt.subplots(figsize = (14,10))
-nx.draw_networkx(Gs[6], node_color = cl)
+
+mbc43, tm2, tm3, Gs, cl = mod_sim_3g([20,15,10],'wattz', connect2comms=True, 
+                             k=2, p = 0.05,
+                             savepath = sp+'complex_case1_3community_iteradd')
+
+
+
+mbc43, tm2, tm3, Gs, cl = mod_sim_3g([25,10,5],'wattz', connect2comms=True, 
+                             k=2, p = 0.05,
+                             savepath = sp+'complex_case2_3community_iteradd')

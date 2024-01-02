@@ -2,16 +2,11 @@ This is BibTeX, Version 0.99d (MiKTeX 2.9.7420 64-bit)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: Modularity_analysis_write_up.aux
 The style file: unsrt.bst
-I couldn't open database file pseudocode_bibs.bib
----line 15 of file Modularity_analysis_write_up.aux
- : \bibdata{pseudocode_bibs
- :                         }
-I'm skipping whatever remains of this command
 I found no \citation commands---while reading file Modularity_analysis_write_up.aux
-I found no database files---while reading file Modularity_analysis_write_up.aux
+Database file #1: modularity_write_up_bibs.bib
 You've used 0 entries,
             1791 wiz_defined-function locations,
-            445 strings with 3569 characters,
+            445 strings with 3578 characters,
 and the built_in function-call counts, 18 in all, are:
 = -- 0
 > -- 0
@@ -50,4 +45,4 @@ warning$ -- 0
 while$ -- 0
 width$ -- 0
 write$ -- 2
-(There were 3 error messages)
+(There was 1 error message)

@@ -20,8 +20,8 @@ sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity, plot_nodes
-from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph
+from simulation_utilities import compute_modularity, post_hoc_embedding
+from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph, plot_nodes
 import seaborn as sbn
 import matplotlib.pyplot as plt
 from community import community_louvain as cl
@@ -31,10 +31,16 @@ import pdb
 import ast
 import random as rd
 rd.seed(123)
+torch.manual_seed(123)
 
 
-def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = False):
+
+def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
+                    learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1,], 
+                    loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU'):
     
+    #pathnames and filename conventions
+    #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     #loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
@@ -67,7 +73,6 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
     grid3 = product(connect, layers)
     
     #preallocate results table
-    #preallocate results table
     res_table = pd.DataFrame(columns = ['Communities_Upper_Limit',
                                         'Max_Modularity',
                                         'Modularity',
@@ -89,8 +94,7 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
         
-        
-        if idx == toy_net_number:
+        if idx == which_net:
             #pdb.set_trace()
             lays = value[2][1]
             #extract and use true community sizes
@@ -131,7 +135,7 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                 
             in_graph08, in_adj08 = get_input_graph(X = pe_sorted, 
                                                method = 'Correlation', 
-                                               r_cutoff = 0.8)
+                                               r_cutoff = 0.6)
             
             rmat = np.absolute(np.corrcoef(pe_sorted))
             in_graph_rmat = nx.from_numpy_array(rmat)
@@ -146,11 +150,11 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
             #set up three separate models for true input graph, r > 0.5 input graph, and
             #r > 0.8 input graph scenarios
             print('-'*25+'setting up and fitting models'+'-'*25)
-            HCD_model_truth = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
-            HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
+            HCD_model_truth = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
             
             #set attribute and input graph(s) to torch tensors with grad attached
             X = torch.Tensor(pe_sorted).requires_grad_()
@@ -177,26 +181,25 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
             recon_A = []
             recon_X = []
             predicted_comms = []
-            louv_metrics = []
             louv_mod = []
             louv_num_comms = []
             print('...done')
-            sp = savepath_main+''.join(value[0])
+            sp = savepath_main
             #fit the three models
             for i in range(0, 5):
                 
-                if i == input_graph_number:
+                if i == which_ingraph:
                     print("*"*80)
                     print(printing[i])
-                    out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = 100, 
-                              update_interval=50, 
-                              lr = 1e-4, gamma = 1, delta = 1, comm_loss='Modularity',
+                    out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = epochs, 
+                              update_interval=updates, layer_resolutions=reso,
+                              lr = learn_rate, gamma = gam, delta = delt, comm_loss=loss_fn,
                               true_labels = target_labels, verbose=False, 
                               save_output=save_results, 
-                              output_path=sp+case[i],
+                              output_path=sp,
                               ns = 25,
                               fs = 10)
-                    
+                        
                     #record best losses and best performances
                     #pdb.set_trace()
                     total_loss = np.array(out[-5])
@@ -208,14 +211,14 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                     comm_loss.append(np.round(out[-4][best_loss_idx], 4))
                     recon_A.append(np.round(out[-3][best_loss_idx], 4))
                     recon_X.append(np.round(out[-2][best_loss_idx], 4))
-                    metrics.append(out[-1][best_perf_idx][0])
+            
                     
                     #compute the upper limit of communities and modularity
                     upper_limit = torch.sqrt(torch.sum(Graphs[i]-torch.eye(nodes)))
                     max_modularity = 1 - (2/upper_limit)
                     
                     #output assigned labels for all layers
-                    S_sub, S_layer, S_all = trace_comms(out[5], comm_sizes)
+                    S_sub, S_layer, S_all = trace_comms(out[6], comm_sizes)
                     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
                     
                     #get prediction using louvain method
@@ -226,18 +229,25 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                     louv_num_comms = len(np.unique(louv_preds))
                     #make heatmap for louvain results and get metrics
                     fig, ax = plt.subplots()
+                    #compute performance based on layers
                     if lays == 2:
+                        metrics.append({'Top': tuple(np.round(out[-1][best_perf_idx][0], 4))})
                         louv_metrics = {'Top': tuple(np.round(node_clust_eval(target_labels[0], 
-                                                                     np.array(louv_preds), verbose=False), 4))}
+                                                                     np.array(louv_preds), 
+                                                                     verbose=False), 4))}
                         sbn.heatmap(pd.DataFrame(np.array([louv_preds,  
                                                            target_labels[0].tolist()]).T,
                                                  columns = ['Louvain','Truth_Top']),
                                     ax = ax)
                     else:
+                        metrics.append({'Top': tuple(np.round(out[-1][best_perf_idx][0], 4)),
+                                        'Middle': tuple(np.round(out[-1][best_perf_idx][-1], 4))})
                         lnm=['Top','Middle']
+                        louv_metrics = []
                         for j in range(0, 2):
                             louv_metrics.append({lnm[j]: tuple(np.round(node_clust_eval(target_labels[j], 
-                                                                                 np.array(louv_preds), verbose=False), 4))})
+                                                                                 np.array(louv_preds), 
+                                                                                 verbose=False), 4))})
                             sbn.heatmap(pd.DataFrame(np.array([louv_preds, 
                                                                target_labels[1].tolist(), 
                                                                target_labels[0].tolist()]).T,
@@ -258,7 +268,7 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                                tuple(comm_loss[-1].tolist()), 
                                recon_A[-1], 
                                recon_X[-1],
-                               tuple(np.round(metrics[-1], 4)), 
+                               metrics[-1], 
                                predicted_comms[-1],
                                np.round(louv_mod, 4),
                                louv_metrics,
@@ -271,14 +281,40 @@ def run_simulations(toy_net_number = 3, input_graph_number = 1, save_results = F
                     print('*'*80)
                     if save_results == True:
                         tables[i].to_csv(savepath_main+'Toy_sim_results_'+case_nm[i]+'.csv')
-            
-        
-            
-        print('done')
-    return out, tables, Graphs
-            
     
 
     
-out, res, ingraphs = run_simulations(toy_net_number = 1, input_graph_number = 0, save_results=False)
-        
+    print('done')
+    return out, tables, Graphs, X, target_labels
+            
+    
+
+
+out, res, graphs, data, truth = run_simulations(save_results=True,
+                                   which_net=3,
+                                   which_ingraph=0,
+                                   reso=[1,1],
+                                   gam=1,
+                                   delt=0, 
+                                   learn_rate=1e-4,
+                                   epochs = 50,
+                                   updates = 50,
+                                   loss_fn='Modularity')
+
+#max_epoch = 10
+#iteri = range(0, max_epoch)
+epoch_step = 5
+iteri = np.arange(0, 30, epoch_step)
+print(iteri)
+for epoch in iteri:
+    post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(18), 
+                       input_X = data,
+                       embed=out[0][epoch][2][0], 
+                       probabilities=out[0][epoch][4],
+                       size = 150.0,
+                       labels = out[0][epoch][-3][0], 
+                       truth = truth[1],
+                       fs=18,
+                       path = '', node_size = 25, font_size = 10)
+
+

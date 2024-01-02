@@ -16,7 +16,8 @@ import pandas as pd
 import torch 
 import torch.nn.functional as F
 import pdb
-
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 def compute_graph_STATs(A_all, comm_assign, layers, sp, **kwargs):
     
@@ -143,6 +144,93 @@ def compute_node_degree_between(A, comm_labels):
 
 
 
+# this function uses the beth hessian to compute the number of detectable 
+# communities by spectral means - method from 
+# Schaub et al - Hierarchical community structure in networks
+def compute_beth_hess_comms(A):
+    N = A.shape[0]
+    Deg = np.diag(np.matmul(A, np.ones((N, 1))).reshape(N))
+    avg_degree = np.matmul(np.matmul(np.ones((N,1)).T, A), np.ones((N, 1)))/N
+    eta = np.sqrt(avg_degree)
+    Bethe_Hessian = (np.square(eta)-1)*np.diag(np.ones(N))+Deg - eta*A
+    eigvals = np.linalg.eigh(Bethe_Hessian)[0]
+    k = np.sum(eigvals<0)
+    return k
+
+
+
+
+
+
+def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth, 
+                       is_torch = True, ns = 35, size = 10, fs=14, save = False, 
+                       sp = '', **kwargs):
+    if is_torch:
+        graph = graph.detach().numpy()
+        X = embed.detach().numpy()
+        IX = input_X.detach().numpy()
+        labels = labels.detach().numpy()
+    #plot node labels
+    G = nx.from_numpy_array(graph)
+    templabs = np.arange(0, graph.shape[0])
+    clust_labels = {list(G.nodes)[i]: templabs.tolist()[i] for i in range(len(labels))}
+    nx.draw_networkx(G, node_color = labels, 
+                     pos = nx.spring_layout(G, seed = 123),
+                     labels = clust_labels,
+                     font_size = fs,
+                     node_size = ns,
+                     cmap = 'plasma')
+    #tsne
+    TSNE_embed=TSNE(n_components=2, 
+                    learning_rate='auto',
+                    init='random', 
+                    perplexity=3).fit_transform(X)
+    #pca
+    PCs = PCA(n_components=2).fit_transform(X)
+    #node labels
+    nl = np.arange(TSNE_embed.shape[0])
+    #figs
+    fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+    #tsne plot
+    ax1[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = labels)
+    ax1[0].set_xlabel('Dimension 1')
+    ax1[0].set_ylabel('Dimension 2')
+    ax1[0].set_title('TSNE Embeddings')
+    #adding labels
+    [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
+    #PCA plot
+    ax1[1].scatter(PCs[:,0], PCs[:,1], s = size, c = labels)
+    ax1[1].set_xlabel('Dimension 1')
+    ax1[1].set_ylabel('Dimension 2')
+    ax1[1].set_title('PCA Embeddings')
+    #adding labels
+    [ax1[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
+    #heatmap of embeddings correlations
+    sbn.heatmap(np.corrcoef(X), yticklabels=labels, ax = ax2[0])
+    ax2[0].set_title('Correlations Embeddings')
+    #heatmap input data correaltions
+    sbn.heatmap(np.corrcoef(IX), yticklabels=truth, ax = ax2[1])
+    ax2[1].set_title('Correlation matrix Input Data')
+    
+    #TSNE and PCA plots using true cluster labels
+    fig2, (ax3, ax4) = plt.subplots(2, 2, figsize = (15, 10))
+    #Tsne
+    ax3[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = truth)
+    ax3[0].set_xlabel('Dimension 1')
+    ax3[0].set_ylabel('Dimension 2')
+    ax3[0].set_title('TSNE Embeddings')
+    [ax3[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
+    #pca
+    ax3[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth)
+    ax3[1].set_xlabel('Dimension 1')
+    ax3[1].set_ylabel('Dimension 2')
+    ax3[1].set_title('PCA Embeddings')
+    [ax3[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
+    
+    #sbn.heatmap(probabilities[0], yticklabels=np.arange(probabilities[0].shape[0]), ax = ax4[0])
+    #sbn.heatmap(probabilities[1], yticklabels=np.arange(probabilities[0].shape[1]),
+    #            ax=ax4[1])
+    
 
 
 

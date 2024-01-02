@@ -1,6 +1,20 @@
 \contentsline {section}{LIST OF TABLES}{1}%
 \contentsline {section}{LIST OF FIGURES}{1}%
-\contentsline {section}{\numberline {1}Case 1: Two completely disconnected communities}{2}%
-\contentsline {section}{\numberline {2}Case 2: A single network divided into 2 communities}{3}%
-\contentsline {section}{\numberline {3}Case 3: The case of a singleton community}{5}%
-\contentsline {section}{\numberline {A}Case 3}{13}%
+\contentsline {section}{\numberline {1}Background}{3}%
+\contentsline {section}{\numberline {2}Case 1: Two completely disconnected communities}{3}%
+\contentsline {subsection}{\numberline {2.1}Example 1: Modularity for two communities of 5 nodes}{4}%
+\contentsline {subsection}{\numberline {2.2}Example 2: Modularity for a single community of 10 nodes}{4}%
+\contentsline {section}{\numberline {3}Case 2: A single ring-network divided into 2 communities}{4}%
+\contentsline {subsection}{\numberline {3.1}Example 1: Modularity for a ring divided into two communities of 5 nodes}{5}%
+\contentsline {subsection}{\numberline {3.2}Example 2: Modularity for all nodes in a single community}{6}%
+\contentsline {section}{\numberline {4}Case 3: The case of a singleton community}{6}%
+\contentsline {subsection}{\numberline {4.1}Example 1: Modularity for a ring divided into two communities of 5 nodes}{6}%
+\contentsline {subsection}{\numberline {4.2}Example 2: Modularity for all nodes in a single community}{7}%
+\contentsline {subsection}{\numberline {4.3}Example 3: Example 1 with a single community}{8}%
+\contentsline {subsection}{\numberline {4.4}Example 4: Example 2 with a single community}{8}%
+\contentsline {section}{\numberline {5}Partitioning 3 communities}{8}%
+\contentsline {subsection}{\numberline {5.1}Scenario 1}{8}%
+\contentsline {subsection}{\numberline {5.2}Scenario 2}{8}%
+\contentsline {section}{\numberline {6}Hierarchy Example:}{10}%
+\contentsline {section}{\numberline {7}Conclusions}{12}%
+\contentsline {section}{\numberline {A}Case 3}{18}%

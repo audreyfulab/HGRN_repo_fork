@@ -97,8 +97,8 @@ grid3 = product(struct, connect, layers, noise)
 
 info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers','StDev',
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
-                                     'sample_size','modularity_bottom','avg_node_degree_bottom',
-                                     'avg_connect_within_bottom','avg_connect_between_bottom',
+                                     'sample_size','modularity_top','avg_node_degree_top',
+                                     'avg_connect_within_top','avg_connect_between_top',
                                      'modularity_middle','avg_node_degree_middle',
                                      'avg_connect_within_middle','avg_connect_between_middle',
                                      ])
