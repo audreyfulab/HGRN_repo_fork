@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import sys
+import pickle
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
@@ -511,7 +512,8 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
             print('*'*80)
             if save_results == True:
                 tables[i].to_csv(savepath_main+'Simulation_Results_'+case_nm[i]+'_'+nm+'.csv')
-        
+                with open(savepath_main+'Simulation_Results_'+case_nm[i]+'_'+nm+'_OUTPUT'+'.pkl', 'wb') as f:
+                    pickle.dump([out, tables[i], Graphs], f)
     
         
     print('done')
@@ -523,7 +525,7 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
 print('*'*80)
 print('*'*80)
 print('*'*80)
-out, res, graphs = run_simulations(save_results=True, 
+out1, res1, graphs1 = run_simulations(save_results=True, 
                                    resolu=[1, 1],
                                    epochs = 500,
                                    updates = 100,
@@ -531,11 +533,10 @@ out, res, graphs = run_simulations(save_results=True,
                                    delt = 1)
 
 
-
 print('*'*80)
 print('*'*80)
 print('*'*80)
-out, res, graphs = run_simulations(save_results=True, 
+out2, res2, graphs2 = run_simulations(save_results=True, 
                                    resolu=[1, 1],
                                    epochs = 500,
                                    updates = 100,
@@ -546,7 +547,7 @@ out, res, graphs = run_simulations(save_results=True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-out, res, graphs = run_simulations(save_results=True, 
+out3, res3, graphs3 = run_simulations(save_results=True, 
                                    resolu=[1, 1],
                                    epochs = 500,
                                    updates = 100,

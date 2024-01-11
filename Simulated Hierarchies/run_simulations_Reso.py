@@ -12,6 +12,7 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
+import pickle
 import sys
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
@@ -511,6 +512,8 @@ def run_simulations(save_results = False, resolu = [1,1], epochs=100, updates=25
             print('*'*80)
             if save_results == True:
                 tables[i].to_csv(savepath_main+'Simulation_Results_'+case_nm[i]+'_'+nm+'.csv')
+                with open(savepath_main+'Simulation_Results_'+case_nm[i]+'_'+nm+'_OUTPUT'+'.pkl', 'wb') as f:
+                    pickle.dump([out, tables[i], Graphs], f)
         
     
         
