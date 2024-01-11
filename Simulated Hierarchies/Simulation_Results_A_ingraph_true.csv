@@ -1,4 +1,0 @@
-,Communities_Upper_Limit,Max_Modularity,Modularity,Reconstruction_A,Reconstruction_X,Metrics,Number_Predicted_Comms,Louvain_Modularity,Louvain_Metrics,Louvain_Predicted_comms
-0,24.0,0.9172,"(0.8034,)",0.8003,0.2107,"(0.7487, 1.0, 0.8563)","(6,)",0.8963,"{'Top': (1.0, 1.0, 1.0)}",10
-1,24.0,0.9172,"(0.8427,)",0.7969,0.2119,"(0.8294, 1.0, 0.9067)","(7,)",0.8963,"{'Top': (1.0, 1.0, 1.0)}",10
-2,99.0,0.9799,"(0.8657, 0.7351)",0.8198,0.6263,"(0.4514, 0.6074, 0.5179)","(25, 8)",0.9412,"[{'Top': (1.0, 0.6625, 0.797)}, {'Middle': (0.6587, 0.9409, 0.7749)}]",33

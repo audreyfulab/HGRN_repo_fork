@@ -1,2 +1,0 @@
-,Modularity_True_ingraph,Modularity_r05_ingraph,Modularity_r08_igraph,Recon_A_true_ingraph,Recon_A_r05_ingraph,Recon_A_r08_ingraph,Recon_X_true_ingraph,Recon_X_r05_ingraph,Recon_X_r08_ingraph,true_ingraph_metrics,r05_ingraph_metrics,r08_ingraph_metrics,Number_Predicted_comms
-2,"[0.1962, 0.272]","[0.2166, 0.2151]","[0.3457, 0.2983]",0.8583,0.9169,0.9728,1.0192,0.9792,0.9934,"([0.4239, 0.9531, 0.5868], [0.4985, 0.8072, 0.6163])","([0.0634, 0.087, 0.0734], [0.3643, 0.4292, 0.3941])","([0.0798, 0.1263, 0.0978], [0.3718, 0.4334, 0.4002])","(111, 8)"
