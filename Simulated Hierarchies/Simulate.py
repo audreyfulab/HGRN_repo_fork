@@ -12,9 +12,9 @@ import pandas as pd
 import networkx as nx
 import seaborn as sbn
 import matplotlib.pyplot as plt
-from hierarchicalgraph import hierachical_graph 
-from hierarchicalgraph import generate_pseudo_expression
-from hierarchicalgraph import same_cluster
+from HGRN_hierarchicalgraph import hierachical_graph 
+from HGRN_hierarchicalgraph import generate_pseudo_expression
+from HGRN_hierarchicalgraph import same_cluster
 from random import randint as rd   
 from random import seed
 import pdb
@@ -44,7 +44,8 @@ def simulate_graph(args):
                                      subgraph_type =args.subgraph_type, 
                                      sub_graph_prob=args.subgraph_prob, 
                                      connection_prob=args.connect_prob, 
-                                     degree=args.node_degree)
+                                     degree=args.node_degree,
+                                     force_connections= args.force_connect)
         
         #sort middle layer
         ts_h2_graph = list(nx.topological_sort(h2_graph))
@@ -87,7 +88,8 @@ def simulate_graph(args):
                                          subgraph_type =args.subgraph_type, 
                                          sub_graph_prob=args.subgraph_prob, 
                                          connection_prob=args.connect_prob, 
-                                         degree=args.node_degree)
+                                         degree=args.node_degree,
+                                         force_connections= args.force_connect)
             
             
             ts_h3_graph = list(nx.topological_sort(h3_graph))
@@ -133,7 +135,8 @@ def simulate_graph(args):
                                      subgraph_type =args.subgraph_type, 
                                      sub_graph_prob=args.subgraph_prob, 
                                      connection_prob=args.connect_prob, 
-                                     degree=args.node_degree)
+                                     degree=args.node_degree,
+                                     force_connections= args.force_connect)
         
         #sort middle layer
         ts_h2_graph = list(nx.topological_sort(h2_graph))
@@ -173,7 +176,8 @@ def simulate_graph(args):
                                          subgraph_type =args.subgraph_type, 
                                          sub_graph_prob=args.subgraph_prob, 
                                          connection_prob=args.connect_prob, 
-                                         degree=args.node_degree)
+                                         degree=args.node_degree,
+                                         force_connections= args.force_connect)
             
             ts_h3_graph = list(nx.topological_sort(h3_graph))
             adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()

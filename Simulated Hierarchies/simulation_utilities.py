@@ -164,13 +164,14 @@ def compute_beth_hess_comms(A):
 
 def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth, 
                        is_torch = True, ns = 35, size = 10, fs=14, save = False, 
-                       sp = '', **kwargs):
+                       sp = '', cm = 'plasma', **kwargs):
     if is_torch:
         graph = graph.detach().numpy()
         X = embed.detach().numpy()
         IX = input_X.detach().numpy()
         labels = labels.detach().numpy()
     #plot node labels
+    fig_nx, ax_nx = plt.subplots(figsize=(12,10))
     G = nx.from_numpy_array(graph)
     templabs = np.arange(0, graph.shape[0])
     clust_labels = {list(G.nodes)[i]: templabs.tolist()[i] for i in range(len(labels))}
@@ -179,7 +180,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
                      labels = clust_labels,
                      font_size = fs,
                      node_size = ns,
-                     cmap = 'plasma')
+                     cmap = 'plasma', ax = ax_nx)
     #tsne
     TSNE_embed=TSNE(n_components=2, 
                     learning_rate='auto',
@@ -192,17 +193,17 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
     #figs
     fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
     #tsne plot
-    ax1[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = labels)
+    ax1[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = labels, cmap = cm)
     ax1[0].set_xlabel('Dimension 1')
     ax1[0].set_ylabel('Dimension 2')
-    ax1[0].set_title('TSNE Embeddings')
+    ax1[0].set_title('TSNE Embeddings (Predicted)')
     #adding labels
     [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
     #PCA plot
-    ax1[1].scatter(PCs[:,0], PCs[:,1], s = size, c = labels)
+    ax1[1].scatter(PCs[:,0], PCs[:,1], s = size, c = labels, cmap = cm)
     ax1[1].set_xlabel('Dimension 1')
     ax1[1].set_ylabel('Dimension 2')
-    ax1[1].set_title('PCA Embeddings')
+    ax1[1].set_title('PCA Embeddings (Predicted)')
     #adding labels
     [ax1[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
     #heatmap of embeddings correlations
@@ -215,16 +216,16 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
     #TSNE and PCA plots using true cluster labels
     fig2, (ax3, ax4) = plt.subplots(2, 2, figsize = (15, 10))
     #Tsne
-    ax3[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = truth)
+    ax3[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = truth, cmap = cm)
     ax3[0].set_xlabel('Dimension 1')
     ax3[0].set_ylabel('Dimension 2')
-    ax3[0].set_title('TSNE Embeddings')
+    ax3[0].set_title('TSNE Embeddings (Truth)')
     [ax3[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
     #pca
-    ax3[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth)
+    ax3[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth, cmap = cm)
     ax3[1].set_xlabel('Dimension 1')
     ax3[1].set_ylabel('Dimension 2')
-    ax3[1].set_title('PCA Embeddings')
+    ax3[1].set_title('PCA Embeddings (Truth)')
     [ax3[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
     
     #sbn.heatmap(probabilities[0], yticklabels=np.arange(probabilities[0].shape[0]), ax = ax4[0])

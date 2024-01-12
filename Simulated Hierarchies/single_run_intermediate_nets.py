@@ -36,8 +36,9 @@ torch.manual_seed(123)
 
 
 def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
-                    learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1,], 
-                    loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU'):
+                    learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], hd = [256, 128, 64], 
+                    loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU',
+                    TOAL = False):
     
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
@@ -105,6 +106,7 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                 comm_sizes = npl[::-1][1:]
             else:
                 comm_sizes = npl[::-1][1:]
+            #comm_sizes =[40,5]
                     
             #pdb.set_trace()
             #set pathnames and read in simulated network
@@ -152,11 +154,16 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             #set up three separate models for true input graph, r > 0.5 input graph, and
             #r > 0.8 input graph scenarios
             print('-'*25+'setting up and fitting models'+'-'*25)
-            HCD_model_truth = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
-            HCD_model_rmat = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
-            HCD_model_r02 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
-            HCD_model_r05 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
-            HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_truth = HCD(nodes, attrib, hidden_dims=hd, 
+                                  comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_rmat = HCD(nodes, attrib, hidden_dims=hd,
+                                 comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r02 = HCD(nodes, attrib, hidden_dims=hd, 
+                                comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r05 = HCD(nodes, attrib, hidden_dims=hd, 
+                                comm_sizes=comm_sizes, attn_act=activation)
+            HCD_model_r08 = HCD(nodes, attrib, hidden_dims=hd, 
+                                comm_sizes=comm_sizes, attn_act=activation)
             
             #set attribute and input graph(s) to torch tensors with grad attached
             X = torch.Tensor(pe_sorted).requires_grad_()
@@ -197,7 +204,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                               update_interval=updates, layer_resolutions=reso,
                               lr = learn_rate, gamma = gam, delta = delt, comm_loss=loss_fn,
                               true_labels = target_labels, verbose=False, 
-                              save_output=save_results, 
+                              save_output=save_results,
+                              turn_off_A_loss= TOAL,
                               output_path=sp,
                               ns = 25,
                               fs = 10)
@@ -287,53 +295,83 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
 
     
     print('done')
-    return out, tables, Graphs, X, target_labels
+    return out, tables, Graphs, X, target_labels, S_all, louv_preds
             
     
 
+ep = 50
+out, res, graphs, data, truth, preds, louv_pred = run_simulations(save_results=True,
+                                                       which_net=0,
+                                                       which_ingraph=0,
+                                                       reso=[1,1],
+                                                       hd=[256, 128, 64],
+                                                       gam=0,
+                                                       delt=1, 
+                                                       learn_rate=1e-4,
+                                                       epochs = ep,
+                                                       updates = ep,
+                                                       loss_fn='Modularity',
+                                                       activation = 'LeakyReLU',
+                                                       TOAL=True)
 
-out, res, graphs, data, truth = run_simulations(save_results=True,
-                                   which_net=1,
-                                   which_ingraph=0,
-                                   reso=[1,1],
-                                   gam=1,
-                                   delt=1, 
-                                   learn_rate=1e-4,
-                                   epochs = 100,
-                                   updates = 100,
-                                   loss_fn='Modularity')
 
-
-fig, ax = plt.subplots()
-G = nx.from_numpy_array((graphs[0]- torch.eye(300)).detach().numpy())
+fig, ax = plt.subplots(figsize = (14,10))
+G = nx.from_numpy_array((graphs[0]- torch.eye(data.shape[0])).detach().numpy())
 nx.draw_networkx(G, pos=nx.shell_layout(G), 
-                 with_labels = False, 
+                 with_labels = True,
+                 font_size = 10,
                  node_color = truth[0], 
                  ax = ax,
-                 node_size = 30,
+                 node_size = 100,
                  cmap = 'rainbow')
-fig2, ax2 = plt.subplots()
+fig2, ax2 = plt.subplots(figsize = (14,10))
 nx.draw_networkx(G, pos=nx.shell_layout(G), 
-                 with_labels = False, 
-                 node_size = 30,
+                 with_labels = True,
+                 font_size = 10,
+                 node_size = 100,
                  node_color = truth[1], 
                  ax = ax2,
                  cmap = 'rainbow')
 
-#max_epoch = 10
-#iteri = range(0, max_epoch)
-epoch_step = 5
-iteri = np.arange(0, 30, epoch_step)
-print(iteri)
-for epoch in iteri:
-    post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(18), 
-                       input_X = data,
-                       embed=out[0][epoch][2][0], 
-                       probabilities=out[0][epoch][4],
-                       size = 150.0,
-                       labels = out[0][epoch][-3][0], 
-                       truth = truth[1],
-                       fs=18,
-                       path = '', node_size = 25, font_size = 10)
+epoch = ep-1
+#Top layer TSNE and PCA
+post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]), 
+                        input_X = data,
+                        embed=out[0][epoch][2][0], 
+                        probabilities=out[0][epoch][4],
+                        size = 150.0,
+                        labels = out[0][epoch][-3][1], 
+                        truth = truth[0],
+                        fs=10,
+                        path = '', node_size = 25, font_size = 10)
+
+
+
+#middle layer TSNE and PCA
+post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]), 
+                        input_X = data,
+                        embed=out[0][epoch][2][0], 
+                        probabilities=out[0][epoch][4],
+                        size = 150.0,
+                        labels = out[0][epoch][-3][0], 
+                        truth = truth[1],
+                        fs=10,
+                        path = '', node_size = 25, font_size = 8)
+
+# #max_epoch = 10
+# #iteri = range(0, max_epoch)
+# epoch_step = 20
+# iteri = np.arange(0, 100, epoch_step)
+# print(iteri)
+# for epoch in iteri:
+#     post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]), 
+#                        input_X = data,
+#                        embed=out[0][epoch][2][0], 
+#                        probabilities=out[0][epoch][4],
+#                        size = 150.0,
+#                        labels = out[0][epoch][-3][0], 
+#                        truth = truth[1],
+#                        fs=18,
+#                        path = '', node_size = 25, font_size = 10)
 
 

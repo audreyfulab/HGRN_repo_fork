@@ -122,7 +122,7 @@ class ClusterLoss(nn.Module):
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, layer_resolutions = [1,1], comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
-        ns = 10, **kwargs):
+        ns = 10, turn_off_A_loss = False, **kwargs):
     """
     
     """
@@ -188,7 +188,10 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         A_loss = A_recon_loss(A_hat, A)
         
         #compute total loss function
-        loss = A_loss+gamma*X_loss-delta*community_loss
+        if(turn_off_A_loss == True):
+            loss = 0*A_loss+gamma*X_loss-delta*community_loss
+        else:
+            loss = A_loss+gamma*X_loss-delta*community_loss
 
         #compute backward pass
         loss.backward()

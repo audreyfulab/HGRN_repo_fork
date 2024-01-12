@@ -15,10 +15,10 @@ import seaborn as sbn
 import matplotlib.pyplot as plt
 import sys
 import pandas as pd
-sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
+#sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
-sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
+#sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
 # sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
 # sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 # sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
@@ -109,6 +109,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     args.connect = value[2][1]
     args.layers = value[2][2]
     args.SD = value[2][3]
+    args.force_connect = True
     
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])

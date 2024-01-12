@@ -19,8 +19,8 @@ import pandas as pd
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 #sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from Simulate import simulate_graph
@@ -58,7 +58,7 @@ args = parser.parse_args()
 
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.1
+args.connect_prob = 0.01
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
@@ -113,65 +113,66 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     args.layers = value[2][2]
     args.SD = 0.1
     args.node_degree = 3
+    args.force_connect = True
     
-    if args.subgraph_type == 'small world':
-        if args.connect == 'full':
-            print('='*60)
-            print(args)
-            print('-'*60)
-            args.savepath = mainpath+''.join(value[0])+''.join(value[1])
-            print('saving hierarchy to {} '.format(args.savepath))
-            pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
-            print('done')
-            print('-'*60)
-            print('computing statistics....')
-            
-            mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
-                                                                         comm_assign = nodelabs, 
-                                                                         layers = args.layers,
-                                                                         sp = args.savepath,
-                                                                         node_size = 60,
-                                                                         font_size = 9,
-                                                                         add_labels=True)
-                
+    #if args.subgraph_type == 'small world':
+    #    if args.connect == 'full':
+    print('='*60)
+    print(args)
+    print('-'*60)
+    args.savepath = mainpath+''.join(value[0])+''.join(value[1])
+    print('saving hierarchy to {} '.format(args.savepath))
+    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
+    print('done')
+    print('-'*60)
+    print('computing statistics....')
+    
+    mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
+                                                                 comm_assign = nodelabs, 
+                                                                 layers = args.layers,
+                                                                 sp = args.savepath,
+                                                                 node_size = 60,
+                                                                 font_size = 9,
+                                                                 add_labels=True)
+        
 
-                
-            print('*'*25+'top layer stats'+'*'*25)
-            print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
-                mod[0], node_deg[0]
-                )) 
-            print('mean within community degree = {:.4f}, mean edges between communities = {:.4f}'.format(
-                deg_within[0], deg_between[0] 
-                ))
-            if args.layers > 2:
-                print('*'*25+'middle layer stats'+'*'*25)
-                print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
-                    mod[1], node_deg[1]
-                )) 
-                print('mean within community degree = {}, mean edges between communities = {}'.format(
-                    deg_within[1], deg_between[1] 
-                    ))
-                print('*'*60)
-            if args.layers == 3:
-                
-                row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                            tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
-                            mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                            mod[1], node_deg[1], deg_within[1], deg_between[1]]
-            else:
-                row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                            tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
-                            mod[0], node_deg[0], deg_within[0], deg_between[0], 
-                            'NA', 'NA', 'NA', 'NA']
-                
-            print(pd.DataFrame(row_info))
+        
+    print('*'*25+'top layer stats'+'*'*25)
+    print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
+        mod[0], node_deg[0]
+        )) 
+    print('mean within community degree = {:.4f}, mean edges between communities = {:.4f}'.format(
+        deg_within[0], deg_between[0] 
+        ))
+    if args.layers > 2:
+        print('*'*25+'middle layer stats'+'*'*25)
+        print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
+            mod[1], node_deg[1]
+        )) 
+        print('mean within community degree = {}, mean edges between communities = {}'.format(
+            deg_within[1], deg_between[1] 
+            ))
+        print('*'*60)
+    if args.layers == 3:
+        
+        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+                    tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
+                    mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                    mod[1], node_deg[1], deg_within[1], deg_between[1]]
+    else:
+        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+                    tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
+                    mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                    'NA', 'NA', 'NA', 'NA']
+        
+    print(pd.DataFrame(row_info))
 
-            print('done')
-            print('saving hierarchy statistics...')
-            info_table.loc[idx] = row_info
-            info_table.to_csv(mainpath+'toy_examples_network_statistics.csv')
-            np.savez(mainpath+'toy_examples_network_statistics.npz', data = info_table.to_numpy())
-            print('done')
-            
-        print('Simulation Complete')       
+    print('done')
+    print('saving hierarchy statistics...')
+    info_table.loc[idx] = row_info
+    info_table.to_csv(mainpath+'toy_examples_network_statistics.csv')
+    np.savez(mainpath+'toy_examples_network_statistics.npz', data = info_table.to_numpy())
+    print('done')
+    
+print('Simulation Complete')       
     

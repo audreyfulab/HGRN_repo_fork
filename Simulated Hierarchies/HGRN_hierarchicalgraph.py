@@ -16,7 +16,8 @@ from collections import defaultdict
 from matplotlib import pyplot as plt
 
 def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, degree=3, 
-                      connection_prob=0.05, sub_graph_prob=0.01, mixed = None):
+                      connection_prob=0.05, sub_graph_prob=0.01, mixed = None,
+                      force_connections = False):
     '''
     Input:
         top_graph: the base graph
@@ -145,7 +146,7 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, degree=3,
         if connection_prob == 'use_baseline':
                  connection_prob = (num_possible/len(top_graph.edges))/num_possible
         which_edges=[i<=connection_prob for i in np.random.uniform(size = num_possible).tolist()]
-        if sum(which_edges) == 0:
+        if (sum(which_edges) == 0) & (force_connections):
             which_edges_idx = np.array([np.random.randint(num_possible)])
         else:
             which_edges_idx = np.arange(num_possible)[which_edges]
