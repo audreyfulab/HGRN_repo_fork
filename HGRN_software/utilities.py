@@ -601,7 +601,7 @@ def plot_perf(update_time, performance_hist, epoch, path='path/to/file', save = 
         ax[i].legend()
 
         if save == True:
-            fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'_layer_'+str(i)+'.pdf')
+            fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'.pdf')
             
             
             

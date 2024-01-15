@@ -230,7 +230,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #model forward
             X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
             #print update of performance metrics
-            for i in range(0, len(lnm)):
+            for i in range(0, h_layers):
                 print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
                 print('homogeneity = {:.4f}, Completeness = {:.4f}, NMI = {:.4f}'.format(
                     perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
