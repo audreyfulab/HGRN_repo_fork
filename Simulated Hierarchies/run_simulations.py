@@ -41,15 +41,16 @@ rd.seed(123)
 torch.manual_seed(123)
 
 
-def run_simulations(save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, epochs = 10, 
-                    updates = 10, resolu = [1,1], hd = [256, 128, 64], 
+def run_simulations(readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/',
+                    save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
+                    epochs = 10, updates = 10, resolu = [1,1], hd = [256, 128, 64], 
                     loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU',
                     TOAL = False, true_comm_layers = True, sp = '', **kwargs):
     
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    nm = 'gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(resolu[0])+'_'+str(resolu[1])+'TOAL_'+str(TOAL)
-    loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
+    nm = '_gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(resolu[0])+'_'+str(resolu[1])+'_TOAL_'+str(TOAL)
+    loadpath_main = readpath
     savepath_main = sp
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     #savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Simulation_Results/'
@@ -194,6 +195,7 @@ def run_simulations(save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
         for i in range(0, len(case_nm)):
             print("*"*80)
             print(printing[i])
+            savepath = savepath_main+''.join(value[0])+case[i]+''.join(value[1])
             out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = epochs, 
                       update_interval=updates, 
                       layer_resolutions=resolu,
@@ -205,7 +207,7 @@ def run_simulations(save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
                       verbose=False, 
                       save_output=save_results,
                       turn_off_A_loss= TOAL,
-                      output_path=savepath_main,
+                      output_path=savepath+nm+'_'+case_nm[i]+'_',
                       ns = 25,
                       fs = 10)
                 
@@ -264,10 +266,10 @@ def run_simulations(save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
                                              columns = ['Louvain','Truth_Middle','Truth_Top']),
                                 ax = ax)
             #make heatmap for louvain results
-            fig.savefig(savepath_main+'Louvain_results.pdf')
+            fig.savefig(savepath+'_'+case_nm[i]+'_Louvain_results.pdf')
             plot_nodes((Graphs[i]-torch.eye(nodes)).detach().numpy(), 
                        labels = np.array(louv_preds), 
-                       path = savepath_main+'Louvain_graph_'+case_nm[i], 
+                       path = savepath+'_Louvain_graph_'+case_nm[i], 
                        node_size = 25, 
                        font_size = 10, 
                        add_labels = True,
@@ -307,30 +309,36 @@ def run_simulations(save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
                              ax = ax,
                              node_size = 100,
                              cmap = 'rainbow')
+            
             fig2, ax2 = plt.subplots(figsize = (14,10))
-            nx.draw_networkx(G, pos=nx.shell_layout(G), 
-                             with_labels = True,
-                             font_size = 10,
-                             node_size = 100,
-                             node_color = target_labels[1], 
-                             ax = ax2,
-                             cmap = 'rainbow')
+            if len(target_labels)> 1:
+                nx.draw_networkx(G, pos=nx.shell_layout(G), 
+                                 with_labels = True,
+                                 font_size = 10,
+                                 node_size = 100,
+                                 node_color = target_labels[1], 
+                                 ax = ax2,
+                                 cmap = 'rainbow')
             
             if save_results == True:
-                fig.savefig(savepath_main+'Circular_layout_truegraph_topclusts.png', dpi = 300)
-                fig2.savefig(savepath_main+'Circular_layout_truegraph_midclusts.png', dpi = 300)
+                fig.savefig(savepath+'_'+case_nm[i]+'_Circular_layout_truegraph_topclusts.png', dpi = 300)
+                fig2.savefig(savepath+'_'+case_nm[i]+'_Circular_layout_truegraph_midclusts.png', dpi = 300)
 
             epoch = best_perf_idx
             #Top layer TSNE and PCA
+            if lays > 2:
+                tl = target_labels[::-1]
+            else:
+                tl = target_labels
             post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(X.shape[0]), 
                                     input_X = X,
                                     embed=out[0][epoch][2][0], 
                                     probabilities=out[0][epoch][4],
                                     size = 150.0,
                                     labels = S_all, 
-                                    truth = target_labels[::-1],
+                                    truth = tl,
                                     fs=10,
-                                    path = savepath_main+'Best_perfromance_',
+                                    path = savepath+'_'+case_nm[i]+'_Best_perfromance_',
                                     save = save_results,
                                     node_size = 25, font_size = 10)
 
