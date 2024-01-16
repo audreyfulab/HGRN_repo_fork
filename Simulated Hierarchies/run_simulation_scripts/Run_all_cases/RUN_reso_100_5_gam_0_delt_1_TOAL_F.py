@@ -14,7 +14,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 from simulation_utilities import post_hoc_embedding
 from run_simulations import run_simulations

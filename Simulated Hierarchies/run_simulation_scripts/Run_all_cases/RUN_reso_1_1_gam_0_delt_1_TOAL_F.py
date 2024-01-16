@@ -14,7 +14,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
 sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 from simulation_utilities import post_hoc_embedding
 from run_simulations import run_simulations
@@ -24,8 +24,6 @@ print('*'*80)
 print('*'*80)
 print('*'*80)
 out, res, graphs, data, truth, preds, louv_pred = run_simulations(save_results=True,
-                                                       which_net=0,
-                                                       which_ingraph=0,
                                                        reso=[1,1],
                                                        hd=[256, 128, 64],
                                                        gam=0,
