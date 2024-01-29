@@ -8,14 +8,16 @@ Created on Wed Dec 13 11:44:30 2023
 
 import torch
 import torch.nn as nn
+import pickle
 import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
 import sys
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
-
 from itertools import product, chain
 import matplotlib.pyplot as plt 
 import ast
@@ -26,11 +28,12 @@ resolu1=[1, 100]
 resolu2=[1, 5]
 gam = [1, 0.5, 0]
 index = [0, 1]
-
+TOAL = [True, False]
 case_nms = ['A_ingraph_true','A_corr_no_cutoff','A_ingraph02', 
            'A_ingraph05', 'A_ingraph07']
-expansion = product(case_nms, index, gam)
-lp_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Results_Tables_and_Figures/Simulation_Results'
+expansion = product(case_nms, index, gam, TOAL)
+#lp_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Results_Tables_and_Figures/Simulation_Results'
+lp_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Simulation_Results/Simulation_Results'
 tables = []
 
 net_type = np.repeat('SM', 8).tolist()+np.repeat('SF', 2).tolist()  
@@ -42,40 +45,50 @@ net_info = pd.DataFrame([net_type, connect, layers, SD]).T
 net_info.columns = ['net_type','connect','layers','SD']
 
 which_case = []
-cnames = ['Network','Input_graph', 'Gamma', 'Delta', 
+cnames = ['Network',
+          'Input_graph', 
+          'Gamma', 
+          'Delta', 
           'Resolution_lower',
           'Resolution_upper',
-                                       'Beth_Hessian_Comms',
-                                       'Communities_Upper_Limit',
-                                       'Max_Modularity',
-                                       'Top_Modularity',
-                                       'Middle_Modularity',
-                                       'Reconstruction_A',
-                                       'Reconstruction_X', 
-                                       'Top_homogeneity',
-                                       'Middle_homogeneity',
-                                       'Top_completeness',
-                                       'Middle_completeness',
-                                       'Top_NMI',
-                                       'Middle_NMI',
-                                       'Number_Predicted_Comms_Top',
-                                       'Number_Predicted_Comms_Middle',
-                                       'Louvain_Modularity',
-                                       'Louvain_homogeneity',
-                                       'Louvain_completeness',
-                                       'Louvain_NMI',
-                                       'Louvain_Predicted_comms']
+          'Beth_Hessian_Comms',
+          'Communities_Upper_Limit',
+          'Max_Modularity',
+          'Top_Modularity',
+          'Middle_Modularity',
+          'Reconstruction_A',
+          'Reconstruction_X', 
+          'Top_homogeneity',
+          'Middle_homogeneity',
+          'Top_completeness',
+          'Middle_completeness',
+          'Top_NMI',
+          'Middle_NMI',
+          'Number_Predicted_Comms_Top',
+          'Number_Predicted_Comms_Middle',
+          'Louvain_Modularity',
+          'Louvain_homogeneity',
+          'Louvain_completeness',
+          'Louvain_NMI',
+          'Louvain_Predicted_comms']
 
-stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/network_statistics.csv')
+#stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/network_statistics.csv')
+stats = pd.read_csv('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/network_statistics.csv')
 
 for idx, case in enumerate(expansion):
     print(case)
     i = case[1]
     case_nm = case[0]
     which_case.append(case_nm)
-    gam_value = case[-1]
-    nm = '_gam_'+str(gam_value)+'_delt_'+str(1)+'_reso_'+str(resolu1[i])+'_'+str(resolu2[i])
-    tab = pd.read_csv(lp_main+'_'+case_nm+nm+'.csv')
+    gam_value = case[2]
+    toal = case[3]
+    nm = '_gam_'+str(gam_value)+'_delt_'+str(1)+'_reso_'+str(resolu1[i])+'_'+str(resolu2[i])+'_TOAL_'+str(toal)
+    # Ex name: Simulation_Results_A_ingraph07__gam_1_delt_1_reso_100_5_TOAL_True
+    tab = pd.read_csv(lp_main+'_'+case_nm+'_'+nm+'.csv')
+    
+    #read in output
+    with open(lp_main+'_'+case_nm+nm+'_OUTPUT.pkl', 'rb') as f:
+        xsd05 = pickle.load(f)
     print(tab.shape)
     nets = tab.shape[0]
     key_val_pairs = [list(ast.literal_eval(i).values()) for i in tab['Metrics']]
@@ -92,6 +105,7 @@ for idx, case in enumerate(expansion):
     #parameter settings
     Resolution_middle = np.repeat(resolu1[i], nets)
     Resolution_top = np.repeat(resolu2[i], nets)
+    A_loss_off = np.repeat(toal, nets)
     Gamma_value = np.repeat(gam_value, nets)
     input_graph = np.repeat(case_nm, nets)
     network = stats.subgraph_type[:nets]
@@ -134,6 +148,7 @@ for idx, case in enumerate(expansion):
                          connection,
                          layers,
                          standard_dev,
+                         A_loss_off,
                          Top_Homogeneity, 
                          Top_Completeness, 
                          Top_NMI,
@@ -164,40 +179,42 @@ for idx, case in enumerate(expansion):
                   'Network_type',
                   'Connection_prob',
                   'Layers',
-                  'Dtandard_dev',
+                  'standard_dev',
+                  'TOAL',
                   'Top_homogeneity',
-                                  'Top_completeness',
-                                  'Top_NMI',
-                                  'Middle_homogeneity',
-                                  'Middle_Completeness',
-                                  'Middle_NMI',
-                                  'Resolution_top',
-                                  'Resolution_middle',
-                                  'Louvain_modularity',
-                                  'Louvain_homogenity_top',
-                                  'Louvain_completeness_top',
-                                  'Louvain_NMI_top',
-                                  'Louvain_homogenity_middle',
-                                  'Louvain_completeness_middle',
-                                  'Louvain_NMI_middle',
-                                  'Comms_predicted_top',
-                                  'Comms_predicted_middle',
-                                  'Louvain_predicted',
-                                  'Modularity_top',
-                                  'Modularity_middle',
-                                  'True_mod_top',
-                                  'True_mod_middle',
-                                  'True_aeb_top',
-                                  'True_aeb_middle',
-                                  'True_aew_top',
-                                  'True_aew_middle']
+                  'Top_completeness',
+                  'Top_NMI',
+                  'Middle_homogeneity',
+                  'Middle_Completeness',
+                  'Middle_NMI',
+                  'Resolution_top',
+                  'Resolution_middle',
+                  'Louvain_modularity',
+                  'Louvain_homogenity_top',
+                  'Louvain_completeness_top',
+                  'Louvain_NMI_top',
+                  'Louvain_homogenity_middle',
+                  'Louvain_completeness_middle',
+                  'Louvain_NMI_middle',
+                  'Comms_predicted_top',
+                  'Comms_predicted_middle',
+                  'Louvain_predicted',
+                  'Modularity_top',
+                  'Modularity_middle',
+                  'True_mod_top',
+                  'True_mod_middle',
+                  'True_aeb_top',
+                  'True_aeb_middle',
+                  'True_aew_top',
+                  'True_aew_middle']
     #tab_concat_final = pd.concat([net_info, temp], axis=1)
 
     tables.append(temp)
     
 master_table = pd.concat(tables)
 
-master_table.to_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/MASTER_results.csv')
+#master_table.to_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/MASTER_results.csv')
+master_table.to_csv('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Simulation_Results/MASTER_results.csv')
 
 
 # from plotnine import ggplot, aes, geom_bar, geom_boxplot, facet_wrap, geom_point

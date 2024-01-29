@@ -19,8 +19,8 @@ import pandas as pd
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 #sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from Simulate import simulate_graph
@@ -43,16 +43,17 @@ rd.seed(123)
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
 parser.add_argument('--connect_prob', dest='connect_prob', default=0.05, type=float)
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
-parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=2, type=int)
+parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=10, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(4,6), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(4,6), type=tuple)
-parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5, 8), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20, 30), type=tuple)
+parser.add_argument('--node_degree', dest='node_degree', default=3, type=int)
 parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
 parser.add_argument('--layers',dest='layers',default = 2, type=int)
 parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
 parser.add_argument('--seed_number',dest='seed_number',default = 555, type=int)
+parser.add_argument('--force_connect',dest='force_connect',default = True, type=bool)
 args = parser.parse_args()
 
 
@@ -68,7 +69,7 @@ args.connect_prob = 0.01
 # args.SD = 0.1
 #args.node_degree = 5
 
-mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/test/'
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
 
 structpath = ['small_world/','scale_free/','random_graph/']
@@ -106,7 +107,7 @@ info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers'
 for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hierarchies…", ascii=False, ncols=75):
     
     
-    if idx == 2:
+    if idx == 17:
         args.subgraph_type = value[2][0]
         args.connect = value[2][1]
         args.layers = value[2][2]

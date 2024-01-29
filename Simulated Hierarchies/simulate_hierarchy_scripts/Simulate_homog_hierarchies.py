@@ -46,13 +46,14 @@ parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', def
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=10, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(10,20), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(10,20), type=tuple)
-parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5, 8), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20, 30), type=tuple)
+parser.add_argument('--node_degree', dest='node_degree', default=3, type=int)
 parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
 parser.add_argument('--layers',dest='layers',default = 2, type=int)
 parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
 parser.add_argument('--seed_number',dest='seed_number',default = 555, type=int)
+parser.add_argument('--force_connect',dest='force_connect',default = True, type=bool)
 args = parser.parse_args()
 
 
@@ -69,7 +70,7 @@ args.connect_prob = 0.01
 #args.node_degree = 5
 
 #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
+mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
 
 structpath = ['small_world/','scale_free/','random_graph/']
 connectpath = ['disconnected/', 'fully_connected/']

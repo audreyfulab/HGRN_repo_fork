@@ -158,18 +158,48 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, degree=3,
     return full_graph
 
 
+# def generate_pseudo_expression(topological_order, adjacency_matrix, 
+#                                 number_of_invididuals, free_mean=0, std=0.5,
+#                                 common_distribution = True):
+#     pseudo_expression = np.zeros((len(topological_order), number_of_invididuals))
+#     for i in range(number_of_invididuals): 
+#         cur_sample = np.zeros((len(topological_order), ))
+#         for index, node in enumerate(topological_order):
+#             if np.sum(adjacency_matrix[:, index]) == 0:
+#                 if common_distribution == True:
+#                     cur_sample[index] = np.random.normal(free_mean, std)
+#                 else:
+#                     cur_sample[index] = np.random.normal(np.random.uniform(-10, 10), std)
+#             else:
+#                 parents_loc = [cur_sample[i] for i in range(len(cur_sample)) if adjacency_matrix[i, index]==1]
+#                 cur_sample[index] = np.random.normal(np.mean(parents_loc), std)
+#         pseudo_expression[:, i] = cur_sample.reshape(-1,)
+#     return pseudo_expression
+
+
+
+
 def generate_pseudo_expression(topological_order, adjacency_matrix, 
-                               number_of_invididuals, free_mean=0, std=0.5):
-    pseudo_expression = np.zeros((len(topological_order), number_of_invididuals))
-    for i in range(number_of_invididuals): 
-        cur_sample = np.zeros((len(topological_order), ))
-        for index, node in enumerate(topological_order):
-            if np.sum(adjacency_matrix[:, index]) == 0:
-                cur_sample[index] = np.random.normal(free_mean, std)
+                               number_of_invididuals, free_mean=0, std=0.5,
+                               common_distribution = True):
+    
+    N = len(topological_order)
+    pseudo_expression = np.zeros((N, number_of_invididuals))
+    origin_nodes = []
+    for index, node in enumerate(topological_order):
+        if np.sum(adjacency_matrix[:, index]) == 0:
+            origin_nodes.append(index)
+            if common_distribution == True:
+                pseudo_expression[index,:] = np.random.normal(free_mean, std,
+                                                          size = number_of_invididuals)
             else:
-                parents_loc = [cur_sample[i] for i in range(len(cur_sample)) if adjacency_matrix[i, index]==1]
-                cur_sample[index] = np.random.normal(np.mean(parents_loc), std)
-        pseudo_expression[:, i] = cur_sample.reshape(-1,)
+                pseudo_expression[index,:] = np.random.normal(np.random.uniform(0, 5),
+                                                              std,
+                                                              size = number_of_invididuals)
+        else:
+            parents_idx = [i for i in np.arange(N) if adjacency_matrix[i, index]==1]
+            parents_loc = pseudo_expression[parents_idx, :].mean(axis = 0)
+            pseudo_expression[index, :] = np.random.normal(parents_loc, std) 
     return pseudo_expression
 
 

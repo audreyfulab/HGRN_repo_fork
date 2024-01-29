@@ -4,12 +4,6 @@ Created on Wed Oct 18 10:46:39 2023
 
 @author: Bruin
 """
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 18 10:46:39 2023
-
-@author: Bruin
-"""
 
 #preamble
 import torch
@@ -18,7 +12,9 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
-#import sys
+import sys
+import pickle 
+import gc
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
@@ -26,57 +22,67 @@ import networkx as nx
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity, compute_beth_hess_comms, post_hoc_embedding
+from simulation_utilities import compute_modularity, post_hoc_embedding, compute_beth_hess_comms
 from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph, plot_nodes
 import seaborn as sbn
 import matplotlib.pyplot as plt
 from community import community_louvain as cl
 from itertools import product, chain
 from tqdm import tqdm
-import pickle
 import pdb
 import ast
 import random as rd
-import gc
 rd.seed(123)
 torch.manual_seed(123)
+    
 
-
-def run_simulations(readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/',
+def run_simulations(readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Toy_examples/Intermediate_examples/',
                     save_results = False, gam = 1, delt = 1, learn_rate = 1e-4, 
                     epochs = 10, updates = 10, reso = [1,1], hd = [256, 128, 64], 
                     loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU',
-                    TOAL = False, true_comm_layers = True, sp = '', use_gpu = True, **kwargs):
+                    TOAL = False, true_comm_layers = True, 
+                    sp = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Toy_examples/Intermediate_examples/Results/', 
+                    use_gpu = True, **kwargs):
     
     device = 'cuda:'+str(0) if use_gpu and torch.cuda.is_available() else 'cpu'
+    
+    print('*********** using DEVICE: {} **************'.format(device))
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     nm = '_gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(reso[0])+'_'+str(reso[1])+'_TOAL_'+str(TOAL)
     loadpath_main = readpath
     savepath_main = sp
-    #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    #savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Simulation_Results/'
+    #pathnames and filename conventions
+    #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+    #pathnames and filename conventions
+    #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+    #loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
+    #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
+    
     structpath = ['small_world/','scale_free/','random_graph/']
     connectpath = ['disconnected/', 'fully_connected/']
-    layerpath = ['2_layer/', '3_layer/']
-    noisepath = ['SD01/','SD05/']
-    
-    
+    layerpath = ['3_layer/']
+    #noisepath = ['SD01/','SD05/']
+
+
     struct_nm = ['smw_','sfr_','rdg_']
     connect_nm =['disc_', 'full_']
-    layer_nm = ['2_layer_','3_layer_']
-    noise_nm = ['SD01','SD05']
-    
+    layer_nm = ['3_layer_']
+    #noise_nm = ['SD01','SD05']
+
     struct = ['small world','scale free','random graph']
     connect = ['disc', 'full']
-    layers = [2, 3]
-    noise = [0.1, 0.5]
+    layers = [3]
+    #noise = [0.1, 0.5]
     
+    
+    #pdb.set_trace()
     #read in network statistics 
-    stats = pd.read_csv(loadpath_main+'network_statistics.csv')
-    grid1 = product(structpath, connectpath, layerpath, noisepath)
-    grid2 = product(struct_nm, connect_nm, layer_nm, noise_nm)
-    grid3 = product(struct, connect, layers, noise)
+    stats = pd.read_csv(loadpath_main+'intermediate_examples_network_statistics.csv')
+    #combine pathname and filename pieces
+    grid1 = product(structpath, connectpath, layerpath)
+    grid2 = product(struct_nm, connect_nm, layer_nm)
+    grid3 = product(struct, connect, layers)
     
     #preallocate results table
     res_table = pd.DataFrame(columns = ['Best Loss Epoch',
@@ -358,7 +364,8 @@ def run_simulations(readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchie
         torch.cuda.empty_cache()
     
     print('............................done...................................')
-    #return out, tables, Graphs, X, target_labels, S_all, louv_preds, 
+
+
 
 
 

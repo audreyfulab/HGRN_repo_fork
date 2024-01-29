@@ -36,7 +36,7 @@ from itertools import product
 from tqdm import tqdm
 import time
 #set seed
-#rd.seed(333)
+rd.seed(333)
 
 
 # simulation default arguments
@@ -52,6 +52,7 @@ parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
 parser.add_argument('--layers',dest='layers', default = 2, type=int)
 parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
+parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
 parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
 args = parser.parse_args()
 
@@ -59,6 +60,7 @@ args = parser.parse_args()
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
 args.connect_prob = 0.01
+args.common_dist = True
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
@@ -170,8 +172,8 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('done')
     print('saving hierarchy statistics...')
     info_table.loc[idx] = row_info
-    info_table.to_csv(mainpath+'toy_examples_network_statistics.csv')
-    np.savez(mainpath+'toy_examples_network_statistics.npz', data = info_table.to_numpy())
+    info_table.to_csv(mainpath+'intermediate_examples_network_statistics.csv')
+    np.savez(mainpath+'intermediate_examples_network_statistics.npz', data = info_table.to_numpy())
     print('done')
     
 print('Simulation Complete')       

@@ -193,17 +193,16 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
     fig_nx, ax_nx = plt.subplots(1,2,figsize=(12,10))
     
     for i in range(0, layers):
-        print('plotting TSNE and PCA for '+layer_nms[i])
+        print('plotting t-SNE and PCA for '+layer_nms[i])
         #nx graph with nodes colored by prediction
         G = nx.from_numpy_array(graph)
         templabs = np.arange(0, graph.shape[0])
         clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(labels[i]))}
         nx.draw_networkx(G, node_color = labels[i], 
-                         pos = nx.spring_layout(G, seed = 123),
                          labels = clust_labels,
                          font_size = fs,
                          node_size = ns,
-                         cmap = 'plasma', ax = ax_nx[i])
+                         cmap = cm, ax = ax_nx[i])
         ax_nx[i].set_title(layer_nms[i]+' Clusters on Graph')
         
         #tsne
@@ -221,7 +220,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
         ax1[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = labels[i], cmap = cm)
         ax1[0].set_xlabel('Dimension 1')
         ax1[0].set_ylabel('Dimension 2')
-        ax1[0].set_title(layer_nms[i]+' TSNE Embeddings (Predicted)')
+        ax1[0].set_title(layer_nms[i]+' t-SNE Embeddings (Predicted)')
         #adding node labels
             
         #PCA plot
@@ -237,7 +236,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
         ax2[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = truth[i], cmap = cm)
         ax2[0].set_xlabel('Dimension 1')
         ax2[0].set_ylabel('Dimension 2')
-        ax2[0].set_title(layer_nms[i]+' TSNE Embeddings (Truth)')
+        ax2[0].set_title(layer_nms[i]+' t-SNE Embeddings (Truth)')
 
             
         #pca truth
@@ -256,7 +255,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
         
         #save plot by layer
         if save == True:
-            fig.savefig(path+layer_nms[i]+'_TSNE_PCA_Plot.png', dpi = 300)
+            fig.savefig(path+layer_nms[i]+'_tSNE_PCA_Plot.png', dpi = 300)
             
     
     #save plots
