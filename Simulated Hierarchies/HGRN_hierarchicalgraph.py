@@ -188,7 +188,7 @@ def generate_pseudo_expression(topological_order, adjacency_matrix,
     origin_nodes = []
     for index, node in enumerate(topological_order):
         if np.sum(adjacency_matrix[:, index]) == 0:
-            origin_nodes.append(index)
+            origin_nodes.append([index,node])
             if common_distribution == True:
                 pseudo_expression[index,:] = np.random.normal(free_mean, std,
                                                           size = number_of_invididuals)
@@ -200,7 +200,7 @@ def generate_pseudo_expression(topological_order, adjacency_matrix,
             parents_idx = [i for i in np.arange(N) if adjacency_matrix[i, index]==1]
             parents_loc = pseudo_expression[parents_idx, :].mean(axis = 0)
             pseudo_expression[index, :] = np.random.normal(parents_loc, std) 
-    return pseudo_expression
+    return pseudo_expression, origin_nodes
 
 
 
