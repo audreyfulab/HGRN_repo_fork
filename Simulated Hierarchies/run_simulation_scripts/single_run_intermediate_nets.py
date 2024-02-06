@@ -312,8 +312,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             
     
 
-ep = 10
-out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(save_results=True,
+ep = 20
+out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(save_results=False,
                                                        which_net=0,
                                                        which_ingraph=0,
                                                        reso=[1,1],
@@ -323,7 +323,7 @@ out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(sav
                                                        learn_rate=1e-4,
                                                        epochs = ep,
                                                        updates = ep,
-                                                       loss_fn='Modularity',
+                                                       loss_fn='Clustering',
                                                        activation = 'LeakyReLU',
                                                        TOAL=True)
 
