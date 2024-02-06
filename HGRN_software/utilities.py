@@ -34,38 +34,76 @@ def Modularity(A,P,res=1):
 
 
 #This function computes the within cluster sum of squares (WCSS)
-def WCSS(X = None, clustlabs = None, num_clusters=None, norm_degree = 2,
+# def WCSS(X = None, clustlabs = None, num_clusters=None, norm_degree = 2,
+#          weight_by = ['kmeans','anova']):
+    
+#     """
+#     Within-Cluster Sum of Squares
+#     """
+    
+#     #X_tensor = torch.tensor(X, requires_grad=True)
+#     num_features = X.shape[1]
+#     num_nodes = X.shape[0]
+#     centroid_mat = torch.zeros(num_clusters, num_features)
+#     nodes = torch.arange(num_nodes)
+#     total_wcss = torch.zeros(1).float()
+#     clust_IDs = torch.unique(clustlabs)
+    
+#     for i in np.arange(num_clusters):
+#         which = nodes[clustlabs == clust_IDs[i]]
+#         clust = torch.index_select(X, 0, which)
+#         centroid_mat[i,:] = torch.mean(clust, dim = 0)
+#         pdist = nn.PairwiseDistance(p=norm_degree)
+#         if weight_by == 'kmeans':
+#             total_wcss += torch.mean(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
+#         else:
+#             total_wcss += torch.sum(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
+            
+#     if weight_by == 'kmeans':
+#         MSW = (1/num_clusters)*total_wcss
+#     else:
+#         MSW = (1/(X.shape[0]-num_clusters))*total_wcss
+            
+#     return MSW, centroid_mat
+def WCSS(X, P, S, k, norm_degree = 2,
          weight_by = ['kmeans','anova']):
     
     """
-    
+    Within-Cluster Sum of Squares
     """
     
     #X_tensor = torch.tensor(X, requires_grad=True)
-    num_features = X.shape[1]
-    num_nodes = X.shape[0]
-    centroid_mat = torch.zeros(num_clusters, num_features)
-    nodes = torch.arange(num_nodes)
-    total_wcss = torch.zeros(1).float()
-    clust_IDs = torch.unique(clustlabs)
+    Snew = easy_renumbering(S)
+    p = X.shape[1]
+    N = X.shape[0]
+    A = F.one_hot(S).type(torch.float32)
+    oneN = torch.ones(N, 1)
+    M = torch.mm(torch.mm(X.T, A), torch.diag(1/torch.mm(oneN.T, A).flatten()))
+    D = X.T - torch.mm(M, A.T)
+    P_w = 1/(P.max(dim = 1)[0])
     
-    for i in np.arange(num_clusters):
-        which = nodes[clustlabs == clust_IDs[i]]
-        clust = torch.index_select(X, 0, which)
-        centroid_mat[i,:] = torch.mean(clust, dim = 0)
-        pdist = nn.PairwiseDistance(p=norm_degree)
-        if weight_by == 'kmeans':
-            total_wcss += torch.mean(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
-        else:
-            total_wcss += torch.sum(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
-            
-    if weight_by == 'kmeans':
-        MSW = (1/num_clusters)*total_wcss
-    else:
-        MSW = (1/(X.shape[0]-num_clusters))*total_wcss
-            
-    return MSW, centroid_mat
+    MSW = (1/(N*k))*torch.sum(P_w * torch.diag(torch.mm(D.T, D)))
     
+    # M = torch.zeros(k, q)
+    # nodes = torch.arange(N)
+    # total_wcss = torch.zeros(1).float()
+    # clust_IDs = torch.unique(S)
+    
+    # for i in np.arange(k):
+    #     ix = nodes[S == clust_IDs[i]]
+    #     n_k = len(ix)
+    #     X_k = torch.index_select(X, 0, ix)
+    #     m_k = torch.index_select(X, 0, ix).mean(dim = 0)
+    #     M[i,:] = torch.mean(X_k, dim = 0)
+    #     #pdist = nn.PairwiseDistance(p=norm_degree)
+    #     total_wcss += (1/n_k)*torch.pow(torch.pow((X_k - m_k), norm_degree).sum(), 1/norm_degree)
+            
+    # if weight_by == 'kmeans':
+    #     MSW = (1/k)*total_wcss
+    # else:
+    #     MSW = (1/(N-k))*total_wcss
+            
+    return MSW, M
 
     
 
@@ -116,6 +154,14 @@ def resort_graph(A, sort_list):
 
 
 
+
+def easy_renumbering(labels):
+    clusts = torch.unique(labels)
+    new = torch.arange(len(clusts))
+    for index, (i,j) in enumerate(zip(clusts, new)):
+        labels[labels == int(i)] = int(j)
+        
+    return labels
 
 
 

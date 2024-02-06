@@ -77,34 +77,35 @@ class ClusterLoss(nn.Module):
 
     
     
-    def forward(self, Attributes, cluster_labels):
+    def forward(self, Attributes, Probabilities, cluster_labels):
         
         """
         computes forward loss
         """
         loss = torch.Tensor([0])
         loss_list = []
-        for idx, (features,labels) in enumerate(zip(Attributes, cluster_labels)):
+        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
             #compute total number of clusters
-            number_of_clusters = torch.tensor(torch.unique(labels).shape[0])
+            number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = Attributes, 
-                                        clustlabs=labels, 
-                                        num_clusters = number_of_clusters,
+            within_ss, centroids = WCSS(X = features,
+                                        P = probs,
+                                        S=labels, 
+                                        k = number_of_clusters,
                                         norm_degree=self.norm_deg,
                                         weight_by = self.weighting)
             #between cluster sum of squares
-            between_ss = BCSS(X = Attributes,
-                              cluster_centroids=centroids,
-                              numclusts = number_of_clusters,
-                              norm_degree = self.norm_deg, 
-                              weight_by = self.weighting)
+            # between_ss = BCSS(X = Attributes,
+            #                   cluster_centroids=centroids,
+            #                   numclusts = number_of_clusters,
+            #                   norm_degree = self.norm_deg, 
+            #                   weight_by = self.weighting)
             #add loss
-            #loss_list.append(float((between_ss/within_ss).detach().numpy()))
-            #loss += between_ss/within_ss
+            loss_list.append(float(within_ss.detach().numpy()))
+            loss += within_ss
             
-            loss_list.append(float((within_ss-between_ss).detach().numpy()))
-            loss += torch.subtract(within_ss, between_ss)
+            # loss_list.append(float((within_ss-between_ss).detach().numpy()))
+            # loss += torch.subtract(within_ss, between_ss)
 
         return loss, loss_list
     
@@ -120,7 +121,7 @@ class ClusterLoss(nn.Module):
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
-        gamma = 1, delta = 1, layer_resolutions = [1,1], comm_loss = ['Modularity', 'Clustering'], 
+        gamma = 1, delta = 1, lam = 1, layer_resolutions = [1,1], comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
         ns = 10, turn_off_A_loss = False, **kwargs):
     """
@@ -177,21 +178,32 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         
         #update all output list
         all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i)) for i in S_all]])
-        #compute community detection loss
-        if comm_loss == 'Modularity':    
-            community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
-        elif comm_loss == 'Clustering':
-            community_loss, comloss_values = community_loss_fn(X, S_all)
+        
         
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
         
-        #compute total loss function
-        if(turn_off_A_loss == True):
-            loss = 0*A_loss+gamma*X_loss-delta*community_loss
-        else:
-            loss = A_loss+gamma*X_loss-delta*community_loss
+        
+        #compute community detection loss
+        if comm_loss == 'Modularity':    
+            community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
+            #compute total loss function
+            if(turn_off_A_loss == True):
+                loss = 0*A_loss+gamma*X_loss-delta*community_loss
+            else:
+                loss = A_loss+gamma*X_loss-delta*community_loss
+        elif comm_loss == 'Clustering':
+            community_loss, comloss_values = community_loss_fn(X_all, P_all, S_sub)
+            #compute total loss function
+            if(turn_off_A_loss == True):
+                loss = 0*A_loss+gamma*X_loss+delta*community_loss
+            else:
+                loss = A_loss+gamma*X_loss+delta*community_loss
+        
+       
+        
+        
 
         #compute backward pass
         loss.backward()
