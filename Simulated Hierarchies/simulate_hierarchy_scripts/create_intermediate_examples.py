@@ -124,7 +124,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])
     print('saving hierarchy to {} '.format(args.savepath))
-    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
+    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, ori = simulate_graph(args)
     print('done')
     print('-'*60)
     print('computing statistics....')
@@ -136,7 +136,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
                                                                  node_size = 60,
                                                                  font_size = 9,
                                                                  add_labels=True)
-        
+    
 
         
     print('*'*25+'top layer stats'+'*'*25)
