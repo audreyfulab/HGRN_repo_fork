@@ -237,12 +237,12 @@ def simulate_graph(args):
         print(len(ts_full), adj_full.shape)
     
     print('Generating pseudoexpression...')
-    pe = generate_pseudo_expression(topological_order=ts_full, 
-                                    adjacency_matrix=adj_full, 
-                                    number_of_invididuals=args.sample_size,
-                                    free_mean=0,
-                                    std=args.SD,
-                                    common_distribution=args.common_dist)
+    pe, ori_nodes = generate_pseudo_expression(topological_order=ts_full, 
+                                               adjacency_matrix=adj_full, 
+                                               number_of_invididuals=args.sample_size,
+                                               free_mean=0,
+                                               std=args.SD,
+                                               common_distribution=args.common_dist)
     print('data dimension = {}'.format(pe.shape))
     #pdb.set_trace()
     #save as .npz
@@ -279,4 +279,4 @@ def simulate_graph(args):
     gexp.head()
     
     
-    return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full
+    return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes
