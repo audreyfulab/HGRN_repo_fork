@@ -23,133 +23,133 @@ epochs = 100
 
 #TOAL = FALSE
 
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, False
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 0, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = False, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, False
+    ))
+run_simulations(save_results = True, 
+                gam = 0, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = False, 
+                true_comm_layers = True, 
+                use_gpu = True)
 
 
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, False
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 0.5, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = False, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
-
-
-
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, False
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 1, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = False, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
-
-# #TOAL = TRUE
-
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, True
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 0, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = True, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
-
-
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, True
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 0.5, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = True, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, False
+    ))
+run_simulations(save_results = True, 
+                gam = 0.5, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = False, 
+                true_comm_layers = True, 
+                use_gpu = True)
 
 
 
-# print('*'*80)
-# print('*'*80)
-# print('*'*80)
-# print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-#     [1,1], 0, True
-#     ))
-# run_simulations(save_results = True, 
-#                 gam = 1, 
-#                 delt = 1, 
-#                 learn_rate = 1e-4, 
-#                 epochs = epochs, 
-#                 updates = epochs/2, 
-#                 reso = [1,1], 
-#                 hd = [256, 128, 64], 
-#                 loss_fn = 'Modularity', 
-#                 activation = 'LeakyReLU',
-#                 TOAL = True, 
-#                 true_comm_layers = True, 
-#                 use_gpu = True)
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, False
+    ))
+run_simulations(save_results = True, 
+                gam = 1, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = False, 
+                true_comm_layers = True, 
+                use_gpu = True)
+
+#TOAL = TRUE
+
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, True
+    ))
+run_simulations(save_results = True, 
+                gam = 0, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = True, 
+                true_comm_layers = True, 
+                use_gpu = True)
+
+
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, True
+    ))
+run_simulations(save_results = True, 
+                gam = 0.5, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = True, 
+                true_comm_layers = True, 
+                use_gpu = True)
+
+
+
+print('*'*80)
+print('*'*80)
+print('*'*80)
+print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], 0, True
+    ))
+run_simulations(save_results = True, 
+                gam = 1, 
+                delt = 1, 
+                learn_rate = 1e-4, 
+                epochs = epochs, 
+                updates = epochs/2, 
+                reso = [1,1], 
+                hd = [256, 128, 64], 
+                loss_fn = 'Modularity', 
+                activation = 'LeakyReLU',
+                TOAL = True, 
+                true_comm_layers = True, 
+                use_gpu = True)
 
 
 
