@@ -40,8 +40,8 @@ torch.manual_seed(123)
 
 
 def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
-                    learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], hd = [256, 128, 64], 
-                    loss_fn = ['Modularity', 'Clustering'], activation = 'LeakyReLU', use_gpu = True,
+                    lam = 1, learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], 
+                    hd = [256, 128, 64], activation = 'LeakyReLU', use_gpu = True,
                     TOAL = False):
     
     device = 'cuda:'+str(0) if use_gpu and torch.cuda.is_available() else 'cpu'
@@ -212,13 +212,10 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                     print(printing[i])
                     out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = epochs, 
                               update_interval=updates, layer_resolutions=reso,
-                              lr = learn_rate, gamma = gam, delta = delt, comm_loss=loss_fn,
-                              true_labels = target_labels, verbose=False, 
-                              save_output=save_results,
-                              turn_off_A_loss= TOAL,
-                              output_path=sp,
-                              ns = 25,
-                              fs = 10)
+                              lr = learn_rate, gamma = gam, delta = delt, 
+                              lamb = lam, true_labels = target_labels, verbose=False, 
+                              save_output=save_results, turn_off_A_loss= TOAL,
+                              output_path=sp, ns = 25, fs = 10)
                         
                     #record best losses and best performances
                     #pdb.set_trace()
@@ -314,18 +311,18 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
 
 ep = 20
 out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(save_results=False,
-                                                       which_net=0,
+                                                       which_net=2,
                                                        which_ingraph=0,
                                                        reso=[1,1],
                                                        hd=[256, 128, 64],
-                                                       gam=0,
-                                                       delt=1, 
+                                                       gam = 1,
+                                                       delt = 0.0, 
+                                                       lam = [0, 0.5],
                                                        learn_rate=1e-4,
                                                        epochs = ep,
                                                        updates = ep,
-                                                       loss_fn='Clustering',
                                                        activation = 'LeakyReLU',
-                                                       TOAL=True)
+                                                       TOAL=False)
 
 # fig, ax = plt.subplots(figsize = (12, 10))
 # df1 = pd.DataFrame(np.array([preds[0].detach().numpy(), preds[1].detach().numpy(), 

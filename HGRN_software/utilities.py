@@ -596,10 +596,10 @@ def merge(list1, list2):
 
 # a simple function to plot the loss curves during training
 def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
-              path='path/to/file', loss_func = ['Modularity','Clustering'], save = True):
+              clust_loss_hist, path='path/to/file', save = True):
     
     layers = len(mod_loss_hist[0])
-    fig, (ax1, ax2) = plt.subplots(2,2, figsize=(12,10))
+    fig, (ax1, ax2, ax3) = plt.subplots(3,2, figsize=(12,10))
     #total loss
     ax1[0].plot(range(0, epoch+1), loss_history, label = 'Total Loss')
     ax1[0].set_xlabel('Training Epochs')
@@ -612,14 +612,18 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
     ax2[0].plot(range(0, epoch+1), recon_X_loss_hist, label = 'Attribute Reconstruction Loss')
     ax2[0].set_xlabel('Training Epochs')
     ax2[0].set_ylabel('Attribute Reconstruction Loss')
-    #community loss
+    #community loss using modularity
     ax2[1].plot(range(0, epoch+1), np.array(mod_loss_hist))
     ax2[1].set_xlabel('Training Epochs')
-    if loss_func == 'Modularity':
-        ax2[1].set_ylabel('Modularity Loss')
-    else:
-        ax2[1].set_ylabel('Clustering Loss')
+    ax2[1].set_ylabel('Modularity')
+    #community loss using kmeans
+    ax3[0].plot(range(0, epoch+1), np.array(clust_loss_hist))
+    ax3[0].set_xlabel('Training Epochs')
+    ax3[0].set_ylabel('Clustering Loss')
+    
+
     ax2[1].legend(labels = [i for i in ['middle','top'][:layers]], loc = 'lower right')
+    ax3[0].legend(labels = [i for i in ['middle','top'][:layers]], loc = 'lower right')
     
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')

@@ -77,7 +77,7 @@ class ClusterLoss(nn.Module):
 
     
     
-    def forward(self, Attributes, Probabilities, cluster_labels):
+    def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
         
         """
         computes forward loss
@@ -101,8 +101,8 @@ class ClusterLoss(nn.Module):
             #                   norm_degree = self.norm_deg, 
             #                   weight_by = self.weighting)
             #add loss
-            loss_list.append(float(within_ss.detach().numpy()))
-            loss += within_ss
+            loss_list.append(Lamb[idx]*float(within_ss.detach().numpy()))
+            loss += Lamb[idx]*within_ss
             
             # loss_list.append(float((within_ss-between_ss).detach().numpy()))
             # loss += torch.subtract(within_ss, between_ss)
@@ -121,7 +121,8 @@ class ClusterLoss(nn.Module):
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
-        gamma = 1, delta = 1, lam = 1, layer_resolutions = [1,1], comm_loss = ['Modularity', 'Clustering'], 
+        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], 
+        comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
         ns = 10, turn_off_A_loss = False, **kwargs):
     """
@@ -132,7 +133,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     loss_history=[]
     A_loss_hist=[]
     X_loss_hist=[]
-    comm_loss_hist=[]
+    mod_loss_hist=[]
+    clust_loss_hist=[]
     perf_hist = []
     updates = []
     time_hist = []
@@ -150,11 +152,13 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
     X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
-    if comm_loss == 'Modularity':    
-        community_loss_fn = ModularityLoss()
-    elif comm_loss == 'Clustering':
-        community_loss_fn = ClusterLoss(weighting='kmeans')
+    # if comm_loss == 'Modularity':    
+    #     community_loss_fn = ModularityLoss()
+    # elif comm_loss == 'Clustering':
+    #     community_loss_fn = ClusterLoss(weighting='kmeans')
     
+    modularity_loss_fn = ModularityLoss()
+    clustering_loss_fn = ClusterLoss(weighting='kmeans')
     #pre-allocate storage space for training info
     all_out = []
     
@@ -180,29 +184,35 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i)) for i in S_all]])
         
         
+        
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
-        
+        #compute community detection loss
+        Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S_sub)
         
         #compute community detection loss
-        if comm_loss == 'Modularity':    
-            community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
-            #compute total loss function
-            if(turn_off_A_loss == True):
-                loss = 0*A_loss+gamma*X_loss-delta*community_loss
-            else:
-                loss = A_loss+gamma*X_loss-delta*community_loss
-        elif comm_loss == 'Clustering':
-            community_loss, comloss_values = community_loss_fn(X_all, P_all, S_sub)
-            #compute total loss function
-            if(turn_off_A_loss == True):
-                loss = 0*A_loss+gamma*X_loss+delta*community_loss
-            else:
-                loss = A_loss+gamma*X_loss+delta*community_loss
+        # if comm_loss == 'Modularity':    
+        #     community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
+        #     #compute total loss function
+        #     if(turn_off_A_loss == True):
+        #         loss = 0*A_loss+gamma*X_loss-delta*community_loss
+        #     else:
+        #         loss = A_loss+gamma*X_loss-delta*community_loss
+        # elif comm_loss == 'Clustering':
+        #     community_loss, comloss_values = community_loss_fn(X_all, P_all, S_sub)
+        #     #compute total loss function
+        #     if(turn_off_A_loss == True):
+        #         loss = 0*A_loss+gamma*X_loss+delta*community_loss
+        #     else:
+        #         loss = A_loss+gamma*X_loss+delta*community_loss
         
-       
-        
+        #option to turn of adjacency matrix loss - this is for testing only
+        if(turn_off_A_loss == True):
+            loss = 0*A_loss+gamma*X_loss-delta*Mod_loss+Clust_loss
+        else:
+            loss = A_loss+gamma*X_loss-delta*Mod_loss+Clust_loss
         
 
         #compute backward pass
@@ -216,8 +226,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         loss_history.append(total_loss)
         A_loss_hist.append(float(A_loss.detach().numpy()))
         X_loss_hist.append(float(X_loss.detach().numpy()))
-        comm_loss_hist.append(comloss_values)
-        
+        mod_loss_hist.append(Modloss_values)
+        clust_loss_hist.append(Clustloss_values)
         #evaluating performance homogenity, completeness and NMI
         perf_layers = []
         lnm = ['top','middle']
@@ -255,16 +265,13 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 epoch+1, total_loss
                 ))
             
-            if comm_loss == 'Modularity':
-                print('\nModularity = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
-                    np.round(comm_loss_hist[-1],4), 
-                    X_loss_hist[-1], 
-                    A_loss_hist[-1]))
-            else:
-                print('\nClustering Loss = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
-                    np.round(comm_loss_hist[-1],4), 
-                    X_loss_hist[-1], 
-                    A_loss_hist[-1]))
+
+            print('\nModularity = {}, \nClustering = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
+                np.round(mod_loss_hist[-1],4),
+                np.round(clust_loss_hist[-1],4),
+                X_loss_hist[-1], 
+                A_loss_hist[-1]))
+           
             
             
             #------------------------------
@@ -276,9 +283,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                           loss_history = loss_history, 
                           recon_A_loss_hist = A_loss_hist, 
                           recon_X_loss_hist = X_loss_hist, 
-                          mod_loss_hist = comm_loss_hist,
+                          mod_loss_hist = mod_loss_hist,
+                          clust_loss_hist = clust_loss_hist,
                           path=output_path, 
-                          loss_func=comm_loss,
                           save = save_output)
                 
                 #plotting graphs in networkx 
@@ -330,4 +337,4 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
     #return 
     X_final, A_final, X_all_final, A_all_final, P_all_final, S_final = model.forward(X, A)
-    return all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, loss_history, comm_loss_hist, A_loss_hist, X_loss_hist, perf_hist
+    return all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist
