@@ -24,12 +24,12 @@ class gaeGAT_layer(nn.Module):
     """
 
     def __init__(self, in_features, out_features, attention_act = ['LeakyReLU','Sigmoid'], 
-                 act = nn.Identity(), alpha=0.2, gain = 1):
+                 act = nn.Identity(), norm = True, alpha=0.2, gain = 1.414):
         super(gaeGAT_layer, self).__init__()
         #store in and features for layer
         self.in_features = in_features
         self.out_features = out_features
-        
+        self.norm = norm
         #set dense linear layer parameters and initialize
         self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
         nn.init.xavier_uniform_(self.W.data, gain=gain)
@@ -48,6 +48,10 @@ class gaeGAT_layer(nn.Module):
         elif attention_act == 'Sigmoid':
             self.attn_act = nn.Sigmoid()
             
+            
+        if self.norm == True:
+            self.Norm_layer = nn.LayerNorm(in_features)
+            
         #set dense layer activation
         self.act = act
         
@@ -62,6 +66,8 @@ class gaeGAT_layer(nn.Module):
         """
         X = inputs[0]
         A = inputs[1]
+        if self.norm == True:
+            X = self.Norm_layer(X)
         #compute dense layer embeddings - default activation is identity function
         H_init = self.act(torch.mm(X, self.W))
         #compute the attention for self
@@ -101,16 +107,20 @@ class Comm_DenseLayer(nn.Module):
         LeakyReLU        sqrt(2 / (1 + (-m)^2)
     """
 
-    def __init__(self, in_feats, out_comms, alpha=0.2, gain = 1.414):
+    def __init__(self, in_feats, out_comms, norm = True, alpha=0.2, gain = 1.414):
         super(Comm_DenseLayer, self).__init__()
         #store community info
         self.in_feats = in_feats
         self.out_comms = out_comms
+        self.norm = norm
         #set dense linear layer parameters and initialize
         self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
         nn.init.xavier_uniform_(self.W.data, gain=gain)
         #set layer activation
         self.act = nn.LeakyReLU(alpha)
+        
+        if self.norm == True:
+            self.Norm_layer = nn.LayerNorm(in_feats)
         
     # def compute_centroids(self, P, Z):
     #     """
@@ -140,6 +150,8 @@ class Comm_DenseLayer(nn.Module):
         """
         Z=inputs[0]
         A=inputs[1]
+        if self.norm == True:
+            Z = self.Norm_layer(Z)
         #compute assignment probabilities
         P = F.softmax(torch.mm(Z, self.W), dim = 1)
         #get the centroids and layer adjacency matrix

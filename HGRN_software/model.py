@@ -20,7 +20,7 @@ class GATE(nn.Module):
     
     """
 
-    def __init__(self, in_nodes, in_attrib, hid_sizes=[256, 128, 64], 
+    def __init__(self, in_nodes, in_attrib, normalize = True, hid_sizes=[256, 128, 64], 
                  layer_act = nn.Identity(), **kwargs):
         super(GATE, self).__init__()
         #store size
@@ -32,6 +32,7 @@ class GATE(nn.Module):
             #add GAT layers to dictionary
             module_dict.update({'GAT_'+str(out): GAT(in_features = in_attrib, 
                                                          out_features = out,
+                                                         norm = normalize,
                                                          **kwargs)})
             module_dict.update({'act'+str(out): layer_act})
             
@@ -53,7 +54,8 @@ class CommClassifer(nn.Module):
     
     """
 
-    def __init__(self, in_nodes, in_attrib, comm_sizes=[60, 10], **kwargs):
+    def __init__(self, in_nodes, in_attrib, comm_sizes=[60, 10], 
+                 normalize = True, **kwargs):
         super(CommClassifer, self).__init__()
         #store size
         self.in_nodes = in_nodes
@@ -64,6 +66,7 @@ class CommClassifer(nn.Module):
             #add GAT layers to dictionary
             module_dict.update({'Comm_Linear_'+str(comms): CDL(in_feats = in_attrib, 
                                                          out_comms = comms,
+                                                         norm = normalize,
                                                          **kwargs)})
             
         
@@ -92,7 +95,7 @@ class HCD(nn.Module):
     """
 
     def __init__(self, nodes, attrib, hidden_dims = [256, 128, 64], comm_sizes = [60, 10],
-                 attn_act='Sigmoid', **kwargs):
+                 attn_act='Sigmoid', normalize_inputs = False, **kwargs):
         super(HCD, self).__init__()
         #copy and reverse decoder layer dims
         decode_dims = hidden_dims.copy()
@@ -102,13 +105,13 @@ class HCD(nn.Module):
         self.hidden_dims = hidden_dims
         #set up encoder
         self.encoder = GATE(in_nodes = nodes, in_attrib = attrib, hid_sizes=hidden_dims,
-                            attention_act = attn_act, **kwargs)
+                            attention_act = attn_act, normalize = normalize_inputs, **kwargs)
         #set up decoder
         self.decoder = GATE(in_nodes = nodes, in_attrib = hidden_dims[-1], hid_sizes=decode_dims[1:],
-                            attention_act = attn_act, **kwargs)
+                            attention_act = attn_act, normalize = normalize_inputs, **kwargs)
         #set up community detection module
         self.commModule = CommClassifer(in_nodes = nodes, in_attrib = hidden_dims[-1], 
-                                               comm_sizes=comm_sizes)
+                                        normalize = normalize_inputs, comm_sizes=comm_sizes)
         
 
         #set dot product decoder activation to sigmoid
