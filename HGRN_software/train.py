@@ -82,15 +82,19 @@ class ClusterLoss(nn.Module):
         """
         computes forward loss
         """
+        N = Attributes[0].shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
+        problist = [torch.eye(N)]+Probabilities
+        #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
+        embed = Attributes[0]
+        for idx, labels in enumerate(cluster_labels):
             #compute total number of clusters
             number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = features,
-                                        P = probs,
-                                        S=labels, 
+            within_ss, centroids = WCSS(X = embed,
+                                        P = problist[:(idx+2)],
+                                        S = labels, 
                                         k = number_of_clusters,
                                         norm_degree=self.norm_deg,
                                         weight_by = self.weighting)
@@ -121,7 +125,7 @@ class ClusterLoss(nn.Module):
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
-        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], 
+        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], normalize = True,
         comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
         ns = 10, turn_off_A_loss = False, **kwargs):
@@ -172,13 +176,16 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             print('=' * 80)
         total_loss = 0
         model.train()
-
+        
+        # if normalize == True:
+        #     LN = nn.LayerNorm(X.shape[1])
+        #     X = LN(X)
         #zero out gradient
         optimizer.zero_grad()
         #batch = data.transpose(0,1)
         #compute forward output
         X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
-        S_sub, S_relab, S_all = trace_comms(S, model.comm_sizes)
+        S_sub, S_relab, S_all = trace_comms([i.clone() for i in S], model.comm_sizes)
         
         #update all output list
         all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i)) for i in S_all]])
@@ -190,7 +197,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         A_loss = A_recon_loss(A_hat, A)
         #compute community detection loss
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S_sub)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S_relab)
         
         #compute community detection loss
         # if comm_loss == 'Modularity':    
@@ -210,9 +217,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         
         #option to turn of adjacency matrix loss - this is for testing only
         if(turn_off_A_loss == True):
-            loss = 0*A_loss+gamma*X_loss-delta*Mod_loss+Clust_loss
+            loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
         else:
-            loss = A_loss+gamma*X_loss-delta*Mod_loss+Clust_loss
+            loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
         
 
         #compute backward pass
@@ -254,7 +261,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #print update of performance metrics
             for i in range(0, h_layers):
                 print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-                print('homogeneity = {:.4f}, Completeness = {:.4f}, NMI = {:.4f}'.format(
+                print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
                     perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
                 print('-' * 80)
             
