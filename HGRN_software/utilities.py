@@ -65,22 +65,21 @@ def Modularity(A,P,res=1):
 #         MSW = (1/(X.shape[0]-num_clusters))*total_wcss
             
 #     return MSW, centroid_mat
-def WCSS(X, P, S, k, norm_degree = 2,
-         weight_by = ['kmeans','anova']):
+def WCSS(X, P, S, k, norm_degree = 2, weight_by = ['kmeans','anova']):
     
     """
     Within-Cluster Sum of Squares
     """
     
     #X_tensor = torch.tensor(X, requires_grad=True)
-    Snew = easy_renumbering(S)
+    #Snew = easy_renumbering(S)
     p = X.shape[1]
     N = X.shape[0]
-    A = F.one_hot(S).type(torch.float32)
     oneN = torch.ones(N, 1)
+    A = F.one_hot(S).type(torch.float32)
     M = torch.mm(torch.mm(X.T, A), torch.diag(1/torch.mm(oneN.T, A).flatten()))
     D = X.T - torch.mm(M, A.T)
-    P_w = 1/(P.max(dim = 1)[0])
+    P_w = 1/(torch.linalg.multi_dot(P).max(dim=1)[0])
     
     MSW = (1/(N*k))*torch.sum(P_w * torch.diag(torch.mm(D.T, D)))
     
@@ -208,17 +207,19 @@ def trace_comms(comm_list, comm_sizes):
     comm_copy = comm_list.copy()
     comm_relabeled = comm_list.copy()
     layer =[]
-    layer.append(comm_list[0])
-    for i in range(0, len(comm_list)):
-        #make sure the maximum community label is not greater than the number
-        #communities for said layer. This is so that one_hot encoding doesn't
-        #misinterpret the number of predicted communities
-        comm_copy[i][comm_copy[i] == torch.max(comm_copy[i])] = comm_sizes[i]-1            
+    sizes = np.array(comm_sizes) - np.array([max(i) for i in comm_copy]) -1
+    corrected_labs = [i+j for i,j in zip(comm_copy, sizes)]
+    layer.append(corrected_labs[0])
+    onehots = [F.one_hot(i) for i in corrected_labs]
+    # for i in range(0, len(comm_copy)):
+    #     #make sure the maximum community label is not greater than the number
+    #     #communities for said layer. This is so that one_hot encoding doesn't
+    #     #misinterpret the number of predicted communities
+    #     comm_copy[i][comm_copy[i] == torch.max(comm_copy[i])] = comm_sizes[i]-1            
     #convert labels into one_hot matrix and trace assignments from layer back 
     #to original node size N 
     for i in range(1, len(comm_list)):
-        layer.append(torch.mm(F.one_hot(comm_copy[i-1]), 
-                                 F.one_hot(comm_copy[i])).argmax(1))
+        layer.append(torch.linalg.multi_dot(onehots[:(i+1)]).argmax(1))
     
     comm_relabeled = layer.copy()
     for i in range(0, len(comm_list)):
@@ -227,7 +228,7 @@ def trace_comms(comm_list, comm_sizes):
         for j in range(0, len(clusts)):
             comm_relabeled[i][layer[i] == clusts[j]] = newlabs[j]
             
-    return comm_copy, comm_relabeled, layer
+    return corrected_labs, comm_relabeled, layer
 
 
 
