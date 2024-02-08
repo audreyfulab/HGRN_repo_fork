@@ -1,0 +1,25 @@
+\begin{thebibliography}{1}
+
+\bibitem{salehi2019graph}
+Amin Salehi and Hasan Davulcu.
+\newblock Graph attention auto-encoders.
+\newblock {\em arXiv preprint arXiv:1905.10715}, 2019.
+
+\bibitem{velivckovic2017graph}
+Petar Veli{\v{c}}kovi{\'c}, Guillem Cucurull, Arantxa Casanova, Adriana Romero,
+  Pietro Lio, and Yoshua Bengio.
+\newblock Graph attention networks.
+\newblock {\em arXiv preprint arXiv:1710.10903}, 2017.
+
+\bibitem{kipf2016semi}
+Thomas~N Kipf and Max Welling.
+\newblock Semi-supervised classification with graph convolutional networks.
+\newblock {\em arXiv preprint arXiv:1609.02907}, 2016.
+
+\bibitem{zhou2023community}
+Xinchuang Zhou, Lingtao Su, Xiangju Li, Zhongying Zhao, and Chao Li.
+\newblock Community detection based on unsupervised attributed network
+  embedding.
+\newblock {\em Expert Systems with Applications}, 213:118937, 2023.
+
+\end{thebibliography}
