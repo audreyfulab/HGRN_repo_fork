@@ -82,21 +82,21 @@ class ClusterLoss(nn.Module):
         """
         computes forward loss
         """
-        N = Attributes[0].shape[0]
+        #N = Attributes[0].shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        problist = [torch.eye(N)]+Probabilities
+        #problist = [torch.eye(N)]+Probabilities
         #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
-        embed = Attributes[0]
-        for idx, labels in enumerate(cluster_labels):
+        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
             #compute total number of clusters
             number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = embed,
-                                        P = problist[:(idx+2)],
-                                        S = labels, 
+            within_ss, centroids = WCSS(X = features,
+                                        #P = problist[:(idx+2)],
+                                        #S = labels,
+                                        P = probs,
                                         k = number_of_clusters,
-                                        norm_degree=self.norm_deg,
+                                        norm_degree = self.norm_deg,
                                         weight_by = self.weighting)
             #between cluster sum of squares
             # between_ss = BCSS(X = Attributes,
@@ -197,7 +197,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         A_loss = A_recon_loss(A_hat, A)
         #compute community detection loss
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S_relab)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         
         #compute community detection loss
         # if comm_loss == 'Modularity':    
@@ -237,17 +237,18 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         clust_loss_hist.append(Clustloss_values)
         #evaluating performance homogenity, completeness and NMI
         perf_layers = []
-        lnm = ['top','middle']
-        for i in range(0, len(S_all)):
-            if h_layers>1:    
-                preds = S_relab[::-1][i].detach().numpy()
-            else:
-                preds = S_relab[i].detach().numpy()
-            eval_metrics = node_clust_eval(true_labels=true_labels[i],
-                                           pred_labels=preds, 
-                                           verbose=False)
-            perf_layers.append(eval_metrics.tolist())
-        perf_hist.append(perf_layers)
+        lnm = ['top']+['middle_'+str(i) for i in np.arange(h_layers-1)[::-1]]
+        if h_layers <3:
+            for i in range(0, len(S_all)):
+                if h_layers>1:    
+                    preds = S_relab[::-1][i].detach().numpy()
+                else:
+                    preds = S_relab[i].detach().numpy()
+                eval_metrics = node_clust_eval(true_labels=true_labels[i],
+                                               pred_labels=preds, 
+                                               verbose=False)
+                perf_layers.append(eval_metrics.tolist())
+            perf_hist.append(perf_layers)
         
         
         #evaluate epoch
@@ -259,11 +260,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #model forward
             X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
             #print update of performance metrics
-            for i in range(0, h_layers):
-                print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-                print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
-                    perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
-                print('-' * 80)
+            if h_layers < 3:
+                for i in range(0, h_layers):
+                    print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
+                    print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
+                        perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
+                    print('-' * 80)
             
             
             #loss printing
