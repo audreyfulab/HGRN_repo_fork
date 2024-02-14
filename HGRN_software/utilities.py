@@ -65,7 +65,7 @@ def Modularity(A,P,res=1):
 #         MSW = (1/(X.shape[0]-num_clusters))*total_wcss
             
 #     return MSW, centroid_mat
-def WCSS(X, P, S, k, norm_degree = 2, weight_by = ['kmeans','anova']):
+def WCSS(X, P, k, norm_degree = 2, weight_by = ['kmeans','anova']):
     
     """
     Within-Cluster Sum of Squares
@@ -76,12 +76,10 @@ def WCSS(X, P, S, k, norm_degree = 2, weight_by = ['kmeans','anova']):
     p = X.shape[1]
     N = X.shape[0]
     oneN = torch.ones(N, 1)
-    A = F.one_hot(S).type(torch.float32)
-    M = torch.mm(torch.mm(X.T, A), torch.diag(1/torch.mm(oneN.T, A).flatten()))
-    D = X.T - torch.mm(M, A.T)
-    P_w = 1/(torch.linalg.multi_dot(P).max(dim=1)[0])
-    
-    MSW = (1/(N*k))*torch.sum(P_w * torch.diag(torch.mm(D.T, D)))
+    M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
+    D = X.T - torch.mm(M, P.T)
+    #P_w = 1/(torch.linalg.multi_dot(P).max(dim=1)[0])
+    MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
     
     # M = torch.zeros(k, q)
     # nodes = torch.arange(N)
