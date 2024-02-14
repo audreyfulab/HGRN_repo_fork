@@ -297,29 +297,37 @@
 					
 					
 					\textbf{Within-Community MSE}\\
-					The within-community mean squared error loss component aims to ensure the resolved communities have the smallest possible within-community variance. We adapt the traditional $kmean$ loss function under a multi-resolution framework as follows:\\
+					The within-community mean squared error loss component aims to ensure the resolved communities have the smallest possible within-community variance. We adapt the traditional $kmean$ loss function under a multi-resolution framework. We will illustrate this computation first for a single hierarchical layer and then generalize the calculations to $\ell$ hierarchical layers. \\
 					
-					We will illustrate this computation first for a single hierarchical layer and then generalize the calculations to $\ell$ hierarchical layers. Consider the matrix of community assignment probabilities ${\bf P}_1\in \mathbb{R}^{N\times k_1}$ and the $N$-length column vector of ones ${\bf 1}_N$. We compute the centroids on the latent embedding matrix from the graph autoencoder ${\bf Z}\in \mathbb{R}^{N\times q}$. The community centroids of this example with a single hierarchical layer are computed as follows
+					Consider the matrix of community assignment probabilities ${\bf P}_1\in \mathbb{R}^{N\times k_1}$ and the $N$-length column vector of ones ${\bf 1}_N$. We compute the centroids on the latent embedding matrix from the graph autoencoder ${\bf Z}\in \mathbb{R}^{N\times q}$. The community centroids are computed as follows
 					
-					\[ {\bf M_1} = {\bf Z}{\bf P}_1 \left[\text{diagonal}({\bf 1}_N^T {\bf P}_1)\right]^{-1}\]
+					\[ {\bf M_1} = {\bf Z}^T{\bf P}_1 \left[\text{diagonal}({\bf 1}_N^T {\bf P}_1)\right]^{-1}\]
 					
 					Where ${\bf M}_1 \in \mathbb{R}^{q\times k_1}$, $q$ is the latent dimension of the graph autoencoder and where the operation ${\bf 1}_N^T {\bf P}_1$ produces a $1 \times k_1$ row vector whose values represent the approximate number of nodes $N$ allocated to each community. The function $\text{diagonal}()$ is an operation which casts the $1 \times k_1$ row vector to a $k_1 \times k_1$ diagonal matrix. \\
 					
-					In general, this centroids for $\ell$ hierarchical layers is given by
+					The deviations of the $N$ nodes from their centroids are calculated as 
 					
-					\[ {\bf M_\ell} = {\bf \tilde X}^{(\ell-1)^T}{\bf P}_\ell \left[\text{diagonal}({\bf 1}_N^T {\bf P}_\ell)\right]^{-1}\]
+					\[ {\bf D}_1 ={\bf Z}^T - {\bf M}_1{\bf P}_1^T \]\\
 					
-					Where ${\bf \tilde X}^{(\ell-1)}$ is the feature output from the previous layer and where ${\bf \tilde X}^{(0)} = {\bf Z}$.
+					Where ${\bf D}_1\in \mathbb{R}^{q\times N}$ is a matrix whose diagonal elements represent the deviations of each node. The within-community variance can then be found via
 					
-					Therefore $\bf M_\ell$ is a $q\times k_\ell$ matrix whose columns represent the centers of the $k_\ell$ predicted communities. The matrix ${\bf D}\in\mathbb{R}^{N\times q}$ represents the deviation of each node from its assigned community center such that
+					\[L_C = \frac{1}{N \cdot k_1} tr({\bf D}_1^T {\bf D}_1)\]
 					
-					\[ {\bf D}_\ell ={\bf \tilde X}^{(\ell-1)^T} - {\bf M}_\ell{\bf P_\ell^T} \]\\
+					${\bf D}_1^T {\bf D}_1$ is an $N\times N$ square matrix whose diagonal elements represent the squared deviation of each node from its assigned community center. The function $tr()$ is the trace operation and sums all squared deviations and the sum is weighted by the product of the number of communities and nodes $N\times k_1$ \\
 					
-					Thus we compute the within-community variance as 
+					In general, the centroids for the $\ell^{th}$ hierarchical layers is given by
 					
-					\[L_C = \frac{1}{\ell}\sum_{i=1}^\ell \frac{1}{k_\ell} tr({\bf D}_\ell^T {\bf D}_\ell)\]
+					\[ {\bf M_\ell} = \left[{\bf \tilde X}^{(\ell-1)}\right]^T{\bf P}_\ell \left[\text{diagonal}({\bf 1}_N^T {\bf P}_\ell)\right]^{-1}\]
 					
-					For $\ell = 1$, ${\bf D}_1^T {\bf D}_1$ is an $N\times N$ square matrix whose diagonal elements represent the squared deviation of each node from its assigned community center. The function $tr()$ is the trace operation and sums all squared deviations and the sum is weighted by the number of communities $k_\ell$ \\
+					Where ${\bf \tilde X}^{(\ell-1)}$ is the feature output from the previous layer and where ${\bf \tilde X}^{(0)} = {\bf Z}$. $\bf M_\ell$ is a $q\times k_\ell$ matrix whose columns are the cluster centers of the $k_\ell$ predicted communities. The matrix ${\bf D}\in\mathbb{R}^{q\times k_{\ell-1}}$ represents the deviation of each node from its assigned community center such that
+					
+					\[ {\bf D}_\ell =\left[{\bf \tilde X}^{(\ell-1)}\right]^T - {\bf M}_\ell{\bf P}_\ell^T \]\\
+					
+					And the generalized within-community variance is computed as 
+					
+					\[L_C = \frac{1}{\ell}\sum_{i=1}^\ell \frac{1}{k_{\ell-1}\cdot k_\ell} tr({\bf D}_\ell^T {\bf D}_\ell)\]
+					
+					where $k_0 = N$ \\
 					
 					
 					\textbf{Modularity}\\

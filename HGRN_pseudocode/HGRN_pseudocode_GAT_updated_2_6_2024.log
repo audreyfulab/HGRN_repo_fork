@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  8 FEB 2024 15:33
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 2.9.7420 64-bit) (preloaded format=pdflatex 2020.5.13)  13 FEB 2024 15:56
 entering extended mode
 **./HGRN_pseudocode_GAT_updated_2_6_2024.tex
 (HGRN_pseudocode_GAT_updated_2_6_2024.tex
@@ -935,7 +935,18 @@ Underfull \hbox (badness 10000) in paragraph at lines 299--301
  []
 
 
+Overfull \hbox (2.7296pt too wide) in paragraph at lines 302--303
+[]\OT1/cmr/m/n/12 Consider the ma-trix of com-mu-nity as-sign-ment prob-a-bil-i
+-ties $\OT1/cmr/bx/n/12 P[] \OMS/cmsy/m/n/12 2 \U/msb/m/n/12 R[]$
+ []
+
+
 Underfull \hbox (badness 10000) in paragraph at lines 306--307
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 310--311
 
  []
 
@@ -945,17 +956,22 @@ Underfull \hbox (badness 10000) in paragraph at lines 316--317
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 322--323
+Underfull \hbox (badness 10000) in paragraph at lines 324--325
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 330--331
 
  []
 
 [9] [10]
-Overfull \hbox (27.9805pt too wide) in paragraph at lines 367--417
+Overfull \hbox (27.9805pt too wide) in paragraph at lines 375--425
  [][] 
  []
 
 
-LaTeX Warning: Float too large for page by 14.13391pt on input line 417.
+LaTeX Warning: Float too large for page by 14.13391pt on input line 425.
 
 
 
@@ -963,16 +979,16 @@ pdfTeX warning: pdflatex.exe (file C:/Users/Bruin/Documents/GitHub/HGRN_repo/HG
 RN_pseudocode/HGRN_schematic2.pdf): PDF inclusion: found PDF version <1.7>, but
  at most version <1.5> allowed
 <C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2.pdf,
- id=55, 963.6pt x 542.025pt>
+ id=56, 963.6pt x 542.025pt>
 File: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2
 .pdf Graphic file (type pdf)
 <use C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudocode/HGRN_schematic2.
 pdf>
 Package pdftex.def Info: C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_pseudoc
-ode/HGRN_schematic2.pdf  used on input line 423.
+ode/HGRN_schematic2.pdf  used on input line 431.
 (pdftex.def)             Requested size: 481.79883pt x 271.01183pt.
 
-Overfull \hbox (46.18802pt too wide) in paragraph at lines 423--424
+Overfull \hbox (46.18802pt too wide) in paragraph at lines 431--432
 [][] 
  []
 
@@ -1010,7 +1026,7 @@ cmsy6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy8.pfb
 ><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti12.pfb><C:/Pro
 gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Progra
 m Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on HGRN_pseudocode_GAT_updated_2_6_2024.pdf (14 pages, 337795 by
+Output written on HGRN_pseudocode_GAT_updated_2_6_2024.pdf (14 pages, 338216 by
 tes).
 PDF statistics:
  141 PDF objects out of 1000 (max. 8388607)
