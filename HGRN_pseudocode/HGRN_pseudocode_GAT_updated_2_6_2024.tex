@@ -309,7 +309,7 @@
 					
 					\[ {\bf D}_1 ={\bf Z}^T - {\bf M}_1{\bf P}_1^T \]\\
 					
-					Where ${\bf D}_1\in \mathbb{R}^{q\times N}$ is a matrix whose diagonal elements represent the deviations of each node. The within-community variance can then be found via
+					Where ${\bf D}_1\in \mathbb{R}^{q\times N}$ is a matrix whose where each column represent the deviations of each node from its assigned community center. The within-community variance can then be found via
 					
 					\[L_C = \frac{1}{N \cdot k_1} tr({\bf D}_1^T {\bf D}_1)\]
 					
@@ -325,7 +325,7 @@
 					
 					And the generalized within-community variance is computed as 
 					
-					\[L_C = \frac{1}{\ell}\sum_{i=1}^\ell \frac{1}{k_{\ell-1}\cdot k_\ell} tr({\bf D}_\ell^T {\bf D}_\ell)\]
+					\[L_C = \sum_{i=1}^\ell \frac{1}{k_{\ell-1}\cdot k_\ell} tr({\bf D}_\ell^T {\bf D}_\ell)\]
 					
 					where $k_0 = N$ \\
 					
