@@ -88,7 +88,7 @@ def compute_modularity(Adj, sort_labels):
     P = F.one_hot(labels_tensor).to(torch.float64)
     mod = Modularity(A_tensor, P)
     
-    return mod.detach().numpy()
+    return mod.cpu().detach().numpy()
 
 
 
@@ -172,11 +172,11 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
         layer_nms = 'Top Layer'
     #convert torch items     
     if is_torch:
-        graph = graph.detach().numpy()
-        X = embed.detach().numpy()
-        IX = input_X.detach().numpy()
-        probs = [i.detach().numpy() for i in probabilities]
-        labels = [i.detach().numpy() for i in labels]
+        graph = graph.cpu().detach().numpy()
+        X = embed.cpu().detach().numpy()
+        IX = input_X.cpu().detach().numpy()
+        probs = [i.cpu().detach().numpy() for i in probabilities]
+        labels = [i.cpu().detach().numpy() for i in labels]
         
     num_nodes = input_X.shape[0]
     #plot node traced_labels

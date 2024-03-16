@@ -294,7 +294,7 @@ ggplot(data = lf1.1, aes(x = method, y = stats.mid,
                          fill = metric))+
   geom_boxplot()+
   xlab('Method')+
-  ylab('Top Layer Performance')+
+  ylab('Middle Layer Performance')+
   facet_wrap(~input_graph)+
   theme_classic2()+
   theme(legend.position = 'top', axis.text.x = element_text(angle = 90))
@@ -305,7 +305,7 @@ ggplot(data = lf1.2, aes(x = method, y = stats.mid,
                          fill = metric))+
   geom_boxplot()+
   xlab('Method')+
-  ylab('Top Layer Performance')+
+  ylab('Middle Layer Performance')+
   facet_wrap(~input_graph)+
   theme_classic2()+
   theme(legend.position = 'top', axis.text.x = element_text(angle = 90))
@@ -316,7 +316,7 @@ ggplot(data = lf1.3, aes(x = method, y = stats.mid,
                          fill = metric))+
   geom_boxplot()+
   xlab('Method')+
-  ylab('Top Layer Performance')+
+  ylab('Middle Layer Performance')+
   facet_wrap(~input_graph)+
   theme_classic2()+
   theme(legend.position = 'top', axis.text.x = element_text(angle = 90))

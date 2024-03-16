@@ -64,7 +64,7 @@ class ModularityLoss(nn.Module):
         for index, (A,P) in enumerate(zip(all_A, all_P)):
             mod = Modularity(A, P, resolutions[index])
             loss+= mod
-            loss_list.append(float(mod.detach().numpy()))
+            loss_list.append(float(mod.cpu().detach().numpy()))
         return loss, loss_list
     
 #------------------------------------------------------  
@@ -105,10 +105,10 @@ class ClusterLoss(nn.Module):
             #                   norm_degree = self.norm_deg, 
             #                   weight_by = self.weighting)
             #add loss
-            loss_list.append(Lamb[idx]*float(within_ss.detach().numpy()))
+            loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
             loss += Lamb[idx]*within_ss
             
-            # loss_list.append(float((within_ss-between_ss).detach().numpy()))
+            # loss_list.append(float((within_ss-between_ss).cpu().detach().numpy()))
             # loss += torch.subtract(within_ss, between_ss)
 
         return loss, loss_list
@@ -185,10 +185,10 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #batch = data.transpose(0,1)
         #compute forward output
         X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
-        S_sub, S_relab, S_all = trace_comms([i.clone() for i in S], model.comm_sizes)
+        S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
         
         #update all output list
-        all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i)) for i in S_all]])
+        all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i.cpu())) for i in S_all]])
         
         
         
@@ -231,8 +231,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         
         #store loss component information
         loss_history.append(total_loss)
-        A_loss_hist.append(float(A_loss.detach().numpy()))
-        X_loss_hist.append(float(X_loss.detach().numpy()))
+        A_loss_hist.append(float(A_loss.cpu().detach().numpy()))
+        X_loss_hist.append(float(X_loss.cpu().detach().numpy()))
         mod_loss_hist.append(Modloss_values)
         clust_loss_hist.append(Clustloss_values)
         #evaluating performance homogenity, completeness and NMI
@@ -241,9 +241,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         if h_layers <3:
             for i in range(0, len(S_all)):
                 if h_layers>1:    
-                    preds = S_relab[::-1][i].detach().numpy()
+                    preds = S_relab[::-1][i].cpu().detach().numpy()
                 else:
-                    preds = S_relab[i].detach().numpy()
+                    preds = S_relab[i].cpu().detach().numpy()
                 eval_metrics = node_clust_eval(true_labels=true_labels[i],
                                                pred_labels=preds, 
                                                verbose=False)
@@ -299,7 +299,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 
                 #plotting graphs in networkx 
                 print('plotting nx graphs...')
-                plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
+                plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
                            labels=S_relab[-1], 
                            path = output_path+'Top_Clusters_result_'+str(epoch+1),
                            node_size=ns, 
@@ -307,7 +307,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                            save = save_output,
                            add_labels = True)
                 if h_layers == 2:
-                    plot_nodes(A = (A-torch.eye(A.shape[0])).detach().numpy(), 
+                    plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
                                labels=S_relab[0], 
                                add_labels = True,
                                node_size=ns,

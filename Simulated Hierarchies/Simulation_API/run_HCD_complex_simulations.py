@@ -42,92 +42,45 @@ rd.seed(123)
 torch.manual_seed(123)
 
 
-def run_simulations(dataset = ['complex', 'intermediate','toy'],
-                    readpath = '/mnt/ceph/jarredk/',
+def run_simulations(readpath = './path/to/data',
                     save_results = False, gam = 1, delt = 1, lam = [1,1], learn_rate = 1e-4, 
                     epochs = 10, updates = 10, reso = [1,1], hd = [256, 128, 64], cms = [],
-                    attn_heads = 1, activation = 'LeakyReLU', TOAL = False, true_comm_layers = True, 
-                    sp = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/Simulation_Results/', 
+                    activation = 'LeakyReLU', TOAL = False, true_comm_layers = True, 
+                    sp = './path/to/files', 
                     use_gpu = True, **kwargs):
     
     device = 'cuda:'+str(0) if use_gpu and torch.cuda.is_available() else 'cpu'
     print('***** Using device {} ********'.format(device))
     if use_gpu and torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
-    # set filename conventions
-    nm = '_gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(reso[0])+'_'+str(reso[1])+'_lamda_'+str(lam[0])+'_'+str(lam[1])+'_TOAL_'+str(TOAL)
-
+    #pathnames and filename conventions
+    #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+    nm = '_gam_'+str(gam)+'_delt_'+str(delt)+'_reso_'+str(reso[0])+'_'+str(reso[1])+'_TOAL_'+str(TOAL)
+    loadpath_main = readpath
     savepath_main = sp
+    #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
+    #savepath_main ='C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Simulation_Results/'
+    structpath = ['small_world/','scale_free/','random_graph/']
+    connectpath = ['disconnected/', 'fully_connected/']
+    layerpath = ['2_layer/', '3_layer/']
+    noisepath = ['SD01/','SD05/']
     
-    # set filepath and settings grid
-    if dataset == 'complex':
-        #set data path
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/'
-        #set filepaths
-        structpath = ['small_world/','scale_free/','random_graph/']
-        connectpath = ['disconnected/', 'fully_connected/']
-        layerpath = ['2_layer/', '3_layer/']
-        noisepath = ['SD01/','SD05/']
-        
-        #set nm conventions
-        struct_nm = ['smw_','sfr_','rdg_']
-        connect_nm =['disc_', 'full_']
-        layer_nm = ['2_layer_','3_layer_']
-        noise_nm = ['SD01','SD05']
-        
-        #set parameters
-        struct = ['small world','scale free','random graph']
-        connect = ['disc', 'full']
-        layers = [2, 3]
-        noise = [0.1, 0.5]
-        
-        #set grids
-        grid1 = product(structpath, connectpath, layerpath, noisepath)
-        grid2 = product(struct_nm, connect_nm, layer_nm, noise_nm)
-        grid3 = product(struct, connect, layers, noise)
-        
-        #read in network statistics 
-        stats = pd.read_csv(loadpath_main+'network_statistics.csv')
-        
-    elif dataset == 'intermediate':
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Intermediate_examples/'
-        structpath = ['small_world/','scale_free/','random_graph/']
-        connectpath = ['disconnected/', 'fully_connected/']
-        layerpath = ['3_layer/']
-
-        struct_nm = ['smw_','sfr_','rdg_']
-        connect_nm =['disc_', 'full_']
-        layer_nm = ['3_layer_']
-        
-        
-        struct = ['small world','scale free','random graph']
-        connect = ['disc', 'full']
-        layers = [3]
-        
-        
-        #read in network statistics 
-        stats = pd.read_csv(loadpath_main+'intermediate_examples_network_statistics.csv')
-        #combine pathname and filename pieces
-        grid1 = product(structpath, connectpath, layerpath)
-        grid2 = product(struct_nm, connect_nm, layer_nm)
-        grid3 = product(struct, connect, layers)
-        
-    else:
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Toy_examples/'
-        
-        connect_nm =['disc_', 'full_']
-        layer_nm = ['2_layer_','3_layer_']
-
-        connect = ['disc', 'full']
-        layers = [2, 3]
-
-        #read in network statistics 
-        stats = pd.read_csv(loadpath_main+'toy_examples_network_statistics.csv')
-        #combine pathname and filename pieces
-        grid1 = product(connectpath, layerpath)
-        grid2 = product(connect_nm, layer_nm)
-        grid3 = product(connect, layers)
     
+    struct_nm = ['smw_','sfr_','rdg_']
+    connect_nm =['disc_', 'full_']
+    layer_nm = ['2_layer_','3_layer_']
+    noise_nm = ['SD01','SD05']
+    
+    struct = ['small world','scale free','random graph']
+    connect = ['disc', 'full']
+    layers = [2, 3]
+    noise = [0.1, 0.5]
+    
+    #read in network statistics 
+    stats = pd.read_csv(loadpath_main+'network_statistics.csv')
+    grid1 = product(structpath, connectpath, layerpath, noisepath)
+    grid2 = product(struct_nm, connect_nm, layer_nm, noise_nm)
+    grid3 = product(struct, connect, layers, noise)
     
     #preallocate results table
     res_table = pd.DataFrame(columns = ['Best Loss Epoch',
@@ -135,8 +88,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
                                         'Beth_Hessian_Comms',
                                         'Communities_Upper_Limit',
                                         'Max_Modularity',
-                                        'Loss_Modularity',
-                                        'Loss_Clustering',
+                                        'Modularity',
                                         'Reconstruction_A',
                                         'Reconstruction_X', 
                                         'Metrics',
@@ -147,34 +99,33 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
     tables = [res_table.copy(),res_table.copy(),res_table.copy(),res_table.copy(),
               res_table.copy()]
     
-    #set filepath for input graphs
     case = ['A_ingraph_true/','A_corr_no_cutoff/','A_ingraph02/', 
             'A_ingraph05/', 'A_ingraph07/']
-    
-    #set naming conventions for input graphs
     case_nm = ['A_ingraph_true','A_corr_no_cutoff','A_ingraph02', 
                'A_ingraph05', 'A_ingraph07']
     
-    #run simulations - enumerates over all networks in specific dataset
+    #storage for training output
+    #all_output = [[],[],[],[],[]]
+    #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
-        
-        #extract network number of layers
+        #pdb.set_trace()
         lays = value[2][2]
         #extract and use true community sizes
         npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
         if true_comm_layers: 
             comm_sizes = npl[::-1][1:]
-        #use set community sizes
         else:
             comm_sizes = cms
 
+            
+        #pdb.set_trace()
         #set pathnames and read in simulated network
         print('-'*25+'loading in data'+'-'*25)
         loadpath = loadpath_main+''.join(value[0])+''.join(value[1])
+        #pdb.set_trace()
         pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=loadpath)
-        
         #combine target labels into list
-        print('*** Read in expression data of dimension = {} ***'.format(pe.shape))
+        print('Read in expression data of dimension = {}'.format(pe.shape))
         if lays == 2:
             target_labels = [sorted_true_labels_top, []]
             #sort nodes in expression table 
@@ -185,7 +136,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
             #sort nodes in expression table 
             pe_sorted = pe[indices_middle,:]
 
-        #generate input graphs for correlations r, r > 0.2, r > 0.5 and r > 0.8
+        #generate input graphs for correlations r > 0.2, r > 0.5 and r > 0.8
         in_graph02, in_adj02 = get_input_graph(X = pe_sorted, 
                                                method = 'Correlation', 
                                                r_cutoff = 0.2)
@@ -201,58 +152,49 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
         rmat = np.absolute(np.corrcoef(pe_sorted))
         in_graph_rmat = nx.from_numpy_array(rmat)
         #print network statistics
-        print('*** network statistics: ***')
+        print('network statistics:')
         print(stats.loc[idx])
-        print('*'*30)
+        print('...done')
         
         #nodes and attributes
         nodes = pe.shape[0]
         attrib = pe.shape[1]
-        #set up 5 separate models for true input graph, r, r > 0.2, r > 0.5 and 
+        #set up three separate models for true input graph, r > 0.5 input graph, and
         #r > 0.8 input graph scenarios
         print('-'*25+'setting up and fitting models'+'-'*25)
         HCD_model_truth = HCD(nodes, attrib, hidden_dims=hd, 
-                              comm_sizes=comm_sizes, attention_heads = attn_heads,
-                              attn_act=activation).to(device)
+                              comm_sizes=comm_sizes, attn_act=activation).to(device)
         HCD_model_rmat = HCD(nodes, attrib, hidden_dims=hd,
-                             comm_sizes=comm_sizes, attention_heads = attn_heads,
-                             attn_act=activation).to(device)
+                             comm_sizes=comm_sizes, attn_act=activation).to(device)
         HCD_model_r02 = HCD(nodes, attrib, hidden_dims=hd, 
-                            comm_sizes=comm_sizes, attention_heads = attn_heads,
-                            attn_act=activation).to(device)
+                            comm_sizes=comm_sizes, attn_act=activation).to(device)
         HCD_model_r05 = HCD(nodes, attrib, hidden_dims=hd, 
-                            comm_sizes=comm_sizes, attention_heads = attn_heads,
-                            attn_act=activation).to(device)
+                            comm_sizes=comm_sizes, attn_act=activation).to(device)
         HCD_model_r07 = HCD(nodes, attrib, hidden_dims=hd, 
-                            comm_sizes=comm_sizes, attention_heads = attn_heads,
-                            attn_act=activation).to(device)
+                            comm_sizes=comm_sizes, attn_act=activation).to(device)
         
-        #set attribute and input graph(s) to torch tensors with gradient
+        #set attribute and input graph(s) to torch tensors with grad attached
         X = torch.Tensor(pe_sorted).requires_grad_()
-        #-- add in self loops to input adjacency matrices
+        #three input graph scenarios -- add self loops
         A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
         A_rmat = torch.Tensor(rmat).requires_grad_()
         A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
         A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
         A_r07 = torch.Tensor(in_adj07).requires_grad_()+torch.eye(nodes)
         
-        #combine input items into lists for iteration:
-        #models
+        #combine input items into lists for iteration
         Mods = [HCD_model_truth, HCD_model_rmat, HCD_model_r02, 
                 HCD_model_r05, HCD_model_r07]
-        #graphs
+        
         Graphs = [A_truth, A_rmat, A_r02, A_r05, A_r07]
-        #updates
         printing = ['fitting model using true input graph',
                     'fitting model using r matrix as input graph',
                     'fitting model using r > 0.2 input graph',
                     'fitting model using r > 0.5 input graph',
                     'fitting model using r > 0.7 input graph']
-        
         #preallocate lists for storing model fitting statistics 
         metrics = []
-        comm_loss_mod = []
-        comm_loss_clust = []
+        comm_loss = []
         recon_A = []
         recon_X = []
         predicted_comms = []
@@ -288,8 +230,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
             best_perf_idx = perf.sum(axis = 1).tolist().index(max(perf.sum(axis = 1)))
             
             #update lists
-            comm_loss_mod.append(np.round(out[-6][best_loss_idx], 4))
-            comm_loss_clust.append(np.round(out[-4][best_loss_idx], 4))
+            comm_loss.append(np.round(out[-4][best_loss_idx], 4))
             recon_A.append(np.round(out[-3][best_loss_idx], 4))
             recon_X.append(np.round(out[-2][best_loss_idx], 4))
     
@@ -350,8 +291,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
                        beth_hessian,
                        np.round(upper_limit.cpu().detach().numpy()),
                        np.round(max_modularity.cpu().detach().numpy(),4),
-                       tuple(comm_loss_mod[-1].tolist()),
-                       tuple(comm_loss_clust[-1].tolist()),
+                       tuple(comm_loss[-1].tolist()), 
                        recon_A[-1], 
                        recon_X[-1],
                        metrics[-1], 

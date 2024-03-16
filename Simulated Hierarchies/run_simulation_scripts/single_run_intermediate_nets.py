@@ -41,8 +41,9 @@ torch.manual_seed(123)
 
 def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
                     lam = 1, learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], 
-                    hd = [256, 128, 64], activation = 'LeakyReLU', use_gpu = True,
-                    TOAL = False):
+                    hd = [256, 128, 64], use_true_comms =True, cms = [], 
+                    activation = 'LeakyReLU', use_gpu = True,
+                    TOAL = False, **kwargs):
     
     device = 'cuda:'+str(0) if use_gpu and torch.cuda.is_available() else 'cpu'
     
@@ -55,8 +56,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
     #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
     
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/OLD_1_23_2024/'
-    loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/'
-    savepath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/Results/test/'
+    loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
+    savepath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
     
     structpath = ['small_world/','scale_free/','random_graph/']
     connectpath = ['disconnected/', 'fully_connected/']
@@ -77,7 +78,7 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
 
 
     #read in network statistics 
-    stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')
+    stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')
     #combine pathname and filename pieces
     grid1 = product(structpath, connectpath, layerpath)
     grid2 = product(struct_nm, connect_nm, layer_nm)
@@ -111,11 +112,11 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             #pdb.set_trace()
             lays = value[2][1]
             #extract and use true community sizes
-            npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
-            if len(npl) == 2:    
+            if use_true_comms == True:
+                npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
                 comm_sizes = npl[::-1][1:]
             else:
-                comm_sizes = npl[::-1][1:]
+                comm_sizes = cms
             #comm_sizes =[40,5]
                     
             #pdb.set_trace()
@@ -164,16 +165,17 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             #set up three separate models for true input graph, r > 0.5 input graph, and
             #r > 0.8 input graph scenarios
             print('-'*25+'setting up and fitting models'+'-'*25)
+
             HCD_model_truth = HCD(nodes, attrib, hidden_dims=hd, 
-                                  comm_sizes=comm_sizes, attn_act=activation)
+                                  comm_sizes=comm_sizes, attn_act=activation, **kwargs).to(device)
             HCD_model_rmat = HCD(nodes, attrib, hidden_dims=hd,
-                                 comm_sizes=comm_sizes, attn_act=activation)
+                                  comm_sizes=comm_sizes, attn_act=activation, **kwargs).to(device)
             HCD_model_r02 = HCD(nodes, attrib, hidden_dims=hd, 
-                                comm_sizes=comm_sizes, attn_act=activation)
+                                comm_sizes=comm_sizes, attn_act=activation, **kwargs).to(device)
             HCD_model_r05 = HCD(nodes, attrib, hidden_dims=hd, 
-                                comm_sizes=comm_sizes, attn_act=activation)
+                                comm_sizes=comm_sizes, attn_act=activation, **kwargs).to(device)
             HCD_model_r07 = HCD(nodes, attrib, hidden_dims=hd, 
-                                comm_sizes=comm_sizes, attn_act=activation)
+                                comm_sizes=comm_sizes, attn_act=activation, **kwargs).to(device)
             
             #set attribute and input graph(s) to torch tensors with grad attached
             X = torch.Tensor(pe_sorted).requires_grad_()
@@ -210,12 +212,22 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                 if i == which_ingraph:
                     print("*"*80)
                     print(printing[i])
-                    out = fit(Mods[i], X, Graphs[i], optimizer='Adam', epochs = epochs, 
-                              update_interval=updates, layer_resolutions=reso,
-                              lr = learn_rate, gamma = gam, delta = delt, 
-                              lamb = lam, true_labels = target_labels, verbose=False, 
-                              save_output=save_results, turn_off_A_loss= TOAL,
-                              output_path=sp, ns = 25, fs = 10)
+                    out = fit(Mods[i], X, Graphs[i], 
+                              optimizer='Adam', 
+                              epochs = epochs, 
+                              update_interval=updates, 
+                              layer_resolutions=reso,
+                              lr = learn_rate, 
+                              gamma = gam, 
+                              delta = delt, 
+                              lamb = lam, 
+                              true_labels = target_labels, 
+                              verbose=False, 
+                              save_output=save_results, 
+                              turn_off_A_loss= TOAL,
+                              output_path=sp, 
+                              ns = 25, 
+                              fs = 10)
                         
                     #record best losses and best performances
                     #pdb.set_trace()
@@ -232,7 +244,7 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                     
                     #compute the upper limit of communities, the beth hessian, and max modularity
                     upper_limit = torch.sqrt(torch.sum(Graphs[i]-torch.eye(nodes)))
-                    beth_hessian = compute_beth_hess_comms((Graphs[i]-torch.eye(nodes)).detach().numpy())
+                    beth_hessian = compute_beth_hess_comms((Graphs[i]-torch.eye(nodes)).cpu().detach().numpy())
                     max_modularity = 1 - (2/upper_limit)
                     
                     #output assigned labels for all layers
@@ -240,8 +252,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
                     
                     #get prediction using louvain method
-                    comms = cl.best_partition(nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).detach().numpy()))
-                    louv_mod = cl.modularity(comms, nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).detach().numpy()))
+                    comms = cl.best_partition(nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).cpu().detach().numpy()))
+                    louv_mod = cl.modularity(comms, nx.from_numpy_array((Graphs[i]-torch.eye(nodes)).cpu().detach().numpy()))
                     #extract cluster labels
                     louv_preds = list(comms.values())
                     louv_num_comms = len(np.unique(louv_preds))
@@ -273,7 +285,7 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                                         ax = ax)
                     #make heatmap for louvain results
                     fig.savefig(savepath_main+'Louvain_results.pdf')
-                    plot_nodes((Graphs[i]-torch.eye(nodes)).detach().numpy(), 
+                    plot_nodes((Graphs[i]-torch.eye(nodes)).cpu().detach().numpy(), 
                                labels = np.array(louv_preds), 
                                path = savepath_main+'Louvain_graph_'+case_nm[i], 
                                node_size = 25, 
@@ -282,8 +294,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                                save = True)
                     #update performance table
                     row_add = [beth_hessian,
-                               np.round(upper_limit.detach().numpy()),
-                               np.round(max_modularity.detach().numpy(),4),
+                               np.round(upper_limit.cpu().detach().numpy()),
+                               np.round(max_modularity.cpu().detach().numpy(),4),
                                tuple(comm_loss[-1].tolist()), 
                                recon_A[-1], 
                                recon_X[-1],
@@ -309,23 +321,27 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             
     
 
-ep = 20
+ep = 100
 out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(save_results=False,
-                                                       which_net=2,
+                                                       which_net=0,
                                                        which_ingraph=0,
                                                        reso=[1,1],
                                                        hd=[256, 128, 64],
                                                        gam = 1,
-                                                       delt = 0.0, 
-                                                       lam = [0, 0.5],
+                                                       delt = 1,
+                                                       lam = [0.5, 0.00098],
                                                        learn_rate=1e-4,
+                                                       use_true_comms=True,
+                                                       cms=[50, 5],
                                                        epochs = ep,
                                                        updates = ep,
                                                        activation = 'LeakyReLU',
-                                                       TOAL=False)
+                                                       TOAL=False,
+                                                       use_multi_head=False,
+                                                       attn_heads=3)
 
 # fig, ax = plt.subplots(figsize = (12, 10))
-# df1 = pd.DataFrame(np.array([preds[0].detach().numpy(), preds[1].detach().numpy(), 
+# df1 = pd.DataFrame(np.array([preds[0].cpu().detach().numpy(), preds[1].cpu().detach().numpy(), 
 #                     louv_pred, truth[1], truth[0]]).T, 
 #                     columns = ['HCD Middle', 'HCD Top', 'Louvain', 'Truth Middle', 'Truth Top'])
 
@@ -334,7 +350,7 @@ out, res, graphs, data, truth, preds, preds_sub, louv_pred = run_simulations(sav
 # fig.savefig('')
 
 # fig, ax = plt.subplots(figsize = (14,10))
-# G = nx.from_numpy_array((graphs[0]- torch.eye(data.shape[0])).detach().numpy())
+# G = nx.from_numpy_array((graphs[0]- torch.eye(data.shape[0])).cpu().detach().numpy())
 # nx.draw_networkx(G, pos=nx.shell_layout(G), 
 #                   with_labels = True,
 #                   font_size = 10,
@@ -366,7 +382,7 @@ epoch = ep-1
 #                         font_size = 10)
 
 
-G = nx.from_numpy_array((out[0][epoch][3][0]-torch.eye(data.shape[0])).detach().numpy())
+G = nx.from_numpy_array((out[0][epoch][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy())
 templabs = np.arange(0, data.shape[0])
 clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(truth[1]))}
 nx.draw_networkx(G, node_color = truth[1], 
@@ -387,8 +403,8 @@ post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]),
                         node_size = 25, 
                         cm = 'plasma',
                         font_size = 10,
-                        save = True,
-                        path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/Results/test/')
+                        save = False,
+                        path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/')
 
 
 #using louvain predictions
@@ -406,12 +422,12 @@ post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]),
 
 
 
-# adj = (out[0][epoch][3][0]-torch.eye(data.shape[0])).detach().numpy()
+# adj = (out[0][epoch][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy()
 # TSNE_embed=TSNE(n_components=2, 
 #                 learning_rate='auto',
 #                 init='random', 
 #                 perplexity=3).fit_transform(data)
-# PCs = PCA(n_components=2).fit_transform(data.detach().numpy())
+# PCs = PCA(n_components=2).fit_transform(data.cpu().detach().numpy())
 
 # plt.scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = 150.0, c = truth[0], cmap = 'plasma')
 # plt.scatter(PCs[:,0], PCs[:,1], s = 150.0, c = preds[0], cmap = 'plasma')
@@ -483,7 +499,7 @@ post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]),
 # plt.subplots_adjust(wspace=0.01, hspace=0.1)
 # for idx, ax in enumerate(axes.flat):
 #     if idx < 5:
-#         im = sbn.heatmap((graphs[idx]-torch.eye(data.shape[0])).detach().numpy(), 
+#         im = sbn.heatmap((graphs[idx]-torch.eye(data.shape[0])).cpu().detach().numpy(), 
 #                          vmin=0, vmax=1, cmap = 'hot', yticklabels=False, 
 #                          xticklabels=False, cbar = False, ax = ax)
 #         ax.set_title(titles[idx], fontsize = 16)
@@ -496,7 +512,7 @@ post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]),
 # fig.savefig('C:/Users/Bruin/Desktop/graph_sparsity.png', dpi = 500)
 
 # fig, ax = plt.subplots(figsize = (14, 12))
-# sbn.heatmap((graphs[1]-torch.eye(data.shape[0])).detach().numpy(),ax = ax)
+# sbn.heatmap((graphs[1]-torch.eye(data.shape[0])).cpu().detach().numpy(),ax = ax)
 
 
 

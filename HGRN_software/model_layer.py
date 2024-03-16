@@ -8,6 +8,129 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+
+# class graph_attention(nn.Module):
+#     """
+    
+#     """
+    
+#     def __init__(self, in_features, out_features, activation, gain, alpha):
+#         super(graph_attention, self).__init__()
+#         #attention applied to self
+#         self.a_s = nn.Parameter(torch.zeros(size=(out_features, 1)))
+#         nn.init.xavier_uniform_(self.a_s.data, gain=gain)
+        
+#         #attention applied to neighbors
+#         self.a_r = nn.Parameter(torch.zeros(size=(out_features, 1)))
+#         nn.init.xavier_uniform_(self.a_r.data, gain=gain)
+        
+#         #set attention weight activations
+#         if activation == 'LeakyReLU':
+#             self.attn_act = nn.LeakyReLU(negative_slope=alpha)
+#         elif activation == 'Sigmoid':
+#             self.attn_act = nn.Sigmoid()
+        
+        
+#     def forward(self, inputs, act):
+        
+#         X, A, H, W = inputs
+#         #compute the attention for self
+#         M_s = torch.mul(A, torch.mm(H, self.a_s))
+#         #compute the attendtion for neighbors
+#         M_r = torch.mul(A, torch.mm(H, self.a_r).transpose(0,1))
+#         #concatenated into attention weight matrix
+#         concat_atten = self.attn_act(M_s + M_r)
+#         #ensure that non-edges are not given attention weights
+#         zero_vec = -9e15 * torch.ones_like(A)
+#         #this function replaces zero values with -9e15 and non-zero values
+#         #with their corresponding attention coefficient
+#         temp_atten = torch.where(A > 0, concat_atten, zero_vec)
+#         C_atten = F.softmax(temp_atten, dim=1)
+#         #compute final embeddings
+#         H_out = act(torch.mm(C_atten, torch.mm(X, W)))
+        
+        
+#         return H_out
+
+# class gaeGAT_layer(nn.Module):
+#     """
+#     GAT layer described in https://arxiv.org/pdf/1905.10715.pdf
+#     Gain Setting Recommendations for Xavier Initialization
+#         activation       recommended
+#         function         gain
+#         =======================================
+#         sigmoid()        1.0
+#         tanh()           5/3 = 1.6667
+#         relu()           sqrt(2) = 1.4142
+#         Identity         1.0
+#         Convolution      1.0
+#         LeakyReLU        sqrt(2 / (1 + (-m)^2)
+#     """
+
+#     def __init__(self, in_features, out_features, heads = 1, 
+#                  attention_act = ['LeakyReLU','Sigmoid'], act = nn.Identity(), 
+#                  norm = True, alpha=0.2, gain = 1.414, concat = 'sum'):
+#         super(gaeGAT_layer, self).__init__()
+#         #store in and features for layer
+#         self.in_features = in_features
+#         self.out_features = out_features
+#         self.norm = norm
+#         self.alpha = alpha
+#         self.gain = gain
+#         self.attn_act = attention_act
+#         self.attn_heads = heads
+#         self.concat = concat
+#         #set dense linear layer parameters and initialize
+#         self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
+#         nn.init.xavier_uniform_(self.W.data, gain=gain)
+        
+#         #activation normalization layer
+#         if self.norm == True:
+#             self.Norm_layer = nn.LayerNorm(in_features)
+            
+#         #set dense layer activation
+#         self.act = act
+        
+#         #generate attention heads
+#         self.attention_heads = []
+#         for i in range(0, self.attn_heads):
+#             self.attention_heads.append(graph_attention(in_features = self.in_features, 
+#                                         out_features = self.out_features, 
+#                                         activation = self.attn_act, 
+#                                         gain = self.gain, 
+#                                         alpha = self.alpha))
+        
+        
+        
+        
+#     def forward(self, inputs):
+#         """
+#         inputs: a tuple (X,A) where 
+#                 X: Node features
+#                 A: Adjacency matrix
+#         """
+#         X, A = inputs
+#         if self.norm == True:
+#             X = self.Norm_layer(X)
+#         #compute dense layer embeddings - default activation is identity function
+#         H_init = self.act(torch.mm(X, self.W))
+        
+#         attn_out = []
+#         for i in range(0, self.attn_heads):
+#             attn_out.append(self.attention_heads[i]((X, A, H_init, self.W), 
+#                                                     self.act))
+#         attn_stacked = torch.stack(attn_out, dim=0)
+#         if self.concat == 'sum':
+#             H_final = attn_stacked.sum(dim = 0)
+#         if self.concat == 'product':
+#             H_final = attn_stacked.prod(dim = 0)
+            
+        
+        
+#         return (H_final, A)
+        
+        
 class gaeGAT_layer(nn.Module):
     """
     GAT layer described in https://arxiv.org/pdf/1905.10715.pdf
@@ -64,16 +187,15 @@ class gaeGAT_layer(nn.Module):
                 X: Node features
                 A: Adjacency matrix
         """
-        X = inputs[0]
-        A = inputs[1]
+        X, A = inputs
         if self.norm == True:
             X = self.Norm_layer(X)
         #compute dense layer embeddings - default activation is identity function
-        H_init = self.act(torch.mm(X, self.W))
+        H_in = self.act(torch.mm(X, self.W))
         #compute the attention for self
-        M_s = torch.mul(A, torch.mm(H_init, self.a_s))
+        M_s = torch.mul(A, torch.mm(H_in, self.a_s))
         #compute the attendtion for neighbors
-        M_r = torch.mul(A, torch.mm(H_init, self.a_r).transpose(0,1))
+        M_r = torch.mul(A, torch.mm(H_in, self.a_r).transpose(0,1))
         #concatenated into attention weight matrix
         concat_atten = self.attn_act(M_s + M_r)
         #ensure that non-edges are not given attention weights
@@ -83,13 +205,81 @@ class gaeGAT_layer(nn.Module):
         temp_atten = torch.where(A > 0, concat_atten, zero_vec)
         C_atten = F.softmax(temp_atten, dim=1)
         #compute final embeddings
-        H_final = self.act(torch.mm(C_atten, torch.mm(X, self.W)))
+        H_out = self.act(torch.mm(C_atten, torch.mm(X, self.W)))
         
+        return (H_out, A)
+        
+
+
+
+
+
+
+#multi headed attention layers
+class  multi_head_GAT(nn.Module):
+    """
+    Multi head graph attention layer
+    
+    - This function wraps the gaeGAT_layer module
+    - applies GAT layer k times where k is the specified number of heads
+    - concat: specify the concatenation function (in this case average)
+    """
+
+    def __init__(self, in_features, out_features, heads = 1, 
+                  attention_act = ['LeakyReLU','Sigmoid'], out_act = nn.Identity(), 
+                  norm = True, alpha=0.2, gain = 1.414, concat = 'sum'):
+        super(multi_head_GAT, self).__init__()
+        
+        self.in_features = in_features
+        self.out_features = out_features
+        self.attn_act = attention_act
+        self.out_act = out_act
+        self.normalize = norm
+        self.alpha = alpha
+        self.gain = gain
+        self.concat = concat
+        self.num_heads = heads
+        self.attention_layers = []
+        for i in range(0, self.num_heads):
+            self.attention_layers.append(gaeGAT_layer(in_features = self.in_features, 
+                                                      out_features = self.out_features, 
+                                                      attention_act = self.attn_act, 
+                                                      act = self.out_act, 
+                                                      norm = self.normalize, 
+                                                      alpha = self.alpha, 
+                                                      gain = self.gain))
+            
+        
+        
+        
+    def forward(self, inputs):
+        """
+        inputs: a tuple (X,A) where 
+                X: Node features
+                A: Adjacency matrix
+        """
+        
+        attn_out = []
+        for i in range(0, self.num_heads):
+            H, A = self.attention_layers[i](inputs)
+            attn_out.append(H)
+            
+        attn_stacked = torch.stack(attn_out, dim=0)
+        if self.concat == 'mean':
+            H_final = attn_stacked.mean(dim = 0)
+        if self.concat == 'sum':
+            H_final = attn_stacked.sum(dim = 0)
+        if self.concat == 'product':
+            H_final = attn_stacked.prod(dim = 0)
+            
         return (H_final, A)
-        
-        
-        
-        
+            
+            
+            
+            
+            
+            
+            
      
 class Comm_DenseLayer(nn.Module):
     """

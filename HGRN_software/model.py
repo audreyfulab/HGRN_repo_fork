@@ -8,7 +8,8 @@ Created on Thu Sep 28 19:59:42 2023
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model_layer import gaeGAT_layer as GAT
+from model_layer import gaeGAT_layer as GAT 
+from model_layer import multi_head_GAT
 from model_layer import Comm_DenseLayer as CDL
 from collections import OrderedDict
 
@@ -21,7 +22,7 @@ class GATE(nn.Module):
     """
 
     def __init__(self, in_nodes, in_attrib, normalize = True, hid_sizes=[256, 128, 64], 
-                 layer_act = nn.Identity(), **kwargs):
+                 use_multi_head = False, attn_heads = 1, layer_act = nn.Identity(), **kwargs):
         super(GATE, self).__init__()
         #store size
         self.in_nodes = in_nodes
@@ -29,11 +30,21 @@ class GATE(nn.Module):
         #create empty ordered dictionary for pytorch sequential model build
         module_dict = OrderedDict([])
         for idx, out in enumerate(hid_sizes):
-            #add GAT layers to dictionary
-            module_dict.update({'GAT_'+str(out): GAT(in_features = in_attrib, 
-                                                         out_features = out,
-                                                         norm = normalize,
-                                                         **kwargs)})
+            
+            if use_multi_head == True:
+                # add multi head attendtion layers to dictionary
+                module_dict.update({'GAT_'+str(out): multi_head_GAT(in_features = in_attrib, 
+                                                                    out_features = out,
+                                                                    heads = attn_heads,
+                                                                    norm = normalize,
+                                                                    **kwargs)})
+            else:
+                #add GAT layers to dictionary
+                module_dict.update({'GAT_'+str(out): GAT(in_features = in_attrib, 
+                                                              out_features = out,
+                                                              norm = normalize,
+                                                              **kwargs)})
+            
             module_dict.update({'act'+str(out): layer_act})
             
             in_attrib = out
@@ -109,6 +120,7 @@ class HCD(nn.Module):
         #set up decoder
         self.decoder = GATE(in_nodes = nodes, in_attrib = hidden_dims[-1], hid_sizes=decode_dims[1:],
                             attention_act = attn_act, normalize = normalize_inputs, **kwargs)
+        
         #set up community detection module
         self.commModule = CommClassifer(in_nodes = nodes, in_attrib = hidden_dims[-1], 
                                         normalize = normalize_inputs, comm_sizes=comm_sizes)

@@ -258,9 +258,9 @@ def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
     
     for i in range(0, len(pred_comms_list)):
         if sort == True:
-            pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()[sorting]
+            pred_comms_list_cp[i] = pred_comms_list_cp[i].cpu().detach().numpy()[sorting]
         else:
-            pred_comms_list_cp[i] = pred_comms_list_cp[i].detach().numpy()
+            pred_comms_list_cp[i] = pred_comms_list_cp[i].cpu().detach().numpy()
     
     for j in range(0, len(truth)):
         if len(truth[j]) > 0:    
@@ -705,8 +705,8 @@ def plot_adj(A, path, **kwargs):
 #a simple function to plot the clustering heatmaps 
 def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
     fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
-    sbn.heatmap(A_pred.detach().numpy(), ax = ax1[0])
-    sbn.heatmap(A.detach().numpy(), ax = ax1[1])
+    sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
+    sbn.heatmap(A.cpu().detach().numpy(), ax = ax1[1])
     
     fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
     TL = true_labels.copy()

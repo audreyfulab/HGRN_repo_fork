@@ -28,8 +28,8 @@ epochs = 100
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, False
+print('Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 0, False
     ))
 run_simulations(dataset = 'intermediate',
                 save_results = True, 
@@ -39,6 +39,7 @@ run_simulations(dataset = 'intermediate',
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -51,8 +52,8 @@ run_simulations(dataset = 'intermediate',
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, False
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 0.5, False
     ))
 run_simulations(save_results = True, 
                 gam = 0.5, 
@@ -61,6 +62,7 @@ run_simulations(save_results = True,
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -73,8 +75,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, False
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 1, False
     ))
 run_simulations(save_results = True, 
                 gam = 1, 
@@ -83,6 +85,7 @@ run_simulations(save_results = True,
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -95,8 +98,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 0, True
     ))
 run_simulations(save_results = True, 
                 gam = 0, 
@@ -105,6 +108,7 @@ run_simulations(save_results = True,
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -116,8 +120,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 0.5, True
     ))
 run_simulations(save_results = True, 
                 gam = 0.5, 
@@ -126,6 +130,7 @@ run_simulations(save_results = True,
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -138,8 +143,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [1,1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [1,1], 1, True
     ))
 run_simulations(save_results = True, 
                 gam = 1, 
@@ -148,6 +153,7 @@ run_simulations(save_results = True,
                 epochs = epochs, 
                 updates = epochs/2, 
                 reso = [1,1], 
+                lam = [1,1],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -162,8 +168,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, False
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 0, False
     ))
 run_simulations(save_results = True, 
                 gam = 0, 
@@ -171,7 +177,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1], 
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -183,8 +190,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, False
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 0.5, False
     ))
 run_simulations(save_results = True, 
                 gam = 0.5, 
@@ -192,7 +199,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1],
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -205,8 +213,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, False
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 1, False
     ))
 run_simulations(save_results = True, 
                 gam = 1, 
@@ -214,7 +222,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1],
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -227,8 +236,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 0, True
     ))
 run_simulations(save_results = True, 
                 gam = 0, 
@@ -236,7 +245,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1], 
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -248,8 +258,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 0.5, True
     ))
 run_simulations(save_results = True, 
                 gam = 0.5, 
@@ -257,7 +267,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1],
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',
@@ -270,8 +281,8 @@ run_simulations(save_results = True,
 print('*'*80)
 print('*'*80)
 print('*'*80)
-print('Resolution = {}, Gamma = {}, TOAL = {}'.format(
-    [5, 1], 0, True
+print(' Lambda = {}, Resolution = {}, Gamma = {}, TOAL = {}'.format(
+    [1,1], [0.1, 0.0001], 1, True
     ))
 run_simulations(save_results = True, 
                 gam = 1, 
@@ -279,7 +290,8 @@ run_simulations(save_results = True,
                 learn_rate = 1e-4, 
                 epochs = epochs, 
                 updates = epochs/2, 
-                reso = [5, 1], 
+                reso = [1, 1], 
+                lam = [0.1, 0.0001],
                 hd = [256, 128, 64], 
                 loss_fn = 'Modularity', 
                 activation = 'LeakyReLU',

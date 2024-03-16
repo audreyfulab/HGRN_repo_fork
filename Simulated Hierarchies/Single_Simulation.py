@@ -27,6 +27,7 @@ sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from Simulate import simulate_graph
 from simulation_utilities import compute_graph_STATs, sort_labels
+from utilities import get_input_graph
 #import os
 #os.chdir('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/')
 import warnings
@@ -51,7 +52,7 @@ parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', def
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(10,10), type=tuple)
 parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20,20), type=tuple)
 parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
@@ -73,12 +74,21 @@ args.SD = 0.1
 args.node_degree = 3
 args.force_connect = True
 args.layers = 3
-args.connect = 'disc'
+args.connect = 'full'
 args.subgraph_type = 'small world'
 args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/Results/test/'
 pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, orin = simulate_graph(args)
 
+pdadj = pd.DataFrame(adj_all[-1])
+pdadj.to_csv(args.savepath+'example_adjacency_matrix.csv')
 
+
+in_graph05, in_adj05 = get_input_graph(X = pe, 
+                                       method = 'Correlation', 
+                                       r_cutoff = 0.5)
+
+pdadj2 = pd.DataFrame(in_adj05)
+pdadj2.to_csv(args.savepath+'example_adjacency_matrix_corrgraph.csv')
 
 indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(nodelabs)
 
