@@ -128,7 +128,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], normalize = True,
         comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
-        ns = 10, turn_off_A_loss = False, **kwargs):
+        ns = 10, turn_off_A_loss = False, verbose = True, **kwargs):
     """
     
     """
@@ -239,12 +239,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         perf_layers = []
         lnm = ['top']+['middle_'+str(i) for i in np.arange(h_layers-1)[::-1]]
         if h_layers <3:
-            for i in range(0, len(S_all)):
-                if h_layers>1:    
-                    preds = S_relab[::-1][i].cpu().detach().numpy()
-                else:
-                    preds = S_relab[i].cpu().detach().numpy()
-                eval_metrics = node_clust_eval(true_labels=true_labels[i],
+            for i in range(0, len(S_all)):   
+                preds = S_relab[::-1][-2:][i].cpu().detach().numpy()
+                eval_metrics = node_clust_eval(true_labels=true_labels[::-1][i],
                                                pred_labels=preds, 
                                                verbose=False)
                 perf_layers.append(eval_metrics.tolist())
@@ -296,35 +293,35 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                           clust_loss_hist = clust_loss_hist,
                           path=output_path, 
                           save = save_output)
-                
-                #plotting graphs in networkx 
-                print('plotting nx graphs...')
-                plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
-                           labels=S_relab[-1], 
-                           path = output_path+'Top_Clusters_result_'+str(epoch+1),
-                           node_size=ns, 
-                           font_size=fs,
-                           save = save_output,
-                           add_labels = True)
-                if h_layers == 2:
+                if verbose == True:
+                    #plotting graphs in networkx 
+                    print('plotting nx graphs...')
                     plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
-                               labels=S_relab[0], 
-                               add_labels = True,
-                               node_size=ns,
+                               labels=S_relab[-1], 
+                               path = output_path+'Top_Clusters_result_'+str(epoch+1),
+                               node_size=ns, 
                                font_size=fs,
-                               save=save_output,
-                               path = output_path+'midde_Clusters_result_'+str(epoch+1))
+                               save = save_output,
+                               add_labels = True)
+                    if h_layers == 2:
+                        plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
+                                   labels=S_relab[0], 
+                                   add_labels = True,
+                                   node_size=ns,
+                                   font_size=fs,
+                                   save=save_output,
+                                   path = output_path+'midde_Clusters_result_'+str(epoch+1))
                     
-                #plotting heatmaps: 
-                print('plotting heatmaps...')
-                plot_clust_heatmaps(A = A, 
-                                    A_pred = A_pred, 
-                                    true_labels = true_labels, 
-                                    pred_labels = S_relab, 
-                                    layers = h_layers+1, 
-                                    epoch = epoch+1, 
-                                    save_plot = save_output, 
-                                    sp = output_path)
+                if verbose == True: #plotting heatmaps: 
+                    print('plotting heatmaps...')
+                    plot_clust_heatmaps(A = A, 
+                                        A_pred = A_pred, 
+                                        true_labels = true_labels, 
+                                        pred_labels = S_relab, 
+                                        layers = h_layers+1, 
+                                        epoch = epoch+1, 
+                                        save_plot = save_output, 
+                                        sp = output_path)
                 
                 
                 
