@@ -147,7 +147,8 @@ class gaeGAT_layer(nn.Module):
     """
 
     def __init__(self, in_features, out_features, attention_act = ['LeakyReLU','Sigmoid'], 
-                 act = nn.Identity(), norm = True, alpha=0.2, gain = 1.414):
+                 act = nn.Identity(), norm = True, alpha=0.2, gain = 1.414,
+                 dropout = 0.2):
         super(gaeGAT_layer, self).__init__()
         #store in and features for layer
         self.in_features = in_features
@@ -177,7 +178,8 @@ class gaeGAT_layer(nn.Module):
             
         #set dense layer activation
         self.act = act
-        
+        # layer dropout
+        self.dropout = nn.Dropout(dropout)
         
         
         
@@ -205,7 +207,7 @@ class gaeGAT_layer(nn.Module):
         temp_atten = torch.where(A > 0, concat_atten, zero_vec)
         C_atten = F.softmax(temp_atten, dim=1)
         #compute final embeddings
-        H_out = self.act(torch.mm(C_atten, torch.mm(X, self.W)))
+        H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)))
         
         return (H_out, A)
         
@@ -225,29 +227,29 @@ class  multi_head_GAT(nn.Module):
     - concat: specify the concatenation function (in this case average)
     """
 
-    def __init__(self, in_features, out_features, heads = 1, 
-                  attention_act = ['LeakyReLU','Sigmoid'], out_act = nn.Identity(), 
-                  norm = True, alpha=0.2, gain = 1.414, concat = 'sum'):
+    def __init__(self, nodes, in_features, out_features, heads = 1, 
+                  attention_act = ['LeakyReLU','Sigmoid'], act = nn.Identity(), 
+                  norm = True, alpha=0.2, gain = 1.414, dropout = 0.2, concat = 'sum'):
         super(multi_head_GAT, self).__init__()
         
+        self.nodes = nodes
         self.in_features = in_features
         self.out_features = out_features
         self.attn_act = attention_act
-        self.out_act = out_act
+        self.act = act
         self.normalize = norm
-        self.alpha = alpha
-        self.gain = gain
         self.concat = concat
         self.num_heads = heads
         self.attention_layers = []
-        for i in range(0, self.num_heads):
-            self.attention_layers.append(gaeGAT_layer(in_features = self.in_features, 
-                                                      out_features = self.out_features, 
-                                                      attention_act = self.attn_act, 
-                                                      act = self.out_act, 
-                                                      norm = self.normalize, 
-                                                      alpha = self.alpha, 
-                                                      gain = self.gain))
+
+        self.attention_layer = gaeGAT_layer(in_features = self.in_features, 
+                                            out_features = self.out_features * self.num_heads, 
+                                            attention_act = self.attn_act, 
+                                            act = self.act, 
+                                            norm = self.normalize, 
+                                            alpha = alpha, 
+                                            gain = gain,
+                                            dropout = dropout)
             
         
         
@@ -259,18 +261,17 @@ class  multi_head_GAT(nn.Module):
                 A: Adjacency matrix
         """
         
-        attn_out = []
-        for i in range(0, self.num_heads):
-            H, A = self.attention_layers[i](inputs)
-            attn_out.append(H)
-            
-        attn_stacked = torch.stack(attn_out, dim=0)
+        
+        H, A = self.attention_layer(inputs)
+        
+        
+        attn_stacked = H.view(self.nodes, self.num_heads, self.out_features)
         if self.concat == 'mean':
-            H_final = attn_stacked.mean(dim = 0)
+            H_final = attn_stacked.mean(dim = 1)
         if self.concat == 'sum':
-            H_final = attn_stacked.sum(dim = 0)
+            H_final = attn_stacked.sum(dim = 1)
         if self.concat == 'product':
-            H_final = attn_stacked.prod(dim = 0)
+            H_final = attn_stacked.prod(dim = 1)
             
         return (H_final, A)
             
@@ -308,6 +309,8 @@ class Comm_DenseLayer(nn.Module):
         nn.init.xavier_uniform_(self.W.data, gain=gain)
         #set layer activation
         self.act = nn.LeakyReLU(alpha)
+        
+        #self.gat = gaeGAT_layer(nodes, in_features, out_features)
         
         if self.norm == True:
             self.Norm_layer = nn.LayerNorm(in_feats)

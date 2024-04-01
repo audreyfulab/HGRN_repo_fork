@@ -64,6 +64,29 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 \usepackage{float}
 \usepackage{multirow}
 \usepackage{lastpage}
@@ -102,32 +125,75 @@
 \begin{document}
 \maketitle
 
-\section*{Simulation Description}
+\section*{Data Simulation}
+
+We simulate hierarchical networks in a top-down approach. We consider
+several parameters of simulation such as sparsity, noise, and the
+architecture of the super level graph(s), namely small-world, and
+scale-free networks (Watts and Strogatz 1998; Barabási and Bonabeau
+2003). We simplify our simulations by focusing on basic hierarchies with
+just one or two hierarchical layers.
+
+In each hierarchy, we start by simulating the top-level nodes in
+topological order, using either a small world or scale-free network
+structure (Watts and Strogatz 1998; Barabási and Bonabeau 2003). We
+define origin nodes as nodes in the topological graph that have no
+parental input. All origin nodes are simulated from a standard normal
+distribtion. After generating an initial graph corresponding to the top
+most layer of the hierarchy, we simulate the middle and bottom layers of
+the hierarchy by creating groups of new nodes for each parent super-node
+in the upper level(s).
+
+Each hierarchical level contains community structure nested in the
+previous layer. The number of offspring nodes generated for each parent
+node in the level above is chosen from a uniform \(\text{unif}(a,b)\)
+distribution. We also control the connection probabilities both within
+and between the communities of each hierarchical layer. Once a
+hierarchical graph is simulated we use the hierarchy to generate the
+node-feature matrix which represents the expression of \(N\) genes in
+\(p\) samples. The number \(N\) represents the number of nodes in the
+observed (bottom) layer of the hierarchy and ranges between
+\(a^{\ell+1}<N<a\times b^\ell\) where \(\ell\) represents the number of
+hierarchical layers.
+
+We consider three sets of hierarchical networks which represent varying
+difficulty levels for inference:
+
+\begin{itemize}
+  \item[1.] Complex networks - - used for final simulation assessment 
+  \item[2.] Intermediate networks - used for investigative model tuning and performance assessment 
+  \item[3.] Simple networks - used for code implementation and debugging
+\end{itemize}
+
+\section*{Application to Intermediate Networks}
+
+A summary of the intermediate networks can be found in \textbf{Table 1}.
+These
 
 \section*{Preliminary Findings}
 
 \newpage
 \section*{Figures}
 
-\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-1-1.pdf}
+\includegraphics{Lab_report_3_13_2024_files/figure-latex/fig1-1.pdf}
 
-\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-2-1.pdf}
+\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-1-1.pdf}
 
 \begin{figure}
 \centering
-\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-3-1.pdf}
+\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-2-1.pdf}
 \caption{Small world graphs}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-4-1.pdf}
+\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-3-1.pdf}
 \caption{Scale free graphs}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-5-1.pdf}
+\includegraphics{Lab_report_3_13_2024_files/figure-latex/unnamed-chunk-4-1.pdf}
 \caption{random graphs}
 \end{figure}
 
@@ -135,8 +201,8 @@
 \section*{Tables}
 
 \begin{table}
-
-\caption{\label{tab:unnamed-chunk-6}Summary statistics for intermediate difficulty simulated networks.}
+\centering\centering
+\caption{\label{tab:unnamed-chunk-5}Summary statistics for intermediate difficulty simulated networks.}
 \centering
 \fontsize{10}{12}\selectfont
 \fontsize{10}{12}\selectfont
@@ -144,23 +210,23 @@
 \toprule
 Value & Network1 & Network2 & Network3 & Network4 & Network5 & Network6\\
 \midrule
-\cellcolor{gray!6}{Subgraph type} & \cellcolor{gray!6}{small world} & \cellcolor{gray!6}{small world} & \cellcolor{gray!6}{scale free} & \cellcolor{gray!6}{scale free} & \cellcolor{gray!6}{random graph} & \cellcolor{gray!6}{random graph}\\
+\cellcolor{gray!10}{Subgraph type} & \cellcolor{gray!10}{small world} & \cellcolor{gray!10}{small world} & \cellcolor{gray!10}{scale free} & \cellcolor{gray!10}{scale free} & \cellcolor{gray!10}{random graph} & \cellcolor{gray!10}{random graph}\\
 Connection type & disc & full & disc & full & disc & full\\
-\cellcolor{gray!6}{Layers} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{3}\\
+\cellcolor{gray!10}{Layers} & \cellcolor{gray!10}{3} & \cellcolor{gray!10}{3} & \cellcolor{gray!10}{3} & \cellcolor{gray!10}{3} & \cellcolor{gray!10}{3} & \cellcolor{gray!10}{3}\\
 Standard deviation & 0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.1\\
-\cellcolor{gray!6}{Nodes per layer} & \cellcolor{gray!6}{(5, 15, 300)} & \cellcolor{gray!6}{(5, 15, 300)} & \cellcolor{gray!6}{(5, 15, 300)} & \cellcolor{gray!6}{(5, 15, 300)} & \cellcolor{gray!6}{(5, 12, 167)} & \cellcolor{gray!6}{(5, 12, 167)}\\
+\cellcolor{gray!10}{Nodes per layer} & \cellcolor{gray!10}{(5, 15, 300)} & \cellcolor{gray!10}{(5, 15, 300)} & \cellcolor{gray!10}{(5, 15, 300)} & \cellcolor{gray!10}{(5, 15, 300)} & \cellcolor{gray!10}{(5, 12, 167)} & \cellcolor{gray!10}{(5, 12, 167)}\\
 \addlinespace
 Edges per layer & (0, 15, 358) & (10, 25, 300) & (0, 10, 965) & (10, 20, 300) & (0, 7, 129) & (10, 17, 167)\\
-\cellcolor{gray!6}{Subgraph probability} & \cellcolor{gray!6}{0.05} & \cellcolor{gray!6}{0.05} & \cellcolor{gray!6}{0.05} & \cellcolor{gray!6}{0.05} & \cellcolor{gray!6}{0.05} & \cellcolor{gray!6}{0.05}\\
+\cellcolor{gray!10}{Subgraph probability} & \cellcolor{gray!10}{0.05} & \cellcolor{gray!10}{0.05} & \cellcolor{gray!10}{0.05} & \cellcolor{gray!10}{0.05} & \cellcolor{gray!10}{0.05} & \cellcolor{gray!10}{0.05}\\
 Sample size & 500 & 500 & 500 & 500 & 500 & 500\\
-\cellcolor{gray!6}{Modularity (top)} & \cellcolor{gray!6}{0.8} & \cellcolor{gray!6}{0.686} & \cellcolor{gray!6}{0.781} & \cellcolor{gray!6}{0.739} & \cellcolor{gray!6}{0.789} & \cellcolor{gray!6}{0.663}\\
+\cellcolor{gray!10}{Modularity (top)} & \cellcolor{gray!10}{0.8} & \cellcolor{gray!10}{0.686} & \cellcolor{gray!10}{0.781} & \cellcolor{gray!10}{0.739} & \cellcolor{gray!10}{0.789} & \cellcolor{gray!10}{0.663}\\
 Average node degree top & 1.193 & 1.38 & 3.217 & 3.337 & 0.772 & 0.886\\
 \addlinespace
-\cellcolor{gray!6}{Avg connections within top communities} & \cellcolor{gray!6}{71.6} & \cellcolor{gray!6}{73.4} & \cellcolor{gray!6}{193} & \cellcolor{gray!6}{191.6} & \cellcolor{gray!6}{25.8} & \cellcolor{gray!6}{25.8}\\
+\cellcolor{gray!10}{Avg connections within top communities} & \cellcolor{gray!10}{71.6} & \cellcolor{gray!10}{73.4} & \cellcolor{gray!10}{193} & \cellcolor{gray!10}{191.6} & \cellcolor{gray!10}{25.8} & \cellcolor{gray!10}{25.8}\\
 Avg. connections between top communities & 0 & 2.35 & 0 & 2.15 & 0 & 0.95\\
-\cellcolor{gray!6}{Modularity (middle)} & \cellcolor{gray!6}{0.771} & \cellcolor{gray!6}{0.658} & \cellcolor{gray!6}{0.875} & \cellcolor{gray!6}{0.841} & \cellcolor{gray!6}{0.813} & \cellcolor{gray!6}{0.697}\\
+\cellcolor{gray!10}{Modularity (middle)} & \cellcolor{gray!10}{0.771} & \cellcolor{gray!10}{0.658} & \cellcolor{gray!10}{0.875} & \cellcolor{gray!10}{0.841} & \cellcolor{gray!10}{0.813} & \cellcolor{gray!10}{0.697}\\
 Average node degree middle & 1.193 & 1.38 & 3.217 & 3.337 & 0.772 & 0.886\\
-\cellcolor{gray!6}{Avg connections within middle communities} & \cellcolor{gray!6}{20} & \cellcolor{gray!6}{20} & \cellcolor{gray!6}{61.333} & \cellcolor{gray!6}{61.333} & \cellcolor{gray!6}{9.667} & \cellcolor{gray!6}{9.667}\\
+\cellcolor{gray!10}{Avg connections within middle communities} & \cellcolor{gray!10}{20} & \cellcolor{gray!10}{20} & \cellcolor{gray!10}{61.333} & \cellcolor{gray!10}{61.333} & \cellcolor{gray!10}{9.667} & \cellcolor{gray!10}{9.667}\\
 \addlinespace
 Avg connections between middle communities & 0.276 & 0.543 & 0.214 & 0.386 & 0.098 & 0.242\\
 \bottomrule
@@ -372,5 +438,23 @@ Clust. Weight
 80 & A\_ingraph07 & 0 = off & True (off) & 0 = off & 0.1 (middle), 1e-4
 (top) \\
 \end{longtable}
+
+\bibliographystyle{unsrt}
+    \bibliography{C:/Users/Bruin/Desktop/Research Assistantship/Thesis Proposal Defense/proposal_references.bib}
+
+\newpage
+\section*{References}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-barabasi2003scale}{}}%
+Barabási, Albert-László, and Eric Bonabeau. 2003. {``Scale-Free
+Networks.''} \emph{Scientific American} 288 (5): 60--69.
+
+\leavevmode\vadjust pre{\hypertarget{ref-watts1998collective}{}}%
+Watts, Duncan J, and Steven H Strogatz. 1998. {``Collective Dynamics of
+`Small-World'networks.''} \emph{Nature} 393 (6684): 440--42.
+
+\end{CSLReferences}
 
 \end{document}

@@ -33,7 +33,8 @@ class GATE(nn.Module):
             
             if use_multi_head == True:
                 # add multi head attendtion layers to dictionary
-                module_dict.update({'GAT_'+str(out): multi_head_GAT(in_features = in_attrib, 
+                module_dict.update({'GAT_'+str(out): multi_head_GAT(nodes = in_nodes,
+                                                                    in_features = in_attrib, 
                                                                     out_features = out,
                                                                     heads = attn_heads,
                                                                     norm = normalize,
@@ -41,9 +42,9 @@ class GATE(nn.Module):
             else:
                 #add GAT layers to dictionary
                 module_dict.update({'GAT_'+str(out): GAT(in_features = in_attrib, 
-                                                              out_features = out,
-                                                              norm = normalize,
-                                                              **kwargs)})
+                                                         out_features = out,
+                                                         norm = normalize,
+                                                         **kwargs)})
             
             module_dict.update({'act'+str(out): layer_act})
             
@@ -127,14 +128,20 @@ class HCD(nn.Module):
         
 
         #set dot product decoder activation to sigmoid
+        #self.act_norm = nn.LeakyReLU(negative_slope=0.2)
+        #self.act_norm = nn.Softmax(dim = 1)
+        self.act_norm = nn.Identity()
+        #self.act_norm = nn.Softsign()
+        #self.act_norm = nn.Tanh()
         self.dpd_act = nn.Sigmoid()
-
+        
         
     def forward(self, X, A):
         #get representation
         Z, A = self.encoder(X,A)
         #reconstruct adjacency matrix using simple dot-product decoder
-        A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
+        #A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
+        A_hat = self.dpd_act(self.act_norm(torch.mm(Z, Z.transpose(0,1))))
         #reconstruct node features
         X_hat, A = self.decoder(Z, A)
         #fit hierarchy

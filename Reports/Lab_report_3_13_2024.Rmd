@@ -14,11 +14,12 @@ header-includes:
   - \usepackage{fancyhdr}
   # - \pagenumbering{gobble}
   - \pagestyle{fancy}
+bibliography: C:/Users/Bruin/Desktop/Research Assistantship/Thesis Proposal Defense/proposal_references.bib
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(fig.width=12, fig.height=10, fig.pos = "H")
+#knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(fig.width=12, fig.height=10, fig.pos = "H")
 #knitr::opts_chunk$set(list(echo = FALSE, eval = FALSE))
 library(kableExtra)
 library(knitr)
@@ -37,17 +38,32 @@ tab = read.csv(paste0(basepath, 'DATA/Toy_examples/Intermediate_examples/Results
 
 ```
 
+\section*{Data Simulation}
 
-\section*{Simulation Description}
+We simulate hierarchical networks in a top-down approach. We consider several parameters of simulation such as sparsity, noise, and the architecture of the super level graph(s), namely small-world, and scale-free networks [@watts1998collective; @barabasi2003scale].  We simplify our simulations by focusing on basic hierarchies with just one or two hierarchical layers. 
+	
+In each hierarchy, we start by simulating the top-level nodes in topological order, using either a small world or scale-free network structure [@watts1998collective; @barabasi2003scale]. We define origin nodes as nodes in the topological graph that have no parental input. All origin nodes are simulated from a standard normal distribtion. After generating an initial graph corresponding to the top most layer of the hierarchy, we simulate the middle and bottom layers of the hierarchy by creating groups of new nodes for each parent super-node in the upper level(s). 
+	
+Each hierarchical level contains community structure nested in the previous layer. The number of offspring nodes generated for each parent node in the level above is chosen from a uniform $\text{unif}(a,b)$ distribution. We also control the connection probabilities both within and between the communities of each hierarchical layer. Once a hierarchical graph is simulated we use the hierarchy to generate the node-feature matrix which represents the expression of $N$ genes in $p$ samples. The number $N$ represents the number of nodes in the observed (bottom) layer of the hierarchy and ranges between $a^{\ell+1}<N<a\times b^\ell$ where $\ell$ represents the number of hierarchical layers. 
+	
+We consider three sets of hierarchical networks which represent varying difficulty levels for inference:
+	
+\begin{itemize}
+  \item[1.] Complex networks - - used for final simulation assessment 
+  \item[2.] Intermediate networks - used for investigative model tuning and performance assessment 
+  \item[3.] Simple networks - used for code implementation and debugging
+\end{itemize}
 
+\section*{Application to Intermediate Networks}
+
+A summary of the intermediate networks can be found in \textbf{Table 1}. These
 
 \section*{Preliminary Findings}
 
 
-
 \newpage
 \section*{Figures}
-```{r, echo=F, message=F, warning=F, fig.height=8, fig.width=10}
+```{r fig1, echo=F, message=F, warning=F, fig.height=8, fig.width=10}
 
 longform = cbind.data.frame(metric = as.factor(c(rep('homogeneity', dim(tab)[1]),
                               rep('completeness', dim(tab)[1]),
@@ -283,3 +299,10 @@ df = cbind.data.frame(`Scenario` = c(1:dim(grid)[1]), grid)
 kable(df, format = 'markdown', digits = 2, row.names = F, booktabs = T,
       caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 simulated networks given in Table 1')
 ```
+
+
+\bibliographystyle{unsrt}
+	\bibliography{C:/Users/Bruin/Desktop/Research Assistantship/Thesis Proposal Defense/proposal_references.bib}
+
+\newpage
+\section*{References}
