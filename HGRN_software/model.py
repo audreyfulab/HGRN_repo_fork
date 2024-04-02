@@ -127,12 +127,13 @@ class HCD(nn.Module):
                                         normalize = normalize_inputs, comm_sizes=comm_sizes)
         
 
+        # set layer normalization
+        if normalize_inputs == True:
+            self.act_norm = nn.LayerNorm(nodes)
+        else:
+            self.act_norm = nn.Identity()
+            
         #set dot product decoder activation to sigmoid
-        #self.act_norm = nn.LeakyReLU(negative_slope=0.2)
-        #self.act_norm = nn.Softmax(dim = 1)
-        self.act_norm = nn.Identity()
-        #self.act_norm = nn.Softsign()
-        #self.act_norm = nn.Tanh()
         self.dpd_act = nn.Sigmoid()
         
         

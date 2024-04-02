@@ -174,7 +174,9 @@ class gaeGAT_layer(nn.Module):
             
             
         if self.norm == True:
-            self.Norm_layer = nn.LayerNorm(in_features)
+            self.act_norm = nn.LayerNorm(in_features)
+        else:
+            self.act_norm = nn.Identity()
             
         #set dense layer activation
         self.act = act
@@ -190,8 +192,7 @@ class gaeGAT_layer(nn.Module):
                 A: Adjacency matrix
         """
         X, A = inputs
-        if self.norm == True:
-            X = self.Norm_layer(X)
+        X = self.act_norm(X)
         #compute dense layer embeddings - default activation is identity function
         H_in = self.act(torch.mm(X, self.W))
         #compute the attention for self
@@ -310,28 +311,13 @@ class Comm_DenseLayer(nn.Module):
         #set layer activation
         self.act = nn.LeakyReLU(alpha)
         
-        #self.gat = gaeGAT_layer(nodes, in_features, out_features)
-        
+        #normalize inputs
         if self.norm == True:
-            self.Norm_layer = nn.LayerNorm(in_feats)
+            self.act_norm = nn.LayerNorm(in_feats)
+        else:
+            self.act_norm = nn.Identity()
         
-    # def compute_centroids(self, P, Z):
-    #     """
-    #     Z: node representations N x q    or    layer centroids  k_l x q 
-    #     P: super node assignment probabilities 
-    #     """
-    #     X_tilde = self.act(torch.mm(Z, P))
-        
-    #     return X_tilde
-    
-    # def compute_adjacency(self, P, A):
-    #     """
-    #     P: super node assignment probabilities
-    #     A: input adjacency matrix of size N x N
-    #     """
-    #     A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
-        
-    #     return A_tilde
+
     
     def forward(self, inputs):
         """
@@ -343,8 +329,7 @@ class Comm_DenseLayer(nn.Module):
         """
         Z=inputs[0]
         A=inputs[1]
-        if self.norm == True:
-            Z = self.Norm_layer(Z)
+        Z = self.act_norm(Z)
         #compute assignment probabilities
         P = F.softmax(torch.mm(Z, self.W), dim = 1)
         #get the centroids and layer adjacency matrix
