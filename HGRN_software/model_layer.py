@@ -198,7 +198,8 @@ class gaeGAT_layer(nn.Module):
         #compute the attention for self
         M_s = torch.mul(A, torch.mm(H_in, self.a_s))
         #compute the attendtion for neighbors
-        M_r = torch.mul(A, torch.mm(H_in, self.a_r).transpose(0,1))
+        #M_r = torch.mul(A, torch.mm(H_in, self.a_r).transpose(0,1))
+        M_r = torch.mul(A, torch.mm(H_in, self.a_r))
         #concatenated into attention weight matrix
         concat_atten = self.attn_act(M_s + M_r)
         #ensure that non-edges are not given attention weights
