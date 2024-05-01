@@ -135,6 +135,7 @@ class HCD(nn.Module):
             
         #set dot product decoder activation to sigmoid
         self.dpd_act = nn.Sigmoid()
+        #self.dpd_act = nn.Identity()
         
         
     def forward(self, X, A):

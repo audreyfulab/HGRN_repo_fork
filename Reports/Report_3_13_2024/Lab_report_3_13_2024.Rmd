@@ -3,16 +3,15 @@ title: "HCD Simulations Write Up"
 author: "Audrey Fu Lab"
 date: "2024-03-07"
 output:
- pdf_document:
-   keep_tex: true
-   number_sections: true
+  bookdown::html_document2: default
+  bookdown::pdf_document2: default
+  number_sections: false
 always_allow_html: true
 header-includes:
   - \usepackage{float}
   - \usepackage{multirow}
   - \usepackage{lastpage}
   - \usepackage{fancyhdr}
-  # - \pagenumbering{gobble}
   - \pagestyle{fancy}
 bibliography: C:/Users/Bruin/Desktop/Research Assistantship/Thesis Proposal Defense/proposal_references.bib
 ---
@@ -38,9 +37,9 @@ tab = read.csv(paste0(basepath, 'DATA/Toy_examples/Intermediate_examples/Results
 
 ```
 
-\section*{Data Simulation}
+# Data Simulation
 
-\subsection*{Simulating the network}
+### Simulating the network
 We adopt a top-down approach to simulate hierarchical networks, considering various simulation parameters such as graph sparsity, noise, and the architecture of the super-level graph(s), including small-world, scale-free, and random graph networks [@watts1998collective; @barabasi2003scale].
 
 Our simulations focus on basic hierarchies comprising one or two hierarchical layers. Two-layer networks mirror classical community detection on graphs, where our aim is to recover the true community labels from a given graph. Meanwhile, three-layer networks present a more intricate scenario, where the bottom layer of the hierarchy contains two levels of community structure. Here, the top level corresponds to the nodes at the uppermost layer of the hierarchy, and the middle level consists of communities nested within the top-level communities. The objective with these networks is to identify both sets of community partitions.
@@ -49,34 +48,86 @@ In each hierarchy, for fully connected networks, we initiate by simulating $n_{\
 
 The final step in all hierarchies is to generate the nodes in the observed (bottom) layer of the hierarchy. For each top-layer or middle-layer node, we generate a subnetwork of $n_{\text{bottom}}$ nodes under the same subnetwork structure as the previous layers, and we apply a probability $p_\text{between}$ for nodes from different communities to share an edge.
 
-\subsection*{Simulating gene expression}
+### Simulating gene expression
 
 Once we simulate a hierarchical graph, we utilize this hierarchy to generate the node-feature matrix, which depicts the expression of $N$ genes across $p$ samples. Here, $N$ denotes the number of nodes in the observed (bottom) layer of the hierarchy, and its range is governed by $a^{\ell+1}<N<a\times b^\ell$, where $\ell$ signifies the number of hierarchical layers.
 
-We simulate the node-feature matrix using the topological order the observed level graph. We start by generating the features of nodes that have no parental input. We refer to these nodes as origin nodes. All origin nodes are simulated from a normal distribtion with mean $0$ and standard deviation $\sigma$. All other nodes are simulated from a normal distribution centered at the mean of their parent nodes and with standard deviation $\sigma$. 
+We simulate the node-feature matrix using the topological order the observed level graph. We start by generating the features of nodes that have no parental input. We refer to these nodes as origin nodes. All origin nodes are simulated from a normal distribution with mean $0$ and standard deviation $\sigma$. All other nodes are simulated from a normal distribution centered at the mean of their parent nodes and with standard deviation $\sigma$. 
 
-\section*{Datasets}
+# Datasets
 	
 We consider three sets of hierarchical networks which represent varying difficulty levels for inference:
 	
-\begin{itemize}
-  \item[1.] \textbf{Complex networks} - - used for final simulation assessment - \textbf{Table 1-3}
-  \item[2.] \textbf{Intermediate networks} - used for investigative model tuning and performance assessment - \textbf{Table 4}
-  \item[3.] \textbf{Simple networks} - used for code implementation and debugging - \textbf{Table 5}
-\end{itemize}
 
-\section*{Application to Intermediate Networks}
+  1. **Complex networks** - used for final simulation assessment - **Table** \@ref(tab:tab1) - \@ref(tab:tab3) .
+  
+  2. **Intermediate networks** - used for investigative model tuning and performance assessment - **Table** \@ref(tab:tab4) .
+  
+  3. **Simple networks** - used for code implementation and debugging - **Table** \@ref(tab:tab5).
 
-A summary of the intermediate networks can be found in \textbf{Table 4}. The intermediate networks dataset consists of three layer networks of small world, scale free, and random graph architectures that are less complex then the three layer networks in the \textbf{Complex networks} dataset. Each of these networks has $5$ super layer nodes, $15$ middle layer nodes and approximately $300$ bottom layer nodes. We primarily use this dataset to investigate the behavior of the HCD method when applied to 3-layer network.   
+# Application to Intermediate Networks
 
-\section*{Preliminary Findings}
 
+A comprehensive overview of the intermediate networks is presented in **Table** \@ref(tab:tab4) . These networks are structured as three-layered systems, each characterized by small-world, scale-free, or random graph architectures. In contrast to the more intricate networks featured in the **Complex Networks** dataset, the intermediate networks exhibit a comparatively simpler configuration. Specifically, each network comprises $5$ super layer nodes, $15$ middle layer nodes, and approximately $300$ bottom layer nodes. Our primary focus in utilizing this dataset is to examine the performance of the Hierarchical Community Detection (HCD) method when applied to three-layer networks. The smaller scale of these networks facilitates a more in-depth analysis of the detected communities within the middle and upper layers of their hierarchical structures.
+
+We apply the HCD method to each network separately using three options for the input graph corresponding to the nodes at the observed layer of the hierarchy:
+
+  * The input graph is the true graph
+  
+  *  The input graph is the correlation matrix of the simulated gene expression
+  
+  *  The input graph is the correlation matrix of the simulated gene expression wherein correlations weaker than 0.2 are disregarded and set to zero
+  
+  *  The input graph is the correlation matrix of the simulated gene expression wherein correlations weaker than 0.5 are disregarded and set to zero
+  
+  *  The input graph is the correlation matrix of the simulated gene expression wherein correlations weaker than 0.7 are disregarded and set to zero
+  
+
+We also explore various combinations of weighting the loss function across each of the aforementioned input graphs. In all cases, we ensure that the predicted number of communities in the middle or top levels of the hierarchy aligns with the ground truth of the simulation.
+
+### Evaluating performance
+
+We evaluate the performance of our HCD method using three graph-based clustering metrics:
+
+   1. **homogeneity** evaluates the degree to which each predicted community contains only data points from a single true community, indicating how well the algorithm avoids mixing different groups. Thus, homogenity tends to be high if resolved communities contain only members of the same true community.
+   
+   2. **completeness** assesses the extent to which all data points that belong to the same true
+community are correctly assigned to a single predicted community. Thus completeness is always high if all members of the same true communities end up in the same resolved community even if several true communities are allocated together. 
+   
+   3. **NMI** is a weighted average of the previous two metrics. 
+
+For each simulation, we configure the number of communities in the middle and upper layers of the hierarchy to match the true count in each layer. Then, we evaluate the community predictions of the Hierarchical Community Detection (HCD) algorithm at these levels against the actual communities using three metrics. As a baseline, we employ the Louvain method, which utilizes hierarchical graph partitioning to maximize modularity, resulting in a single set of resolved communities. These resolved communities may align with the middle, upper, or a combination of both layers in the true hierarchy. Thus, we compute the performance metrics of the communities identified by the Louvain method against the true communities at both the upper and middle levels of the hierarchy.
+
+### Preliminary findings for applications to intermediate networks
+
+**Figures** \@ref(fig:fig1) - \@ref(fig:fig2) give a summary of HCD and Louvain performance on predicting the middle and top layer communities across all application settings outlined in the previous section and **Table** \@ref(tab:tab6) . **Figure** \@ref(fig:fig1) shows the summarized performance across all three subgraph architectures. 
+
+Main points: 
+
+  * For HCD, completeness tends to be higher and homogeneity lower, but overall performance for HCD tends to be lower than the Louvain method across all scenarios. This is further supported in **Figure** \@ref(fig:fig2). 
+  
+  * Across all settings, the performance tends to be "best" when using the true input graph and the correlation matrix wherein correlations weaker than 0.5 are disregarded and set to zero as the input graph
+  
+  * The higher completeness score for HCD across simulation settings is reflective of a tendency to overgroup the five communities in the top layer to just a 1 - 3 supercommunities. 
+  
+### Topics to investigate going forward
+
+  * Results indicate the need for an additional loss component to prevent communities from being merged into a small number of supercommunities 
+  
+  * Suggest implementing a Kmeans like clustering loss component to penalize the merging of communities in the middle and top layer predictions.
+  
+  * Need to consider how we evaluate performance. HCD middle and top layer predictions should be compared to to the truth at both levels of the hierarchy for example:
+  
+  * All origin nodes are simulated from the same distribution - this causes many of the true communities to overlap see **Figure** \@ref(fig:fig6)
+  
+    - compare middle layer predictions to the truth for the middle and top levels 
+    - compare top layer predictions to the truth for the middle and top levels 
 
 \newpage 
 
-\section*{Tables}
+# Tables
 
-```{r, echo=F, message=F, warning=F}
+```{r tab1, echo=F, message=F, warning=F}
 
 complex_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/network_statistics.csv')[,-1]
 
@@ -95,30 +146,46 @@ kable(t(df[1:9,]), format = 'latex', digits = 2, row.names = F, col.names = c('V
                                                                                     booktabs = T,
       caption = 'Summary statistics for all small world networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
 
+kable(t(df[1:9,]), format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for all small world networks in the complex networks datset')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+
 ```
 
 
-```{r, echo=F, message=F, warning=F}
+```{r tab2, echo=F, message=F, warning=F}
 
 kable(t(df[c(1, 10:17),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
-                                                                                    booktabs = T,
-      caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
+                                                                                  booktabs = T,
+     caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
+
+kable(t(df[c(1, 10:17),]), format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
 
 ```
 
 
-
-```{r, echo=F, message=F, warning=F}
+\newpage
+```{r tab3, echo=F, message=F, warning=F}
 
 kable(t(df[c(1, 18:25),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for all random graph networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
 
+
+kable(t(df[c(1, 18:25),]), format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for all random graph networks in the complex networks datset')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+
 ```
 
-\clearpage
+
 \newpage
-```{r, echo=F, message=F, warning=F}
+```{r tab4, echo=F, message=F, warning=F}
 
 inter_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')[,-1]
 
@@ -136,11 +203,17 @@ df = rbind.data.frame(c('Subgraph type','Connection type','Layers','Standard dev
 kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:6))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for intermediate difficulty simulated networks.')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+
+
+kable(t(df), format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for intermediate difficulty simulated networks.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
 ```
 
 
-
-```{r, echo=F, message=F, warning=F}
+\newpage
+```{r tab5, echo=F, message=F, warning=F}
 
 toy_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/toy_examples_network_statistics.csv')[,-1]
 
@@ -158,11 +231,17 @@ df = rbind.data.frame(c('Subgraph type','Connection type','Layers','Standard dev
 kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:4))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for simple simulated networks. These networks contain fewer than 100 nodes at the observed level and only cover small world subgraph architecture')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+
+kable(t(df), format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for simple simulated networks. These networks contain fewer than 100 nodes at the observed level and only cover small world subgraph architecture.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
 ```
 
-\clearpage
+
+
 \newpage
-```{r, echo=F, message=F, warning=F}
+```{r tab6, echo=F, message=F, warning=F}
 
 grid = expand.grid(`Input Graph` = unique(tab$input_graph),
                    `Graph Recon. Loss` = c('1 = on', '0 = off'),
@@ -170,16 +249,21 @@ grid = expand.grid(`Input Graph` = unique(tab$input_graph),
                    `Modularity Weight` = c('1 = on', '0 = off'),
                    `Clust. Weight` = c('1 (middle), 1 (top)', '0.1 (middle), 1e-4 (top)'))
 
-kable(grid, format = 'markdown', digits = 2, row.names = F, booktabs = T,
-      caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 simulated networks given in Table 1')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+      caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 networks in the intermediate networks dataset.')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+
+kable(grid, format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 networks in the intermediate networks dataset.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
 ```
 
 
 
 
 \newpage
-\section*{Figures}
-```{r fig1, echo=F, message=F, warning=F, fig.height=8, fig.width=10}
+# Figures
+```{r fig1, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Performance of HCD and Louvain methods in predicting the middle and top layer communities for networks in the intermediate networks dataset. Plots are faceted by the subgraph structure. A box and whisker plot is plotted separately for each performance metric: completeness (orange) homogeneity (green) or NMI (blue) and across the two methods. '}
 
 longform = cbind.data.frame(metric = as.factor(c(rep('homogeneity', dim(tab)[1]),
                               rep('completeness', dim(tab)[1]),
@@ -250,7 +334,7 @@ ggarrange(A, B, nrow = 2, common.legend = T)
 
 
 
-```{r, echo=F, message=F, warning=F, fig.height=8, fig.width=10}
+```{r fig2, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Performance of HCD and Louvain methods in predicting the middle and top layer communities for networks in the intermediate networks dataset. Plots are faceted according to the input graphs outlined in Section "Application to Intermediate Networks". A box and whisker plot is plotted separately for each performance metric: completeness (orange) homogeneity (green) or NMI (blue) and across the two methods.'}
 
 
 # comparing HCD with louvain on input graph 
@@ -278,7 +362,7 @@ ggarrange(A, B, nrow = 1, common.legend = T)
 
 
 
-```{r, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Small world graphs'}
+```{r fig3, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Performance of HCD and Louvain methods in predicting the middle and top layer communities. Results are shown for only intermediate networks generated under the small world architectures. Plots are faceted according to the input graphs outlined in Section "Application to Intermediate Networks". A box and whisker plot is plotted separately for each performance metric: completeness (orange) homogeneity (green) or NMI (blue) and across the two methods.'}
 longform2 = cbind.data.frame(method = as.factor(c(rep('HCD', dim(longform)[1]), 
                                         rep('Louvain', dim(longform)[1]))),
                              metric = as.factor(rep(c(rep('homogeneity', dim(tab)[1]),
@@ -322,7 +406,7 @@ ggarrange(A, B, nrow = 1, common.legend = T)
 ```
 
 
-```{r, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Scale free graphs'}
+```{r fig4, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Performance of HCD and Louvain methods in predicting the middle and top layer communities. Results are shown for only intermediate networks generated under the scale free architecture. Plots are faceted according to the input graphs outlined in Section "Application to Intermediate Networks". A box and whisker plot is plotted separately for each performance metric: completeness (orange) homogeneity (green) or NMI (blue) and across the two methods.'}
 #scale free
 lf1.2 = subset(longform2, network == 'scale free')
 A = ggplot(data = lf1.2, aes(x = method, y = stats.top, 
@@ -347,7 +431,7 @@ ggarrange(A, B, nrow = 1, common.legend = T)
 ```
 
 
-```{r, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='random graphs'}
+```{r fig5, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='Performance of HCD and Louvain methods in predicting the middle and top layer communities. Results are shown for only intermediate networks generated under the random graph architecture. Plots are faceted according to the input graphs outlined in Section "Application to Intermediate Networks". A box and whisker plot is plotted separately for each performance metric: completeness (orange) homogeneity (green) or NMI (blue) and across the two methods.'}
 #random graph
 lf1.3 = subset(longform2, network == 'random graph')
 A = ggplot(data = lf1.3, aes(x = method, y = stats.top, 
@@ -371,10 +455,32 @@ B = ggplot(data = lf1.3, aes(x = method, y = stats.mid,
 ggarrange(A, B, nrow = 1, common.legend = T)
 ```
 
+```{r fig6, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
+knitr::include_graphics(paste0(path, "3_13_2024_SMW_loss.pdf"))
+```
 
 
+```{r fig7, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
+knitr::include_graphics(paste0(path, "3_13_2024_SMW_adj.png"))
+```
+
+```{r fig8, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
+knitr::include_graphics(paste0(path, "3_13_2024_SMW_heatmap.png"))
+```
 
 
+```{r fig9, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
+knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Top Layer_tSNE_PCA_Plot.png"))
+```
+
+```{r fig10, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
+knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Top Layer_tSNE_PCA_Plot.png"))
+```
 
 
 
@@ -382,4 +488,4 @@ ggarrange(A, B, nrow = 1, common.legend = T)
 	\bibliography{C:/Users/Bruin/Desktop/Research Assistantship/Thesis Proposal Defense/proposal_references.bib}
 
 \newpage
-\section*{References}
+# References

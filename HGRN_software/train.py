@@ -125,10 +125,11 @@ class ClusterLoss(nn.Module):
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
-        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], normalize = True,
-        comm_loss = ['Modularity', 'Clustering'], 
-        true_labels = [], save_output = False, output_path = 'path/to/output', fs = 10, 
-        ns = 10, turn_off_A_loss = False, verbose = True, **kwargs):
+        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2,
+        normalize = True, comm_loss = ['Modularity', 'Clustering'], 
+        true_labels = [], turn_off_A_loss = False, save_output = False,  
+        output_path = 'path/to/output', fs = 10, ns = 10, 
+        verbose = True, **kwargs):
     """
     
     """
@@ -142,7 +143,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     perf_hist = []
     updates = []
     time_hist = []
-    h_layers = len(model.comm_sizes)
+    comm_layers = len(model.comm_sizes)
     print(model)
     
     #set optimizer Adam
@@ -195,8 +196,10 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
-        #compute community detection loss
+        #compute community detection loss components
+        #modularity loss (only computed over the last k layers of community model)
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
+        #Compute clustering loss
         Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         
         #compute community detection loss
@@ -232,16 +235,16 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #store loss component information
         loss_history.append(total_loss)
         A_loss_hist.append(float(A_loss.cpu().detach().numpy()))
-        X_loss_hist.append(float(X_loss.cpu().detach().numpy()))
+        X_loss_hist.append(gamma*float(X_loss.cpu().detach().numpy()))
         mod_loss_hist.append(Modloss_values)
         clust_loss_hist.append(Clustloss_values)
         #evaluating performance homogenity, completeness and NMI
         perf_layers = []
-        lnm = ['top']+['middle_'+str(i) for i in np.arange(h_layers-1)[::-1]]
-        if h_layers <3:
-            for i in range(0, len(S_all)):   
-                preds = S_relab[::-1][-2:][i].cpu().detach().numpy()
-                eval_metrics = node_clust_eval(true_labels=true_labels[::-1][i],
+        lnm = ['top']+['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
+        if k <3:
+            for i in range(0, k):   
+                preds = S_relab[::-1][-k:][i].cpu().detach().numpy()
+                eval_metrics = node_clust_eval(true_labels=true_labels[i],
                                                pred_labels=preds, 
                                                verbose=False)
                 perf_layers.append(eval_metrics.tolist())
@@ -257,12 +260,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #model forward
             X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
             #print update of performance metrics
-            if h_layers < 3:
-                for i in range(0, h_layers):
-                    print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-                    print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
-                        perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
-                    print('-' * 80)
+            for i in range(0, k):
+                print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
+                print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
+                    perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
+                print('-' * 80)
             
             
             #loss printing
@@ -297,15 +299,15 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                     #plotting graphs in networkx 
                     print('plotting nx graphs...')
                     plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
-                               labels=S_relab[-1], 
+                               labels=S_relab[-k:][-1], 
                                path = output_path+'Top_Clusters_result_'+str(epoch+1),
                                node_size=ns, 
                                font_size=fs,
                                save = save_output,
                                add_labels = True)
-                    if h_layers == 2:
+                    if k == 2:
                         plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
-                                   labels=S_relab[0], 
+                                   labels=S_relab[-k:][0], 
                                    add_labels = True,
                                    node_size=ns,
                                    font_size=fs,
@@ -317,8 +319,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                     plot_clust_heatmaps(A = A, 
                                         A_pred = A_pred, 
                                         true_labels = true_labels, 
-                                        pred_labels = S_relab, 
-                                        layers = h_layers+1, 
+                                        pred_labels = S_relab[-k:], 
+                                        layers = k+1, 
                                         epoch = epoch+1, 
                                         save_plot = save_output, 
                                         sp = output_path)

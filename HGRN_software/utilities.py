@@ -17,6 +17,7 @@ from sklearn.neighbors import kneighbors_graph
 import scipy as spy
 import seaborn as sbn
 import matplotlib.pyplot as plt
+import pickle
 
 # A simple function which computes the modularity of a graph based on a set of 
 #community assignments
@@ -30,8 +31,15 @@ def Modularity(A,P,res=1):
 
 
 
-
-
+def pickle_data(data, filename, filepath):
+    with open(filepath+filename+'.pkl', 'wb') as f:
+        pickle.dump(data, f)
+        
+def open_pickled(filename):
+    with open(filename, 'rb') as f:
+        file = pickle.load(f)
+        
+    return file
 
 #This function computes the within cluster sum of squares (WCSS)
 # def WCSS(X = None, clustlabs = None, num_clusters=None, norm_degree = 2,

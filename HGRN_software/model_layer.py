@@ -198,8 +198,8 @@ class gaeGAT_layer(nn.Module):
         #compute the attention for self
         M_s = torch.mul(A, torch.mm(H_in, self.a_s))
         #compute the attendtion for neighbors
-        #M_r = torch.mul(A, torch.mm(H_in, self.a_r).transpose(0,1))
-        M_r = torch.mul(A, torch.mm(H_in, self.a_r))
+        M_r = torch.mul(A, torch.mm(H_in, self.a_r).transpose(0,1))
+        #M_r = torch.mul(A, torch.mm(H_in, self.a_r))
         #concatenated into attention weight matrix
         concat_atten = self.attn_act(M_s + M_r)
         #ensure that non-edges are not given attention weights
@@ -300,7 +300,7 @@ class Comm_DenseLayer(nn.Module):
         LeakyReLU        sqrt(2 / (1 + (-m)^2)
     """
 
-    def __init__(self, in_feats, out_comms, norm = True, alpha=0.2, gain = 1.414):
+    def __init__(self, in_feats, out_comms, norm = True, alpha=0.01, gain = 1.414):
         super(Comm_DenseLayer, self).__init__()
         #store community info
         self.in_feats = in_feats
@@ -310,8 +310,7 @@ class Comm_DenseLayer(nn.Module):
         self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
         nn.init.xavier_uniform_(self.W.data, gain=gain)
         #set layer activation
-        self.act = nn.LeakyReLU(alpha)
-        
+        self.act = nn.LeakyReLU(negative_slope=alpha)
         #normalize inputs
         if self.norm == True:
             self.act_norm = nn.LayerNorm(in_feats)
