@@ -70,7 +70,7 @@ args.common_dist = True
 # args.SD = 0.1
 # args.node_degree = 5
 
-mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/'
+mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
 
 structpath = ['small_world/','scale_free/','random_graph/']
@@ -100,7 +100,7 @@ grid3 = product(struct, connect, layers)
 info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers','StDev',
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
                                      'sample_size','modularity_top','avg_node_degree_top',
-                                     'avg_connect_within_bottom','avg_connect_between_top',
+                                     'avg_connect_within_top','avg_connect_between_top',
                                      'modularity_middle','avg_node_degree_middle',
                                      'avg_connect_within_middle','avg_connect_between_middle',
                                      ])

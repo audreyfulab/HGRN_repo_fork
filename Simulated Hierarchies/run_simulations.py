@@ -43,6 +43,7 @@ torch.manual_seed(123)
 
 
 def run_simulations(dataset = ['complex', 'intermediate','toy'],
+                    parent_dist = ['equal','unequal'],
                     readpath = '/mnt/ceph/jarredk/',
                     save_results = False, gam = 1, delt = 1, lam = [1,1], learn_rate = 1e-4, 
                     epochs = 10, updates = 10, reso = [1,1], hd = [256, 128, 64], cms = [],
@@ -90,7 +91,10 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
         stats = pd.read_csv(loadpath_main+'network_statistics.csv')
         
     elif dataset == 'intermediate':
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Intermediate_examples/'
+        if parent_dist == 'equal':
+            loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Intermediate_examples/'
+        else:
+            loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Intermediate_examples_2/'
         structpath = ['small_world/','scale_free/','random_graph/']
         connectpath = ['disconnected/', 'fully_connected/']
         layerpath = ['3_layer/']

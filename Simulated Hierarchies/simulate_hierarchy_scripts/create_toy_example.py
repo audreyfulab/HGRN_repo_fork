@@ -59,6 +59,8 @@ args = parser.parse_args()
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
 args.connect_prob = 0.01
+args.force_connect = True
+args.common_dist = True
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
@@ -68,7 +70,7 @@ args.connect_prob = 0.01
 # args.SD = 0.1
 # args.node_degree = 5
 
-mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/'
+mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/'
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
 
 #structpath = ['small_world/','scale_free/','random_graph/']
@@ -98,7 +100,7 @@ grid3 = product(connect, layers)
 info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers','StDev',
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
                                      'sample_size','modularity_top','avg_node_degree_top',
-                                     'avg_connect_within_bottom','avg_connect_between_top',
+                                     'avg_connect_within_top','avg_connect_between_top',
                                      'modularity_middle','avg_node_degree_middle',
                                      'avg_connect_within_middle','avg_connect_between_middle',
                                      ])
@@ -114,7 +116,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])
     print('saving hierarchy to {} '.format(args.savepath))
-    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
+    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, ori = simulate_graph(args)
     print('done')
     print('-'*60)
     print('computing statistics....')

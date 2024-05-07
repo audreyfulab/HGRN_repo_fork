@@ -162,9 +162,9 @@ def compute_beth_hess_comms(A):
 
 
 
-def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth, 
-                       is_torch = True, ns = 35, size = 10, fs=14, save = False, 
-                       path = '', cm = 'plasma', **kwargs):
+def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth, 
+                       is_torch = True, include_3d_plots = False, ns = 35, size = 10, 
+                       fs=14, save = False, path = '', cm = 'plasma', **kwargs):
     layers = len(labels)
     if layers > 1:
         layer_nms = ['Middle Layer','Top Layer']
@@ -173,7 +173,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
     #convert torch items     
     if is_torch:
         graph = graph.cpu().detach().numpy()
-        X = embed.cpu().detach().numpy()
+        X = data.cpu().detach().numpy()
         IX = input_X.cpu().detach().numpy()
         probs = [i.cpu().detach().numpy() for i in probabilities]
         labels = [i.cpu().detach().numpy() for i in labels]
@@ -186,7 +186,7 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
     fig2, (ax3, ax4) = plt.subplots(2, 2, figsize = (15, 10))
     #heatmap of embeddings correlations
     sbn.heatmap(np.corrcoef(X), ax = ax3[0])
-    ax3[0].set_title('Correlations Embeddings')
+    ax3[0].set_title('Correlations Data')
     #heatmap input data correaltions
     sbn.heatmap(np.corrcoef(IX), ax = ax3[1])
     ax3[1].set_title('Correlation matrix Input Data')
@@ -206,61 +206,85 @@ def post_hoc_embedding(graph, input_X, embed, probabilities, labels, truth,
         ax_nx[i].set_title(layer_nms[i]+' Clusters on Graph')
         
         #tsne
-        TSNE_embed=TSNE(n_components=2, 
+        TSNE_data=TSNE(n_components=3, 
                         learning_rate='auto',
                         init='random', 
                         perplexity=3).fit_transform(X)
         #pca
-        PCs = PCA(n_components=2).fit_transform(X)
+        PCs = PCA(n_components=3).fit_transform(X)
         #node labels
-        nl = np.arange(TSNE_embed.shape[0])
+        nl = np.arange(TSNE_data.shape[0])
         #figs
         fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
         #tsne plot
-        ax1[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = labels[i], cmap = cm)
+        ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = size, c = labels[i], cmap = cm)
         ax1[0].set_xlabel('Dimension 1')
         ax1[0].set_ylabel('Dimension 2')
-        ax1[0].set_title(layer_nms[i]+' t-SNE Embeddings (Predicted)')
+        ax1[0].set_title(layer_nms[i]+' t-SNE Data (Predicted)')
         #adding node labels
             
         #PCA plot
         ax1[1].scatter(PCs[:,0], PCs[:,1], s = size, c = labels[i], cmap = cm)
         ax1[1].set_xlabel('Dimension 1')
         ax1[1].set_ylabel('Dimension 2')
-        ax1[1].set_title(layer_nms[i]+' PCA Embeddings (Predicted)')
+        ax1[1].set_title(layer_nms[i]+' PCA Data (Predicted)')
         #adding traced_labels
             
         
         #TSNE and PCA plots using true cluster labels
         #tsne truth
-        ax2[0].scatter(TSNE_embed[:,0], TSNE_embed[:,1], s = size, c = truth[i], cmap = cm)
+        ax2[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = size, c = truth[i], cmap = cm)
         ax2[0].set_xlabel('Dimension 1')
         ax2[0].set_ylabel('Dimension 2')
-        ax2[0].set_title(layer_nms[i]+' t-SNE Embeddings (Truth)')
+        ax2[0].set_title(layer_nms[i]+' t-SNE Data (Truth)')
 
             
         #pca truth
         ax2[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth[i], cmap = cm)
         ax2[1].set_xlabel('Dimension 1')
         ax2[1].set_ylabel('Dimension 2')
-        ax2[1].set_title(layer_nms[i]+' PCA Embeddings (Truth)')
+        ax2[1].set_title(layer_nms[i]+' PCA Data (Truth)')
         if num_nodes < 100:
-            [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
+            [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
             [ax1[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
-            [ax2[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_embed[:,0], TSNE_embed[:,1], nl)]
+            [ax2[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
             [ax2[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
         
         sbn.heatmap(probs[i], ax = ax4[i])
         ax4[i].set_title(layer_nms[i]+' Probabilities')
         
+        
+        fig3d_pcs = plt.figure(figsize=(12,10))
+        ax3d = plt.axes(projection='3d')
+        ax3d.scatter3D(PCs[:,0], PCs[:,1], PCs[:,2], 
+                      c=labels[i], cmap='plasma')
+        ax3d.set_title('PCA')
+        ax3d.set_xlabel('Dimension 1')
+        ax3d.set_ylabel('Dimension 2')
+        ax3d.set_zlabel('Dimension 3')
+
+
+
+
+        fig3d_tsne = plt.figure(figsize=(12,10))
+        ax3d = plt.axes(projection='3d')
+        ax3d.scatter3D(TSNE_data[:,0], TSNE_data[:,1], TSNE_data[:,2], 
+                      c=labels[i], cmap='plasma')
+        ax3d.set_title('TSNE')
+        ax3d.set_xlabel('Dimension 1')
+        ax3d.set_ylabel('Dimension 2')
+        ax3d.set_zlabel('Dimension 3')
+        
         #save plot by layer
         if save == True:
             fig.savefig(path+layer_nms[i]+'_tSNE_PCA_Plot.png', dpi = 300)
+            fig3d_pcs.savefig(path+layer_nms[i]+'_3D_PCA_Plot.png', dpi = 300)
+            fig3d_tsne.savefig(path+layer_nms[i]+'_3D_tSNE_Plot.png', dpi = 300)
             
     
     #save plots
     if save == True:
-        fig2.savefig(path+'Embedding_and_Probs.png', dpi = 300)
+        fig2.savefig(path+'data_and_Probs.png', dpi = 300)
 
 
 

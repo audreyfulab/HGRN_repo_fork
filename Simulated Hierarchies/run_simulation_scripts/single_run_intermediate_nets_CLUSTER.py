@@ -13,10 +13,10 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import sys
-#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
-#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
 from model_layer import gaeGAT_layer as GAT
 from model import GATE, CommClassifer, HCD
 from train import CustomDataset, batch_data, fit
@@ -43,8 +43,7 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
                     lam = 1, learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], 
                     hd = [256, 128, 64], use_true_comms =True, cms = [], 
                     activation = 'LeakyReLU', use_gpu = True, verbose = True,
-                    TOAL = False, return_result = ['best_perf_top', 'best_perf_mid'],
-                    savepath = '', **kwargs):
+                    TOAL = False, return_result = ['best_perf_top', 'best_perf_mid'],**kwargs):
     
     device = 'cuda:'+str(0) if use_gpu and torch.cuda.is_available() else 'cpu'
     
@@ -53,12 +52,12 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
     #pathnames and filename conventions
     #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-    #loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/'
-    #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
+    loadpath_main = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/Toy_examples/Intermediate_examples/'
+    savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/DATA/Toy_examples/Intermediate_examples/Results/test/'
     
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/OLD_1_23_2024/'
-    loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
-    savepath_main = savepath
+    #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
+    #savepath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
     
     structpath = ['small_world/','scale_free/','random_graph/']
     connectpath = ['disconnected/', 'fully_connected/']
@@ -79,7 +78,8 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
 
 
     #read in network statistics 
-    stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')
+    #stats = pd.read_csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')
+    stats = pd.read_csv('/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/intermediate_examples_network_statistics.csv')
     #combine pathname and filename pieces
     grid1 = product(structpath, connectpath, layerpath)
     grid2 = product(struct_nm, connect_nm, layer_nm)
@@ -341,98 +341,46 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
     print('done')
     return out, tables, Graphs, X, target_labels, S_all, S_sub, louv_preds, [best_perf_idx, best_loss_idx]
             
- 
     
-sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example2_output/'
+#cms:
 # smw simple data: [true clusts]
 # smw complex: []
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
 ep = 500
-wn = 0
+wn = 1
 wg = 0
-saveit = True
-#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
-#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test2/'
-
-
-#disconnected settings
-param_dict = {'epochs': ep, 
-              'hidden': [256, 128, 64, 32],
-              'gamma': 1e-3,
-              'delta': 1e-3,
-              'lambda': [1e-3, 1e-4],
-              'input_graph': wg,
-              'network': wn,
-              'learning_rate': 1e-5,
-              'true_comms': True,
-              'use_attn': True,
-              'attn_heads': 5,
-              'normalize': True}
-
-
-#fully connected settings
-# param_dict = {'epochs': ep, 
-#               'hidden': [512, 416, 256, 128, 64, 32],
-#               'gamma': 1e-4,
-#               'delta': 1e-3,
-#               'lambda': [1e-4, 1e-5],
-#               'input_graph': wg,
-#               'network': wn,
-#               'learning_rate': 1e-5,
-#               'true_comms': True,
-#               'use_attn': True,
-#               'attn_heads': 30,
-#               'normalize': True}
-
 out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx = run_simulations(
-    save_results=saveit,
-    savepath = sp,
+    save_results=False,
     which_net=wn,
     which_ingraph=wg,
-    reso=[1,1,1,1],
-    hd=param_dict['hidden'],
-    gam = param_dict['gamma'],
-    delt = param_dict['delta'],
-    lam = param_dict['lambda'],
-    #lam = [5e-4, 1e-5],
-#   lam = [1e-5, 1e-4, 1e-3, 1e-2],
-    learn_rate=param_dict['learning_rate'],
-    use_true_comms=param_dict['true_comms'],
-    cms=[100, 50, 15, 5],
-    epochs = param_dict['epochs'],
-    updates = param_dict['epochs'],
-    activation = 'Sigmoid',
+    reso=[1,1],
+    hd=[256, 128, 64, 32],
+    gam = 1,
+    delt = 1,
+    lam = [0.09,0.0001],
+    learn_rate=1e-5,
+    use_true_comms=True,
+    cms=[50, 10],
+    epochs = ep,
+    updates = ep,
+    activation = 'LeakyReLU',
     TOAL=False,
-    use_multi_head=param_dict['use_attn'],
-    attn_heads=param_dict['attn_heads'],
+    use_multi_head=False,
+    attn_heads=5,
     verbose = True,
     return_result = 'best_perf_top',
-    normalize_inputs=param_dict['normalize'])
+    normalize_inputs=True)
 
 bp, bl = idx
 
 
-params_df = pd.DataFrame([['Hidden Layer Dimensions: ', str(param_dict['hidden'])],
-                          ['X_loss: ', param_dict['gamma']],
-                          ['Modularity_loss: ', param_dict['delta']],
-                          ['Clustering_loss: ', str(param_dict['lambda'])],
-                          ['Learning_rate: ', str(param_dict['learning_rate'])],
-                          ['True Comms: ', str(param_dict['true_comms'])],
-                          ['Epochs: ', str(param_dict['epochs'])],
-                          ['Multi Head Attn: ', str(True)],
-                          ['Use Attention:', str(param_dict['use_attn'])],
-                          ['Attn. Heads: ', str(param_dict['attn_heads'])],
-                          ['Normalize_inputs: ',str(param_dict['normalize'])]],
-                          columns=['Parameter','Value'])
 
-
-params_df.to_csv(sp+'param_settings.csv')
 
 
 print('Louvain compared to middle')
-homo_l2m, comp_l2m, nmi_l2m = node_clust_eval(truth[1], louv_pred)
+node_clust_eval(truth[1], louv_pred)
 print('Louvain compared to top')
-homo_l2t, comp_l2t, nmi_l2t =node_clust_eval(truth[0], louv_pred)
+node_clust_eval(truth[0], louv_pred)
 
 print('*'*50)
 print('*'*50)
@@ -440,56 +388,39 @@ print('*'*50)
 
 
 print('----------Middle preds to middle truth----------')
-homo_m2m, comp_m2m, nmi_m2m = node_clust_eval(true_labels=truth[::-1][0], 
+homo, comp, nmi = node_clust_eval(true_labels=truth[::-1][0], 
                                   pred_labels = out[0][bp][-2][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
-    homo_m2m, comp_m2m, nmi_m2m
+    homo, comp, nmi
     ))
 
 
 print('----------Middle preds to top truth----------')
-homo_m2t, comp_m2t, nmi_m2t = node_clust_eval(true_labels=truth[::-1][1], 
+homo, comp, nmi = node_clust_eval(true_labels=truth[::-1][1], 
                                   pred_labels = out[0][bp][-2][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
-    homo_m2t, comp_m2t, nmi_m2t
+    homo, comp, nmi
     ))
 
 
-# print('----------top preds to middle truth----------')
-# homo, comp, nmi = node_clust_eval(true_labels=truth[::-1][1], 
-#                                   pred_labels = out[0][bp][-2][1], verbose=False)
-# print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
-#     homo, comp, nmi
-#     ))
+print('----------top preds to middle truth----------')
+homo, comp, nmi = node_clust_eval(true_labels=truth[::-1][1], 
+                                  pred_labels = out[0][bp][-2][1], verbose=False)
+print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
+    homo, comp, nmi
+    ))
 
 
 print('----------top preds to top truth----------')
-homo_t2t, comp_t2t, nmi_t2t = node_clust_eval(true_labels=truth[::-1][1], 
+homo, comp, nmi = node_clust_eval(true_labels=truth[::-1][0], 
                                   pred_labels = out[0][bp][-2][1], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
-    homo_t2t, comp_t2t, nmi_t2t
+    homo, comp, nmi
     ))
 
 print('*'*50)
 print('*'*50)
 print('*'*50)
-
-
-best_iter_metrics = pd.DataFrame([['louvain vs middle']+np.round([homo_l2m, comp_l2m, nmi_l2m],4).tolist(),
-                                  ['louvain vs top']+np.round([homo_l2t, comp_l2t, nmi_l2t],4).tolist(),
-                                  ['HCD: middle vs middle']+np.round([homo_m2m, comp_m2m, nmi_m2m],4).tolist(),
-                                  ['HCD: middle vs top']+np.round([homo_m2t, comp_m2t, nmi_m2t],4).tolist(),
-                                  ['HCD: top vs top']+np.round([homo_t2t, comp_t2t, nmi_t2t],4).tolist()],
-                                 columns=['Comparison','Homogeneity','Completeness','NMI'])
-
-if saveit:
-    best_iter_metrics.to_csv(sp+'best_iteration_toplayer_metrics.csv')
-
-#sbn.heatmap(np.array([preds[0].detach().numpy(), truth[0]]).transpose())
-#[node_clust_eval(truth[0], i, verbose = True) for i in preds]
-#[node_clust_eval(i, louv_pred, verbose = True) for i in truth]
-
-
 # fig, ax = plt.subplots(figsize = (12, 10))
 # df1 = pd.DataFrame(np.array([preds[0].cpu().detach().numpy(), preds[1].cpu().detach().numpy(), 
 #                     louv_pred, truth[1], truth[0]]).T, 
@@ -553,9 +484,8 @@ post_hoc_embedding(graph=out[0][bp][3][0]-torch.eye(data.shape[0]),
                         node_size = 25, 
                         cm = 'plasma',
                         font_size = 10,
-                        include_3d_plots = True,
-                        save = saveit,
-                        path = sp)
+                        save = True,
+                        path = '/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/')
 
 
 plot_clust_heatmaps(A = graphs[wg], 
@@ -564,8 +494,8 @@ plot_clust_heatmaps(A = graphs[wg],
                     pred_labels = out[0][bp][-2], 
                     layers = 3, 
                     epoch = bp, 
-                    save_plot = saveit, 
-                    sp = sp+'best_iteration_'+str(bp))
+                    save_plot = True, 
+                    sp = '/mnt/ceph/jarredk/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/clust_maps_bp_')
 #using louvain predictions
 # post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]), 
 #                         input_X = data,
