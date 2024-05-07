@@ -1,0 +1,2 @@
+,SD,Layers,Connection,Type,same_parent_distribution,Node_degree,subgraph_connect_prob,top_layer_connect_prob,top_layer_nodes,mid_layer_nodes,bottom_layer_nodes,sample_size,Seed
+0,0.1,3,full,small world,False,3,0.05,0.01,5,15,300,500,555

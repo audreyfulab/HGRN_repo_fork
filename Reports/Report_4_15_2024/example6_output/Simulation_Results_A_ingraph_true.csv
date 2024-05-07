@@ -1,0 +1,2 @@
+,Beth_Hessian_Comms,Communities_Upper_Limit,Max_Modularity,Modularity,Reconstruction_A,Reconstruction_X,Metrics,Number_Predicted_Comms,Louvain_Modularity,Louvain_Metrics,Louvain_Predicted_comms
+0,3,27.0,0.925,"(0.0012, 0.0003)",0.9528,0.0048,"{'Top': (0.9093, 0.913, 0.9111), 'Middle': (0.6474, 0.7104, 0.6774)}","(15, 5)",0.8274,"[{'Top': (1.0, 0.6653, 0.799)}, {'Middle': (0.7405, 0.8289, 0.7822)}]",12

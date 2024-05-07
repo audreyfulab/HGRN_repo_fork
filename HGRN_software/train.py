@@ -178,9 +178,6 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         total_loss = 0
         model.train()
         
-        # if normalize == True:
-        #     LN = nn.LayerNorm(X.shape[1])
-        #     X = LN(X)
         #zero out gradient
         optimizer.zero_grad()
         #batch = data.transpose(0,1)
@@ -202,23 +199,6 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #Compute clustering loss
         Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         
-        #compute community detection loss
-        # if comm_loss == 'Modularity':    
-        #     community_loss, comloss_values = community_loss_fn(A_all, P_all, layer_resolutions)
-        #     #compute total loss function
-        #     if(turn_off_A_loss == True):
-        #         loss = 0*A_loss+gamma*X_loss-delta*community_loss
-        #     else:
-        #         loss = A_loss+gamma*X_loss-delta*community_loss
-        # elif comm_loss == 'Clustering':
-        #     community_loss, comloss_values = community_loss_fn(X_all, P_all, S_sub)
-        #     #compute total loss function
-        #     if(turn_off_A_loss == True):
-        #         loss = 0*A_loss+gamma*X_loss+delta*community_loss
-        #     else:
-        #         loss = A_loss+gamma*X_loss+delta*community_loss
-        
-        #option to turn of adjacency matrix loss - this is for testing only
         if(turn_off_A_loss == True):
             loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
         else:

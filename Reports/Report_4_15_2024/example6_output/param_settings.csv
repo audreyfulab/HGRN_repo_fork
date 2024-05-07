@@ -1,0 +1,12 @@
+,Parameter,Value
+0,Hidden Layer Dimensions: ,"[256, 128, 64, 32]"
+1,X_loss: ,0.0001
+2,Modularity_loss: ,0.001
+3,Clustering_loss: ,"[0.001, 0.0001]"
+4,Learning_rate: ,1e-05
+5,Comms Layers: ,"[15, 5]"
+6,Epochs: ,500
+7,Multi Head Attn: ,True
+8,Use Attention:,True
+9,Attn. Heads: ,10
+10,Normalize_inputs: ,True

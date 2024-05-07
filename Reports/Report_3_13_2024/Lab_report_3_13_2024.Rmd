@@ -5,7 +5,7 @@ date: "2024-03-07"
 output:
   bookdown::html_document2: default
   bookdown::pdf_document2: default
-  number_sections: false
+number_sections: false
 always_allow_html: true
 header-includes:
   - \usepackage{float}
@@ -28,11 +28,11 @@ library(ggpubr)
 library(ggthemes)
 library(plyr)
 basepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-
+path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_3_13_2024/'
 library(ggpubr)
-tab = read.csv(paste0(basepath, 'DATA/Toy_examples/Intermediate_examples/Results/MASTER_results.csv'))
+tab = read.csv(paste0(basepath, 'DATA/Toy_examples/Intermediate_examples/Results/MASTER_results_old_5_2_2024.csv'))
 
-
+compile.to.pdf = FALSE
 
 
 ```
@@ -127,7 +127,7 @@ Main points:
 
 # Tables
 
-```{r tab1, echo=F, message=F, warning=F}
+```{r tab1, eval=T, echo=F, message=F, warning=F}
 
 complex_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/network_statistics.csv')[,-1]
 
@@ -140,46 +140,65 @@ complex_net_stats$avg_node_degree_middle = round(complex_net_stats$avg_node_degr
 complex_net_stats$avg_connect_within_middle = round(complex_net_stats$avg_connect_within_middle, 3)
 complex_net_stats$avg_connect_between_middle = round(complex_net_stats$avg_connect_between_middle, 3)
 
-df = rbind.data.frame(c('Subgraph type','Connection type','Layers','Standard deviation','Nodes per layer','Edges per layer','Subgraph probability','Sample size', 'Modularity (top)', 'Average node degree top', 'Avg connections within top communities','Avg. connections between top communities', 'Modularity (middle)', 'Average node degree middle', 'Avg connections within middle communities', 'Avg connections between middle communities'), complex_net_stats)
 
-kable(t(df[1:9,]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
+
+
+if(compile.to.pdf){
+  df = rbind.data.frame(c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)'), complex_net_stats)
+  kable(t(df[1:9,]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for all small world networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
-
-kable(t(df[1:9,]), format = 'html', digits = 2,
+}else{
+  
+  df = complex_net_stats
+  colnames(df) = c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)')
+kable(df[1:8,], format = 'html', digits = 2,
       row.names = F, booktabs = T, escape = F,
       caption = 'Summary statistics for all small world networks in the complex networks datset')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
 
-```
 
-
-```{r tab2, echo=F, message=F, warning=F}
-
-kable(t(df[c(1, 10:17),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
-                                                                                  booktabs = T,
-     caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
-
-kable(t(df[c(1, 10:17),]), format = 'html', digits = 2,
-      row.names = F, booktabs = T, escape = F,
-      caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%
-  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
 
 ```
 
 
 \newpage
-```{r tab3, echo=F, message=F, warning=F}
+```{r tab2, eval = T, echo=F, message=F, warning=F}
 
-kable(t(df[c(1, 18:25),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
+
+if(compile.to.pdf){
+  kable(t(df[c(1, 10:17),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
+                                                                                  booktabs = T,
+     caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
+}else{
+  kable(df[c(9:16),], format = 'html', digits = 2,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Summary statistics for all scale free networks in the complex networks datset')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
+
+
+
+
+```
+
+
+\newpage
+```{r tab3, eval = T, echo=F, message=F, warning=F}
+
+
+if(compile.to.pdf){
+  kable(t(df[c(1, 18:25),]), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:8))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for all random graph networks in the complex networks datset')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 9)%>%column_spec(1, '6em')%>%column_spec(2:9, '4em')
-
-
-kable(t(df[c(1, 18:25),]), format = 'html', digits = 2,
+}else{
+  kable(df[c(1, 18:25),], format = 'html', digits = 2,
       row.names = F, booktabs = T, escape = F,
       caption = 'Summary statistics for all random graph networks in the complex networks datset')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
+
 
 ```
 
@@ -198,22 +217,32 @@ inter_net_stats$avg_node_degree_middle = round(inter_net_stats$avg_node_degree_m
 inter_net_stats$avg_connect_within_middle = round(inter_net_stats$avg_connect_within_middle, 3)
 inter_net_stats$avg_connect_between_middle = round(inter_net_stats$avg_connect_between_middle, 3)
 
-df = rbind.data.frame(c('Subgraph type','Connection type','Layers','Standard deviation','Nodes per layer','Edges per layer','Subgraph probability','Sample size', 'Modularity (top)', 'Average node degree top', 'Avg connections within top communities','Avg. connections between top communities', 'Modularity (middle)', 'Average node degree middle', 'Avg connections within middle communities', 'Avg connections between middle communities'), inter_net_stats)
 
-kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:6))),
+
+
+
+if(compile.to.pdf){
+  df = rbind.data.frame(c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)'), inter_net_stats)
+  kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:6))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for intermediate difficulty simulated networks.')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
-
-
-kable(t(df), format = 'html', digits = 2,
+}else{
+    df = inter_net_stats
+    colnames(df) = c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)')
+  kable(df, format = 'html', digits = 2,
       row.names = F, booktabs = T, escape = F,
       caption = 'Summary statistics for intermediate difficulty simulated networks.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
+
+
+
+
 ```
 
 
 \newpage
-```{r tab5, echo=F, message=F, warning=F}
+```{r tab5, eval = T, echo=F, message=F, warning=F}
 
 toy_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/toy_examples_network_statistics.csv')[,-1]
 
@@ -226,22 +255,32 @@ toy_net_stats$avg_node_degree_middle = round(toy_net_stats$avg_node_degree_middl
 toy_net_stats$avg_connect_within_middle = round(toy_net_stats$avg_connect_within_middle, 3)
 toy_net_stats$avg_connect_between_middle = round(toy_net_stats$avg_connect_between_middle, 3)
 
-df = rbind.data.frame(c('Subgraph type','Connection type','Layers','Standard deviation','Nodes per layer','Edges per layer','Subgraph probability','Sample size', 'Modularity (top)', 'Average node degree top', 'Avg connections within top communities','Avg. connections between top communities', 'Modularity (middle)', 'Average node degree middle', 'Avg connections within middle communities', 'Avg connections between middle communities'), toy_net_stats)
 
-kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:4))),
+
+
+if(compile.to.pdf){
+  
+  df = rbind.data.frame(c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)'), toy_net_stats)
+  kable(t(df), format = 'latex', digits = 2, row.names = F, col.names = c('Value', paste0('Network', c(1:4))),
                                                                                     booktabs = T,
       caption = 'Summary statistics for simple simulated networks. These networks contain fewer than 100 nodes at the observed level and only cover small world subgraph architecture')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
-
-kable(t(df), format = 'html', digits = 2,
+}else{
+  
+  df = toy_net_stats
+  colnames(df) = c('Subgraph type','Connect. type','Layers','StDev.','Nodes per layer','Edges per layer','Subgraph prob.','Sample size', 'Modularity (top)', 'Avg. node degree top', 'Avg edges within communities (top)','Avg. edges between communities (top)', 'Modularity (middle)', 'Avg. node degree middle', 'Avg edges within communities (middle)', 'Avg edges between communities (middle)')
+  kable(df, format = 'html', digits = 2,
       row.names = F, booktabs = T, escape = F,
       caption = 'Summary statistics for simple simulated networks. These networks contain fewer than 100 nodes at the observed level and only cover small world subgraph architecture.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
+
+
+
 ```
 
 
-
 \newpage
-```{r tab6, echo=F, message=F, warning=F}
+```{r tab6, echo=F, eval = T, message=F, warning=F}
 
 grid = expand.grid(`Input Graph` = unique(tab$input_graph),
                    `Graph Recon. Loss` = c('1 = on', '0 = off'),
@@ -249,13 +288,19 @@ grid = expand.grid(`Input Graph` = unique(tab$input_graph),
                    `Modularity Weight` = c('1 = on', '0 = off'),
                    `Clust. Weight` = c('1 (middle), 1 (top)', '0.1 (middle), 1e-4 (top)'))
 
-kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
-      caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 networks in the intermediate networks dataset.')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
 
-kable(grid, format = 'html', digits = 2,
+if(compile.to.pdf){
+  kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+      caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 networks in the intermediate networks dataset.')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+}else{
+  kable(grid, format = 'html', digits = 2,
       row.names = F, booktabs = T, escape = F,
       caption = 'Simulation settings for intermediate difficulty networks. Each row represents a single simulation scenario applied to all 6 networks in the intermediate networks dataset.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)
+}
+
+
+
 ```
 
 
@@ -456,30 +501,28 @@ ggarrange(A, B, nrow = 1, common.legend = T)
 ```
 
 ```{r fig6, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
-path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
+
 knitr::include_graphics(paste0(path, "3_13_2024_SMW_loss.pdf"))
 ```
 
 
 ```{r fig7, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
-path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
 knitr::include_graphics(paste0(path, "3_13_2024_SMW_adj.png"))
 ```
 
 ```{r fig8, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
-path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/'
 knitr::include_graphics(paste0(path, "3_13_2024_SMW_heatmap.png"))
 ```
 
 
-```{r fig9, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
-path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
-knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Top Layer_tSNE_PCA_Plot.png"))
+```{r fig9,eval=F, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap='PCA and TSNE on simulated data for the small world 3 layer disconnected network in the intermediate networks dataset. Individual points are colored according to their (true/predicted) community assignment. Images in top rows are for predicted assignments while images in bottom row are the true community assignments'} 
+#path2img = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
+knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Middle_Layer_tSNE_PCA_Plot.png"))
 ```
 
-```{r fig10, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
-path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
-knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Top Layer_tSNE_PCA_Plot.png"))
+```{r fig10, eval=F, echo=F, message=F, warning=F, fig.height=8, fig.width=10, fig.cap=''} 
+#path2img = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/small_world/disconnected/3_layer/A_ingraph_true/'
+knitr::include_graphics(paste0(path, "smw_disc_3_layer__A_ingraph_true_Best_perfromance_Top_Layer_tSNE_PCA_Plot.png"))
 ```
 
 
