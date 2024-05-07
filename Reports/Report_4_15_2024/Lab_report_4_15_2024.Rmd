@@ -111,12 +111,14 @@ For each simulation, we configure the number of communities in the middle and up
 
 ### Examples {-}
 
-**Example 1 - 2** 
-These two examples illustrate the impact of the attribute reconstruction loss by applying HCD to a disconnected, small-world intermediate network. In both cases, we use the same number of autoencoder layers, identical settings for the modularity and clustering components, and 10 attention heads.
-  Example 1 demonstrates the negative effects of overemphasizing the attribute reconstruction loss by setting its parameter too high, which dilutes the impact of graph reconstruction. This imbalance leads to inaccuracies in the reconstructed graph. Example 2 shows that when graph reconstruction is given equal priority, the results are more accurate and in line with the intended structure.
-  All parameter settings for these examples are detailed in **table** \@ref(tab:ex12params). Specific outcomes for each example are discussed in the Results section.  
+**Example 1-3** 
+Examples 1-2 illustrate the impact of the attribute reconstruction loss. Example 3 . Specifically, Example 1 demonstrates the negative effects of overemphasizing the attribute reconstruction loss by setting its parameter too high, which dilutes the impact of graph reconstruction. This imbalance leads to inaccuracies in the reconstructed graph. Example 2 shows that when graph reconstruction is given equal priority to other loss components, HCD can resolve the correct communities. In Example 3, the modularity loss component is turned off by setting its value to zero to investigate the importance of modularity loss component on performance.
 
-**Example 3**
+In all three examples, we apply HCD to the 3-layer, disconnected, small-world network in the intermediate networks dataset. In addition, all three examples use the same number of autoencoder layers, settings for clustering loss component, and 10 attention heads. All parameter settings for these examples are detailed in **table** \@ref(tab:ex123params). Specific outcomes for each example are discussed in greater detail in the Results section. 
+
+ 
+
+**Examples 4-5**
 
 # Results {-}
 
@@ -138,7 +140,14 @@ Previously we apply our HCD method to all complex and intermediate datasets look
   If the attribute reconstruction loss is set too high, the model can generate artificial connections in the graph. As shown in **Figure** \@ref(fig:example1fig1), HCD has divided the original graph into two separate subgraphs by creating false links between the first three communities and the last two. This results in distinct blocks in the reconstructed adjacency matrix. Additionally, in **Figure** \@ref(fig:example1fig2), you can see that these false connections cause the affected nodes to be incorrectly assigned to the same top-level communities. This occurs because the high attribute reconstruction loss encourages the model to form connections that aid in attribute prediction, even if they do not reflect the true graph structure (**Figure** \@ref(fig:example1fig2)). The PCA plot in **Figure** \@ref(fig:example1fig4) indicates that the model is essentially grouping nodes based on their similarity along the first two principle dimensions of attribute space, which leads to these inaccurate connections.
   To correct this, we downweight the tuning parameter for the attribute reconstruction component, giving graph reconstruction a higher priority during training (**Figure** \@ref(fig:example2fig1)). This adjustment leads to a more accurate representation of the adjacency matrix and better predictions for the top-layer communities (**Figures** \@ref(fig:example2fig2) - \@ref(fig:example2fig3) ; **Table** \@ref(tab:example123perf)).
   
-**Example 3- Modularity is necessary:** Our HCD method has two loss components which aim to define the quality of inferred communities (i) the modularity loss (ii) the clustering loss. However, these two components define community structure in very different ways. The modularity loss bases the quality of inferred clusters on the input graph by ensuring that resolved communities have more connections within then connections to other communities. The clustering loss is based on the node features and seeks to find communities such that the nodes within a community have the lowest possible dissimilarity (measured as euclidean distance to the community centroid). In Example 3, we set the tuning parameter for modularity to 0, turning off this component of the loss, to see if the clustering loss alone is sufficient to resolve the correct community assignments. Our results indicate that both metrics are needed to achieve the best result (**Figures** \@ref(fig:example3fig1) - \@ref(fig:example3fig3); **Table** \@ref(tab:example123perf)) . 
+**Modularity is necessary:** 
+Our HCD method uses two loss components to assess the quality of inferred communities: (i) modularity loss and (ii) clustering loss. These two components approach community structure from different angles. Modularity loss evaluates the quality of clusters based on the input graph, ensuring that communities have more internal connections than external ones. Clustering loss, however, focuses on node features and aims to form communities where the nodes are as similar as possible, measured by their Euclidean distance to the community centroid.
+
+In Example 3, we set the modularity tuning parameter to zero to examine whether clustering loss alone can resolve community assignments. Our results show that both metrics are needed for the best outcome (**Figures** \@ref(fig:example3fig1) - \@ref(fig:example3fig3); **Table** \@ref(tab:example123perf)). Turning off modularity leads to overgrouping of communities 1 and 3 (**Figure** \@ref(fig:example3fig2)), likely because of their similarity along the first principal dimension of the attribute space (**Figure** \@ref(fig:example3fig3)). This suggests that modularity plays a crucial role in separating clusters that might be structurally different but have similar feature patterns. 
+
+This conclusion is further supported by Example 5. In example 5, we apply the same parameter settings as Example 3 but with an expanded model (more layers, more attention heads) and applied to the more complicated fully connected, small-world intermediate network (**Table** \@ref(tab:example45params)).   
+
+**Do tuning parameter settings hold for more complicated networks?** In these example
   
 ### Should parent (origin) nodes be simulated from the same or different distributions? {-}
   
@@ -335,10 +344,17 @@ ex2.params = rbind.data.frame(ex2.params, c('Input Graph', 'True Graph'), c('Net
 ex3.params = read.csv(paste0(figpath, 'example3_output/param_settings.csv'), row.names = 1)
 ex3.params = rbind.data.frame(ex3.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Disc-SMW'),
                               c('Dataset', 'Intermediate Networks'))
+ex4.params = read.csv(paste0(figpath, 'example4_output/param_settings.csv'), row.names = 1)
+ex4.params = rbind.data.frame(ex4.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Full-SMW'),
+                              c('Dataset', 'Intermediate Networks'))
+ex5.params = read.csv(paste0(figpath, 'example5_output/param_settings.csv'), row.names = 1)
+ex5.params = rbind.data.frame(ex5.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Full-SMW'),
+                              c('Dataset', 'Intermediate Networks'))
 
 cn = colnames(ex1.params)
 colnames(ex1.params) = c('Parameter', "Example 1")
-ctab = cbind(ex1.params, ` ` = rep('', 14), `Example 2` = ex2.params[,-1], `Example 3` = ex3.params[,-1])
+ctab = cbind(ex1.params, ` ` = rep('', 14), `Example 2` = ex2.params[,-1], `Example 3` = ex3.params[,-1],
+             `Example 4` = ex4.params[,-1], `Example 5` = ex5.params[,-1])
 
 
 if(compile.to.pdf){
@@ -347,7 +363,7 @@ if(compile.to.pdf){
 }else{
   kable(ctab, format = 'html', digits = 3,
       row.names = F, booktabs = T, escape = F,
-      caption = 'HCD settings for Examples 1 - 3.')%>%
+      caption = 'HCD settings for Examples 1 - 5.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
 }
 
@@ -374,6 +390,31 @@ if(compile.to.pdf){
       row.names = F, booktabs = T, escape = F,
       caption = 'Performance metrics for Louvain method and HCD in Examples 1 - 3. For details regarding parameter settings see Examples 1 - 3 under section <i>Examples</i>. All results are for the disconnected small-world intermediate network.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)%>%add_header_above(c(' ' = 1, "Example 1" = 4, "Example 2" = 3, 'Example 3' = 3))
+}
+
+
+
+```
+
+
+
+
+```{r example45perf, echo=F, eval = T, message=F, warning=F}
+
+ex4.tab = read.csv(paste0(figpath, 'example4_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex5.tab = read.csv(paste0(figpath, 'example5_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+cn = colnames(ex4.tab)
+ctab = cbind(ex4.tab, ` ` = rep('', 5), ex5.tab[,-1])
+
+
+if(compile.to.pdf){
+  # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+  #     caption = '')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+}else{
+  kable(ctab, format = 'html', digits = 3,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Performance metrics for Louvain method and HCD in Examples 4-5. For details regarding parameter settings see Examples 4-5 under section <i>Examples</i>. All results are for the fully connected small-world intermediate network.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)%>%add_header_above(c(' ', "Example 4" = 3, "Example 5" = 4))
 }
 
 

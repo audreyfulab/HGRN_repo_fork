@@ -343,12 +343,12 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
             
  
     
-sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example3_output/'
+sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example5_output/'
 # smw simple data: [true clusts]
 # smw complex: []
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
 ep = 500
-wn = 0
+wn = 1
 wg = 0
 saveit = True
 #sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
@@ -357,7 +357,7 @@ saveit = True
 
 #disconnected settings
 param_dict = {'epochs': ep, 
-              'hidden': [256, 128, 64, 32],
+              'hidden': [512, 256, 128, 64, 32],
               'gamma': 1e-4,
               'delta': 0,
               'lambda': [1e-3, 1e-4],
@@ -366,7 +366,7 @@ param_dict = {'epochs': ep,
               'learning_rate': 1e-5,
               'true_comms': True,
               'use_attn': True,
-              'attn_heads': 10,
+              'attn_heads': 20,
               'normalize': True}
 
 
