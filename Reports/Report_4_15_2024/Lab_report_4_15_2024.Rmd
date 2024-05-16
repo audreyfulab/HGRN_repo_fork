@@ -111,6 +111,8 @@ For each simulation, we configure the number of communities in the middle and up
 
 ### Examples {-}
 
+In examples 1-10 we use the true graph as the input graph and we assess the quality of performance primarily on the ability to infer communities for the top layer.
+
 **Example 1-3** 
 Examples 1-2 illustrate the impact of the attribute reconstruction loss. Example 3 . Specifically, Example 1 demonstrates the negative effects of overemphasizing the attribute reconstruction loss by setting its parameter too high, which dilutes the impact of graph reconstruction. This imbalance leads to inaccuracies in the reconstructed graph. Example 2 shows that when graph reconstruction is given equal priority to other loss components, HCD can resolve the correct communities. In Example 3, the modularity loss component is turned off by setting its value to zero to investigate the importance of modularity loss component on performance.
 
@@ -122,7 +124,7 @@ In all three examples, we apply HCD to the 3-layer, disconnected, small-world ne
 
 # Results {-}
 
-Previously we apply our HCD method to all complex and intermediate datasets looking at various parameters such as the input graph and some initial test values for loss hyperparameters. Our previous findings are outlined in the lab report from 3/13/2024 and pointed out several issues that remain to be addressed.
+Previously we applied our HCD method to all complex and intermediate datasets looking at various parameters such as the input graph and some initial test values for loss hyperparameters. Our previous findings are outlined in the lab report from 3/13/2024 and pointed out several issues that remain to be addressed. Below, we address these points in detail and provide supporting examples from applying HCD to networks in the Intermediate Networks dataset (**Table** \@ref(tab:tab4)).
 
 ### An additional loss component is needed to help further reduce the tendency of HCD to combine smaller communities into super-communities. {-} 
 
@@ -145,13 +147,38 @@ Our HCD method uses two loss components to assess the quality of inferred commun
 
 In Example 3, we set the modularity tuning parameter to zero to examine whether clustering loss alone can resolve community assignments. Our results show that both metrics are needed for the best outcome (**Figures** \@ref(fig:example3fig1) - \@ref(fig:example3fig3); **Table** \@ref(tab:example123perf)). Turning off modularity leads to overgrouping of communities 1 and 3 (**Figure** \@ref(fig:example3fig2)), likely because of their similarity along the first principal dimension of the attribute space (**Figure** \@ref(fig:example3fig3)). This suggests that modularity plays a crucial role in separating clusters that might be structurally different but have similar feature patterns. 
 
-This conclusion is further supported by Example 5. In example 5, we apply the same parameter settings as Example 3 but with an expanded model (more layers, more attention heads) and applied to the more complicated fully connected, small-world intermediate network (**Table** \@ref(tab:example45params)).   
+**Do tuning parameter settings hold for more complicated networks?** In Example 4, we extend the setup from Example 2 by applying HCD to the more complex fully connected small-world intermediate network to evaluate whether the parameters from the earlier example still hold under more complicated structural relationships.  (**Table** \@ref(tab:ex123params)). As shown in **Table** \@ref(tab:example45perf), prediction performance of HCD for top-level communities is lower than in Example 2, which is understandable given the increased structural complexity of this network. Despite this drop in performance, HCD outperforms the Louvain method with a NMI score of $72.8\%$, compared to Louvain's $63.8\%$. 
 
-**Do tuning parameter settings hold for more complicated networks?** In these example
-  
+In this example, the Louvain method achieves high homogeneity ($79.1\%$) but lower completeness ($53.4\%$), indicating that the top-layer communities are being broken into smaller, internally consistent, groups. This imbalance results in a lower overall NMI (see Figure \@ref(fig:example4fig1)).
+
+In contrast, HCD achieves a better balance between these two metrics, with homogeneity at $72.5\%$ and completeness at $73.2\%$ (**Figure** \@ref(fig:example4fig2); **Table** \@ref(tab:example45perf)). This balance contributes to HCD's higher overall NMI. However, the reduced NMI for HCD compared to its performance in Example 2 is largely due to several misallocated nodes. This misallocation is likely caused by greater heterogeneity in the top-layer communities within this more complex network, as illustrated by the PCA presented in **Figure** \@ref(fig:example4fig3).
+
+Similarly, in Example 5, we replicate the setup from Example 3 - turning off modularity - while applying HCD to the same fully connected small-world network. **Table** \@ref(tab:example45perf) shows that turning off modularity results in reduced performance, with a slightly lower NMI score of $69.2\%$. This further validates our earlier finding that modularity is required to achieve optimal results.
+
 ### Should parent (origin) nodes be simulated from the same or different distributions? {-}
-  
 
+When simulating the networks for the datasets outlined in the section ** we use the hierarchy to generate the nodes at the bottom/observed layer under a specific directed graph structure (small world, scale free, random graph). This allows for nodes in the bottom layer to be traced through the levels of the hierarchy to their respective communities in each level. The simualted gene expression for the nodes in the observed layer is then generated using the topological order of the network relating the nodes at this level. Under this framework, nodes which have no parents are generated first from a normal distribution with zero mean and fixed variance 
+
+\[ N_{i,k} \sim N(0, \sigma) \]
+
+Here $N_{i,k}$ is the $i^{th}$ parent node in the $k^{th}$ middle layer communitity. This framework causes all node communities to have some similarity because they all originate from the same parents. This is clearly illustrated in PC space where all communities diverge from a central location (**Figure** \@ref(fig:example6fig1)). This similarity amongst communities may underly poorer performance for HCD, especially on more complicated networks. Therefore in Examples 6-7, we test the performance of HCD on the disconnect and fully connected small world networks when the networks are simulated by generating a different distribution for each parent node
+
+\[ N_{i,k} \sim N(\mu_k, \sigma) \]
+  
+Simulating the hierarchy under this framework allows the parent nodes belonging to each community to have a unique distribution and corresponds to greater separability along the first principle dimension of the attribute space **Figure** \@ref(fig:example6fig2). 
+
+Despite greater separation along the first principle dimension, HCD performance was much worse for the disconnected small world network simulated in this way (**Table** \@ref(tab:example67perf)). As can be seen in **Figure** \@ref(fig:example6fig3), HCD produces a result similar to what we experienced in Example 3 where communities at the top layer are grouped into super-communities leading to higher comleteness ($84\%$) but much lower homogenity ($51.7\%$) when compared to the Louvain method applied to the same network (homogenity $100\%$, completeness $70.5\%$). This in part could be due to the parameter settings used previously being no longer applicable because the nature of how the data are simualted has been changed. This is supported by larger absolute loss for the clustering component - potentially washing out the graph reconstruction loss. This suggests this component may need to be downweighted further. An alternative explanation is that the model does not have enough learning capability to capture the communities correctly. We explore both possibilities further:
+
+  * **Clustering Loss Downweighted Further** - In Example 7, we downwight the clustering loss even further so that the clustering loss for the middle layer is $\lambda_{middle} = 0.0001$ and for the top layer is $\lambda_{top} = 0.00001$. As shown in **Table** \@ref(tab:example67perf), this greatly improved performance for HCD with NMI now comparamble to Louvain method applied to the same network. 
+  
+  * **Clustering Loss Downweighted Further $+$ Expanded Learning Capacity** - In Example 8, we use downweighted clustering loss and expand model learning capacity to see if performance can be improved further.
+  
+  
+  
+### Applications to scale free and random graph networks
+
+
+### Using Approximate Graphs as Input
 
 # Tables
 
@@ -353,7 +380,7 @@ ex5.params = rbind.data.frame(ex5.params, c('Input Graph', 'True Graph'), c('Net
 
 cn = colnames(ex1.params)
 colnames(ex1.params) = c('Parameter', "Example 1")
-ctab = cbind(ex1.params, ` ` = rep('', 14), `Example 2` = ex2.params[,-1], `Example 3` = ex3.params[,-1],
+ctab = cbind(ex1.params, ` ` = rep('', 14), `Examples 2, 4, 6` = ex2.params[,-1], `Examples 3` = ex3.params[,-1],
              `Example 4` = ex4.params[,-1], `Example 5` = ex5.params[,-1])
 
 
@@ -421,6 +448,30 @@ if(compile.to.pdf){
 
 ```
 
+
+
+```{r example67perf, echo=F, eval = T, message=F, warning=F}
+
+ex6.tab = read.csv(paste0(figpath, 'example6_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex7.tab = read.csv(paste0(figpath, 'example7_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+cn = colnames(ex6.tab)
+ctab = cbind(ex6.tab, ` ` = rep('', 5), ex7.tab[,-1])
+
+
+if(compile.to.pdf){
+  # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+  #     caption = '')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+}else{
+  kable(ctab, format = 'html', digits = 3,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Performance metrics for Louvain method and HCD in Examples 6-7. For details regarding parameter settings see Examples 4-5 under section <i>Examples</i>. All results are for the fully connected small-world intermediate network.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)%>%add_header_above(c(' ', "Example 6" = 3, "Example 7" = 4))
+}
+
+
+
+```
+
 # Figures 
 
 
@@ -472,6 +523,46 @@ include_graphics(paste0(figpath, 'example3_output/best_iteration_124epoch_124_he
 ```{r example3fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space. Colors correspond to the predicted top layer community assignments corresponding the application in Example 1 for the \"best\" performing epoch.'}
 include_graphics(paste0(figpath, 'example3_output/Top Layer_3D_PCA_Plot.png'))
 ```
+
+```{r example4fig1, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'Louvain community predictions compared to the true middle and top layer communities for the fully connected small-world intermediate network'}
+include_graphics(paste0(figpath, 'example4_output/Louvain_results.png'))
+```
+
+```{r example4fig2, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The middle and top layer community predictions corresponding to Example 4 - application of HCD to the fully-connected, small-world intermeidate network.'}
+include_graphics(paste0(figpath, 'example4_output/best_iteration_187epoch_187_heatmaps.png'))
+```
+
+
+```{r example4fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the fully connected, small-world intermeidate netowrk. Colors correspond to the predicted top layer community assignments corresponding the application in Example 4 for the \"best\" performing epoch.'}
+include_graphics(paste0(figpath, 'example4_output/Top Layer_3D_PCA_Plot.png'))
+```
+
+```{r example6fig1, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the disconnected, small-world intermeidate netowrk. Colors correspond to the true top layer communities. In this network, orign nodes are simulated from the same distribution resulting in all communities originating from a central point in the PC space. Red points represent parent nodes'}
+include_graphics(paste0(figpath, 'example6_output/3D_PCA_GTCommon_dist.png'))
+```
+
+
+
+```{r example6fig2, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the disconnected, small-world intermeidate network. In this network, orign nodes are simulated from a unique distribution resulting in all communities originating at distinct points in the PC space. Red points represent parent nodes'}
+include_graphics(paste0(figpath, 'example6_output/3D_PCA_GT.png'))
+```
+
+
+
+```{r example6fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the fully connected, small-world intermeidate netowrk. Colors correspond to the predicted top layer community assignments corresponding the application in Example 6 for the \"best\" performing epoch.'}
+include_graphics(paste0(figpath, 'example6_output/Top Layer_3D_PCA_Plot.png'))
+```
+
+
+
+```{r example6fig4, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'Example 6 training loss curves.'}
+include_graphics(paste0(figpath, 'example6_output/training_loss_curves.png'))
+```
+
+
+
+
+
 
 # References
 \bibliographystyle{unsrt}

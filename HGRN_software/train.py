@@ -186,7 +186,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
         
         #update all output list
-        all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, [len(np.unique(i.cpu())) for i in S_all]])
+        all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all]])
         
         
         
