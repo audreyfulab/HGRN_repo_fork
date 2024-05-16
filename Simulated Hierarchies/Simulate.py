@@ -52,7 +52,7 @@ def simulate_graph(args):
         adj_h2_graph = nx.adjacency_matrix(h2_graph, ts_h2_graph).todense()
         #draw top layer
         topfig, topax = plt.subplots(1,1, figsize = (5,5))
-        nx.draw_networkx(nx.from_numpy_matrix(adj_h1_graph),arrows=True, ax = topax,
+        nx.draw_networkx(nx.from_numpy_array(adj_h1_graph),arrows=True, ax = topax,
                          node_color = 'red')
         topfig.savefig(args.savepath+'top_layer_graph.pdf')
         
@@ -69,7 +69,7 @@ def simulate_graph(args):
             
             #draw bottom layer
             botfig, botax = plt.subplots(1,1, figsize = (10,10))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = botax,
+            nx.draw_networkx(nx.from_numpy_array(adj_h2_graph),arrows=True, ax = botax,
                              node_color = 'blue')
             botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
             #print and store network statistics
@@ -96,14 +96,14 @@ def simulate_graph(args):
             adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
             #draw middle layer
             midfig, midax = plt.subplots(1,1, figsize = (8,8))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),
+            nx.draw_networkx(nx.from_numpy_array(adj_h2_graph),
                              arrows=True, 
                              ax = midax,
                              node_color = 'green')
             midfig.savefig(args.savepath+'middle_layer_graph.pdf')
             #draw bottom layer
             botfig, botax = plt.subplots(1,1, figsize = (10,10))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h3_graph),arrows=True, ax = botax,
+            nx.draw_networkx(nx.from_numpy_array(adj_h3_graph),arrows=True, ax = botax,
                              node_color = 'blue')
             botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
             
@@ -145,7 +145,7 @@ def simulate_graph(args):
         adj_h2_graph = nx.adjacency_matrix(h2_graph, ts_h2_graph).todense()
         #draw top layer
         topfig, topax = plt.subplots(1,1, figsize = (5, 5))
-        nx.draw_networkx(nx.from_numpy_matrix(adj_h1_graph),
+        nx.draw_networkx(nx.from_numpy_array(adj_h1_graph),
                          arrows=True, 
                          ax = topax,
                          node_color = 'red')
@@ -162,7 +162,7 @@ def simulate_graph(args):
             
             #draw bottom layer
             botfig, botax = plt.subplots(1,1, figsize = (10,10))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = botax,
+            nx.draw_networkx(nx.from_numpy_array(adj_h2_graph),arrows=True, ax = botax,
                              node_color = 'blue')
             botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
             #print network statistics
@@ -187,12 +187,12 @@ def simulate_graph(args):
             adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
             #draw middle layer
             midfig, midax = plt.subplots(1,1, figsize = (8,8))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h2_graph),arrows=True, ax = midax,
+            nx.draw_networkx(nx.from_numpy_array(adj_h2_graph),arrows=True, ax = midax,
                              node_color = 'green')
             midfig.savefig(args.savepath+'middle_layer_graph.pdf')
             #draw bottom layer
             botfig, botax = plt.subplots(1,1, figsize = (10,10))
-            nx.draw_networkx(nx.from_numpy_matrix(adj_h3_graph),
+            nx.draw_networkx(nx.from_numpy_array(adj_h3_graph),
                              arrows=True, 
                              ax = botax,
                              node_color = 'blue')

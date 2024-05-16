@@ -195,15 +195,15 @@ def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth,
     for i in range(0, layers):
         print('plotting t-SNE and PCA for '+layer_nms[i])
         #nx graph with nodes colored by prediction
-        G = nx.from_numpy_array(graph)
-        templabs = np.arange(0, graph.shape[0])
-        clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(labels[i]))}
-        nx.draw_networkx(G, node_color = labels[i], 
-                         labels = clust_labels,
-                         font_size = fs,
-                         node_size = ns,
-                         cmap = cm, ax = ax_nx[i])
-        ax_nx[i].set_title(layer_nms[i]+' Clusters on Graph')
+        # G = nx.from_numpy_array(graph)
+        # templabs = np.arange(0, graph.shape[0])
+        # clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(labels[i]))}
+        # nx.draw_networkx(G, node_color = labels[i], 
+        #                  labels = clust_labels,
+        #                  font_size = fs,
+        #                  node_size = ns,
+        #                  cmap = cm, ax = ax_nx[i])
+        # ax_nx[i].set_title(layer_nms[i]+' Clusters on Graph')
         
         #tsne
         TSNE_data=TSNE(n_components=3, 
