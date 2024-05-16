@@ -69,47 +69,40 @@ class ModularityLoss(nn.Module):
     
 #------------------------------------------------------  
 class ClusterLoss(nn.Module):
-    def __init__(self, weighting = ['kmeans','anova'], norm_degree=2):
+    def __init__(self):
+        """
+        Hierarchical Clustering Loss
+        """
         super(ClusterLoss, self).__init__()
-        self.norm_deg = norm_degree
-        self.weighting = weighting
-
 
     
     
-    def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
+    def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
         
         """
-        computes forward loss
+        Computes forward loss for hierarchical within-cluster sum of squares loss
+        Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
+        Attributes: Node feature matrix
+        Probabilities: a list of length l corresponding the assignment probabilities for 
+                       assigning nodes to communities in l hierarchical layers
+        Cluster_labels: list of length l containing cluster assignment labels 
         """
-        #N = Attributes[0].shape[0]
+        N = Attributes.shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        #problist = [torch.eye(N)]+Probabilities
-        #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
-        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
+        ptensor_list = [torch.eye(N)]+Probabilities
+        for idx, labels in enumerate(Cluster_labels):
             #compute total number of clusters
             number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = features,
-                                        #P = problist[:(idx+2)],
-                                        #S = labels,
-                                        P = probs,
-                                        k = number_of_clusters,
-                                        norm_degree = self.norm_deg,
-                                        weight_by = self.weighting)
-            #between cluster sum of squares
-            # between_ss = BCSS(X = Attributes,
-            #                   cluster_centroids=centroids,
-            #                   numclusts = number_of_clusters,
-            #                   norm_degree = self.norm_deg, 
-            #                   weight_by = self.weighting)
-            #add loss
-            loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
-            loss += Lamb[idx]*within_ss
+            within_ss, centroids = WCSS(X = Attributes,
+                                        Plist = ptensor_list[:(idx+2)],
+                                        k = number_of_clusters)
             
-            # loss_list.append(float((within_ss-between_ss).cpu().detach().numpy()))
-            # loss += torch.subtract(within_ss, between_ss)
+            #update loss list
+            loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
+            #update loss
+            loss += Lamb[idx]*within_ss
 
         return loss, loss_list
     
@@ -157,13 +150,10 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
     X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
-    # if comm_loss == 'Modularity':    
-    #     community_loss_fn = ModularityLoss()
-    # elif comm_loss == 'Clustering':
-    #     community_loss_fn = ClusterLoss(weighting='kmeans')
-    
+
+    #initiate loss functions
     modularity_loss_fn = ModularityLoss()
-    clustering_loss_fn = ClusterLoss(weighting='kmeans')
+    clustering_loss_fn = ClusterLoss()
     #pre-allocate storage space for training info
     all_out = []
     
@@ -197,7 +187,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #modularity loss (only computed over the last k layers of community model)
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
         #Compute clustering loss
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
         
         if(turn_off_A_loss == True):
             loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
@@ -216,7 +206,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         loss_history.append(total_loss)
         A_loss_hist.append(float(A_loss.cpu().detach().numpy()))
         X_loss_hist.append(gamma*float(X_loss.cpu().detach().numpy()))
-        mod_loss_hist.append(Modloss_values)
+        mod_loss_hist.append(delta*np.array(Modloss_values))
         clust_loss_hist.append(Clustloss_values)
         #evaluating performance homogenity, completeness and NMI
         perf_layers = []

@@ -73,41 +73,22 @@ def open_pickled(filename):
 #         MSW = (1/(X.shape[0]-num_clusters))*total_wcss
             
 #     return MSW, centroid_mat
-def WCSS(X, P, k, norm_degree = 2, weight_by = ['kmeans','anova']):
+def WCSS(X, Plist, k):
     
     """
-    Within-Cluster Sum of Squares
+    Computes Hierarchical Within-Cluster Sum of Squares
+    X: node feature matrix N nodes by q features
+    P: assignment probabilities for assigning N nodes to k clusters
+    k: number of clusters
     """
     
-    #X_tensor = torch.tensor(X, requires_grad=True)
-    #Snew = easy_renumbering(S)
-    p = X.shape[1]
+    P = torch.linalg.multi_dot(Plist)
     N = X.shape[0]
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
     D = X.T - torch.mm(M, P.T)
-    #P_w = 1/(torch.linalg.multi_dot(P).max(dim=1)[0])
     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
     
-    # M = torch.zeros(k, q)
-    # nodes = torch.arange(N)
-    # total_wcss = torch.zeros(1).float()
-    # clust_IDs = torch.unique(S)
-    
-    # for i in np.arange(k):
-    #     ix = nodes[S == clust_IDs[i]]
-    #     n_k = len(ix)
-    #     X_k = torch.index_select(X, 0, ix)
-    #     m_k = torch.index_select(X, 0, ix).mean(dim = 0)
-    #     M[i,:] = torch.mean(X_k, dim = 0)
-    #     #pdist = nn.PairwiseDistance(p=norm_degree)
-    #     total_wcss += (1/n_k)*torch.pow(torch.pow((X_k - m_k), norm_degree).sum(), 1/norm_degree)
-            
-    # if weight_by == 'kmeans':
-    #     MSW = (1/k)*total_wcss
-    # else:
-    #     MSW = (1/(N-k))*total_wcss
-            
     return MSW, M
 
     
