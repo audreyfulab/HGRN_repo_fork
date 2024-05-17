@@ -66,7 +66,17 @@ class ModularityLoss(nn.Module):
             loss+= mod
             loss_list.append(float(mod.cpu().detach().numpy()))
         return loss, loss_list
+ 
     
+ 
+    
+ 
+    
+ 
+    
+ 
+    
+ 
 #------------------------------------------------------  
 class ClusterLoss(nn.Module):
     def __init__(self):
@@ -77,37 +87,80 @@ class ClusterLoss(nn.Module):
 
     
     
-    def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
+    # def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
         
+    #     """
+    #     Computes forward loss for hierarchical within-cluster sum of squares loss
+    #     Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
+    #     Attributes: Node feature matrix
+    #     Probabilities: a list of length l corresponding the assignment probabilities for 
+    #                    assigning nodes to communities in l hierarchical layers
+    #     Cluster_labels: list of length l containing cluster assignment labels 
+    #     """
+    #     N = Attributes.shape[0]
+    #     loss = torch.Tensor([0])
+    #     loss_list = []
+    #     ptensor_list = [torch.eye(N)]+Probabilities
+    #     for idx, labels in enumerate(Cluster_labels):
+    #         #compute total number of clusters
+    #         number_of_clusters = len(torch.unique(labels))
+    #         #within cluster sum of squares
+    #         within_ss, centroids = WCSS(X = Attributes,
+    #                                     Plist = ptensor_list[:(idx+2)],
+    #                                     k = number_of_clusters)
+            
+    #         #update loss list
+    #         loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
+    #         #update loss
+    #         loss += Lamb[idx]*within_ss
+
+    #     return loss, loss_list
+
+
+
+
+    def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
+
         """
+        computes forward loss
         Computes forward loss for hierarchical within-cluster sum of squares loss
         Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
         Attributes: Node feature matrix
         Probabilities: a list of length l corresponding the assignment probabilities for 
-                       assigning nodes to communities in l hierarchical layers
+                        assigning nodes to communities in l hierarchical layers
         Cluster_labels: list of length l containing cluster assignment labels 
         """
+        #N = Attributes[0].shape[0]
         N = Attributes.shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        ptensor_list = [torch.eye(N)]+Probabilities
-        for idx, labels in enumerate(Cluster_labels):
+        #problist = [torch.eye(N)]+Probabilities
+        #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
+        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
             #compute total number of clusters
             number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = Attributes,
-                                        Plist = ptensor_list[:(idx+2)],
+            within_ss, centroids = WCSS(X = features,
+                                        P = probs,
                                         k = number_of_clusters)
-            
+
+
             #update loss list
             loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
             #update loss
             loss += Lamb[idx]*within_ss
 
         return loss, loss_list
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
     
 
 
@@ -187,7 +240,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #modularity loss (only computed over the last k layers of community model)
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
         #Compute clustering loss
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
+        #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
         
         if(turn_off_A_loss == True):
             loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
