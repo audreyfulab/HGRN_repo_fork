@@ -21,6 +21,8 @@ import pickle
 
 # A simple function which computes the modularity of a graph based on a set of 
 #community assignments
+
+#----------------------------------------------------------------
 def Modularity(A,P,res=1):
     r = A.sum(dim = 1)
     n = A.sum()
@@ -30,11 +32,14 @@ def Modularity(A,P,res=1):
     
 
 
-
+#----------------------------------------------------------------
 def pickle_data(data, filename, filepath):
     with open(filepath+filename+'.pkl', 'wb') as f:
         pickle.dump(data, f)
         
+        
+        
+#----------------------------------------------------------------
 def open_pickled(filename):
     with open(filename, 'rb') as f:
         file = pickle.load(f)
@@ -42,47 +47,39 @@ def open_pickled(filename):
     return file
 
 #This function computes the within cluster sum of squares (WCSS)
-# def WCSS(X = None, clustlabs = None, num_clusters=None, norm_degree = 2,
-#          weight_by = ['kmeans','anova']):
+#----------------------------------------------------------------
+# def WCSS(X, Plist, k):
     
 #     """
-#     Within-Cluster Sum of Squares
+#     Computes Hierarchical Within-Cluster Sum of Squares
+#     X: node feature matrix N nodes by q features
+#     P: assignment probabilities for assigning N nodes to k clusters
+#     k: number of clusters
 #     """
     
-#     #X_tensor = torch.tensor(X, requires_grad=True)
-#     num_features = X.shape[1]
-#     num_nodes = X.shape[0]
-#     centroid_mat = torch.zeros(num_clusters, num_features)
-#     nodes = torch.arange(num_nodes)
-#     total_wcss = torch.zeros(1).float()
-#     clust_IDs = torch.unique(clustlabs)
+#     P = torch.linalg.multi_dot(Plist)
+#     N = X.shape[0]
+#     oneN = torch.ones(N, 1)
+#     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
+#     D = X.T - torch.mm(M, P.T)
+#     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
     
-#     for i in np.arange(num_clusters):
-#         which = nodes[clustlabs == clust_IDs[i]]
-#         clust = torch.index_select(X, 0, which)
-#         centroid_mat[i,:] = torch.mean(clust, dim = 0)
-#         pdist = nn.PairwiseDistance(p=norm_degree)
-#         if weight_by == 'kmeans':
-#             total_wcss += torch.mean(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
-#         else:
-#             total_wcss += torch.sum(pdist(clust, centroid_mat[i,:].reshape(1, num_features)))
-            
-#     if weight_by == 'kmeans':
-#         MSW = (1/num_clusters)*total_wcss
-#     else:
-#         MSW = (1/(X.shape[0]-num_clusters))*total_wcss
-            
-#     return MSW, centroid_mat
-def WCSS(X, Plist, k):
-    
+#     return MSW, M
+
+
+
+
+
+def WCSS(X, P, k):
+
     """
+    Within-Cluster Sum of Squares
     Computes Hierarchical Within-Cluster Sum of Squares
     X: node feature matrix N nodes by q features
     P: assignment probabilities for assigning N nodes to k clusters
     k: number of clusters
     """
-    
-    P = torch.linalg.multi_dot(Plist)
+
     N = X.shape[0]
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
@@ -99,6 +96,7 @@ def WCSS(X, Plist, k):
 
 #This function computes the between cluster sum of squares (BCSS) for the node
 #attribute matrix X given a set of identified clusters 
+#----------------------------------------------------------------
 def BCSS(X = None, cluster_centroids=None, numclusts = None, norm_degree = 2,
          weight_by = ['kmeans','anova']):
     """
@@ -129,6 +127,7 @@ def BCSS(X = None, cluster_centroids=None, numclusts = None, norm_degree = 2,
 
 
 #this simple function resorts a graph adjacency
+#----------------------------------------------------------------
 def resort_graph(A, sort_list):
     """
     A: adjacency matrix
@@ -140,7 +139,7 @@ def resort_graph(A, sort_list):
 
 
 
-
+#----------------------------------------------------------------
 def easy_renumbering(labels):
     clusts = torch.unique(labels)
     new = torch.arange(len(clusts))
@@ -156,6 +155,7 @@ def easy_renumbering(labels):
 
 #this function computes the homogeniety, completeness and NMI for a set of true and
 #predicted cluster labels. 
+#----------------------------------------------------------------
 def node_clust_eval(true_labels, pred_labels, verbose = True):
     homogeneity, completeness, nmi = homogeneity_score(true_labels, pred_labels),\
                                      completeness_score(true_labels, pred_labels),\
@@ -183,6 +183,7 @@ def node_clust_eval(true_labels, pred_labels, verbose = True):
 #this function adjusts community level labels for all hierarchical layers
 #to ensure the maximum label number is not greater the the number of allowable
 #communities in heach layer
+#----------------------------------------------------------------
 def trace_comms(comm_list, comm_sizes):
     
     """
@@ -234,6 +235,7 @@ def trace_comms(comm_list, comm_sizes):
 
 # a simple function for quickly combining predicted and true community labels
 # into a dataframe for plotting
+#----------------------------------------------------------------
 def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
     
     """
@@ -276,6 +278,7 @@ def gen_labels_df(pred_comms_list, truth, sorting, sort = True):
 
 
 #utility to build the whole hierarchy adjacency from h1,h2,and h3 graphs
+#----------------------------------------------------------------
 def build_true_graph(file='filename'):
     
     """
@@ -315,7 +318,7 @@ def build_true_graph(file='filename'):
 
 
 
-
+#----------------------------------------------------------------
 def sort_labels(labels):
     #pdb.set_trace()
     true_labels = pd.DataFrame(labels, columns = ['Nodes'])
@@ -379,7 +382,7 @@ def sort_labels(labels):
 
 
 
-
+#----------------------------------------------------------------
 def LoadData(filename):
     unparsed_labels = pd.read_csv(filename+'_gexp.csv', index_col=0).columns.tolist()
     flat_list_indices, flat_list_indices2, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(unparsed_labels)
@@ -394,7 +397,9 @@ def LoadData(filename):
     
 
 
-   
+
+
+#----------------------------------------------------------------
 def corr_dist(u, v, w=None, centered=True):
     """
     Compute the correlation distance between two 1-D arrays.
@@ -438,6 +443,9 @@ def corr_dist(u, v, w=None, centered=True):
     return np.abs(dist) 
 
 
+
+
+#----------------------------------------------------------------
 def get_pcor(data, cutoff = 0.05):
     
     """
@@ -481,6 +489,8 @@ def get_pcor(data, cutoff = 0.05):
 
 
 
+
+#----------------------------------------------------------------
 def get_input_graph(X = None, method = ['KNN','Presicion','Correlation', 'DAG-GNN'], 
                     K = 30, metric = '1-R^2', alpha = 0.05, r_cutoff = 0.2):
     
@@ -527,6 +537,8 @@ def get_input_graph(X = None, method = ['KNN','Presicion','Correlation', 'DAG-GN
 
 
 
+
+#----------------------------------------------------------------
 def convert_adj_to_graph(adj):
     graph = nx.from_numpy_array(adj, parallel_edges=False, create_using=nx.Graph)
     #set as undirected graph
@@ -554,8 +566,7 @@ def convert_adj_to_graph(adj):
 
 
 
-
-    
+#---------------------------------------------------------------- 
 def merge(list1, list2):
       
     merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))]
@@ -583,6 +594,7 @@ def merge(list1, list2):
 
 
 # a simple function to plot the loss curves during training
+#----------------------------------------------------------------
 def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
               clust_loss_hist, path='path/to/file', save = True):
     
@@ -622,6 +634,7 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
 
 
 # a simple function for plotting the performance curves during training
+#----------------------------------------------------------------
 def plot_perf(update_time, performance_hist, epoch, path='path/to/file', save = True):
     #evaluation metrics
     layers = len(performance_hist[0])
@@ -644,6 +657,7 @@ def plot_perf(update_time, performance_hist, epoch, path='path/to/file', save = 
             
             
 #A simple wrapper to plot and save the networkx graph
+#----------------------------------------------------------------
 def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = False,
                save = True, **kwargs):
     fig, ax = plt.subplots()
@@ -674,6 +688,7 @@ def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = Fals
   
     
 #A simple wrapper to plot and save the adjacency heatmap
+#----------------------------------------------------------------
 def plot_adj(A, path, **kwargs):
     fig, ax = plt.subplots()
     sbn.heatmap(A, ax = ax, **kwargs)
@@ -691,7 +706,8 @@ def plot_adj(A, path, **kwargs):
     
     
     
-#a simple function to plot the clustering heatmaps 
+#a simple function to plot the clustering heatmaps
+#---------------------------------------------------------------- 
 def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
     fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
     sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
@@ -719,3 +735,24 @@ def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save
     if save_plot == True:
         fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)
         fig2.savefig(sp+'epoch_'+str(epoch)+'_heatmaps.png', dpi = 300) 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
