@@ -86,12 +86,14 @@ def run_simulations(args, save_results = False, which_net = 0, which_ingraph=0, 
     #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
     
     
-    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, orin = simulate_graph(args)
+    #pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, orin = simulate_graph(args)
     
-    true_adj_undi = build_true_graph(args.savepath+'.npz')
-    
-    pdadj = pd.DataFrame(adj_all[-1])
-    pdadj.to_csv(args.savepath+'example_adjacency_matrix.csv')
+    #true_adj_undi = build_true_graph(args.savepath+'.npz')
+    path = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example_loss_comparisons/loss_on_data/'
+    #true_adj_undi = build_true_graph(path+'.npz')
+    pe, true_adj_undi, indices_top, indices_mid, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=path)
+    #pdadj = pd.DataFrame(adj_all[-1])
+    #pdadj.to_csv(args.savepath+'example_adjacency_matrix.csv')
 
 
     in_graph05, in_adj05 = get_input_graph(X = pe, 
@@ -101,91 +103,92 @@ def run_simulations(args, save_results = False, which_net = 0, which_ingraph=0, 
     pdadj2 = pd.DataFrame(in_adj05)
     pdadj2.to_csv(args.savepath+'example_adjacency_matrix_corrgraph.csv')
 
-    indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(nodelabs)
+    #indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(nodelabs)
 
 
     #C = F.one_hot(torch.Tensor(sorted_true_labels_top).to(torch.int64)).to(torch.float32)
     #X = torch.Tensor(pe_sorted).requires_grad_()
-    origin_nodes = [i[0] for i in orin]
-    if args.layers > 2:
-        pe_sorted = pe[indices_mid,:]
-        idx = [indices_mid.index(i) for i in origin_nodes]
-    else:
-        pe_sorted = pe[indices_top,:]
-        idx = [indices_mid.index(i) for i in origin_nodes]
+    # origin_nodes = [i[0] for i in orin]
+    # if args.layers > 2:
+    #     pe_sorted = pe[indices_mid,:]
+    #     idx = [indices_mid.index(i) for i in origin_nodes]
+    # else:
+    #     pe_sorted = pe[indices_top,:]
+    #     idx = [indices_mid.index(i) for i in origin_nodes]
 
-    labels = [sorted_true_labels_middle, sorted_true_labels_top]
-    TSNE_embed=TSNE(n_components=3, 
-                    learning_rate='auto',
-                    init='random', 
-                    perplexity=3).fit_transform(pe_sorted)
-    PCs = PCA(n_components=3).fit_transform(pe_sorted)
+    # labels = [sorted_true_labels_middle, sorted_true_labels_top]
+    # TSNE_embed=TSNE(n_components=3, 
+    #                 learning_rate='auto',
+    #                 init='random', 
+    #                 perplexity=3).fit_transform(pe_sorted)
+    # PCs = PCA(n_components=3).fit_transform(pe_sorted)
 
-    which_labels = ['Middle', 'Top']
-    fig, ax = plt.subplots(2,2, figsize = (10,10))
-    for i in range(0, len(labels)):
+    # which_labels = ['Middle', 'Top']
+    # fig, ax = plt.subplots(2,2, figsize = (10,10))
+    # for i in range(0, len(labels)):
         
-        ax[0][i].scatter(TSNE_embed[:,0], TSNE_embed[:,1], 
-                         s = 150.0, c = labels[i], cmap = 'plasma')
-        ax[0][i].scatter(TSNE_embed[idx,0], TSNE_embed[idx,1],
-                     c='red', s = 300, marker = '.')
-        ax[0][i].set_xlabel('Dimension 1')
-        ax[0][i].set_ylabel('Dimension 2')
-        ax[0][i].set_title( 't-SNE '+which_labels[i])
-        #adding node labels
-        ax[1][i].scatter(PCs[:,0], PCs[:,1], 
-                         s = 150.0, c = labels[i], cmap = 'plasma')
-        ax[1][i].scatter(PCs[idx,0], PCs[idx,1], 
-        c='red', s = 300, marker = '.')
-        ax[1][i].set_xlabel('Dimension 1')
-        ax[1][i].set_ylabel('Dimension 2')
-        ax[1][i].set_title( 'PCA '+which_labels[i])
-        fig.savefig(args.savepath+'TSNE_PCA_GT_'+which_labels[i]+'.png', dpi = 300)
+    #     ax[0][i].scatter(TSNE_embed[:,0], TSNE_embed[:,1], 
+    #                      s = 150.0, c = labels[i], cmap = 'plasma')
+    #     ax[0][i].scatter(TSNE_embed[idx,0], TSNE_embed[idx,1],
+    #                  c='red', s = 300, marker = '.')
+    #     ax[0][i].set_xlabel('Dimension 1')
+    #     ax[0][i].set_ylabel('Dimension 2')
+    #     ax[0][i].set_title( 't-SNE '+which_labels[i])
+    #     #adding node labels
+    #     ax[1][i].scatter(PCs[:,0], PCs[:,1], 
+    #                      s = 150.0, c = labels[i], cmap = 'plasma')
+    #     ax[1][i].scatter(PCs[idx,0], PCs[idx,1], 
+    #     c='red', s = 300, marker = '.')
+    #     ax[1][i].set_xlabel('Dimension 1')
+    #     ax[1][i].set_ylabel('Dimension 2')
+    #     ax[1][i].set_title( 'PCA '+which_labels[i])
+    #     fig.savefig(args.savepath+'TSNE_PCA_GT_'+which_labels[i]+'.png', dpi = 300)
         
         
         
-    if(args.common_dist == True):
-        cdsetting = 'Common_dist'
-    else:
-        cdsetting = ''
+    # if(args.common_dist == True):
+    #     cdsetting = 'Common_dist'
+    # else:
+    #     cdsetting = ''
     
-    fig3dPCA = plt.figure(figsize=(14,12))
-    ax3dPCA = plt.axes(projection='3d')
-    ax3dPCA.scatter3D(PCs[:,0], PCs[:,1], PCs[:,2], 
-                  c=labels[1], cmap='plasma')
-    ax3dPCA.scatter3D(PCs[idx,0], PCs[idx,1], PCs[idx,2], 
-                 c='red', s = 300, marker = '.',
-                 depthshade = False)
+    # fig3dPCA = plt.figure(figsize=(14,12))
+    # ax3dPCA = plt.axes(projection='3d')
+    # ax3dPCA.scatter3D(PCs[:,0], PCs[:,1], PCs[:,2], 
+    #               c=labels[1], cmap='plasma')
+    # ax3dPCA.scatter3D(PCs[idx,0], PCs[idx,1], PCs[idx,2], 
+    #              c='red', s = 300, marker = '.',
+    #              depthshade = False)
 
-    ax3dPCA.set_xlabel('Dimension 1')
-    ax3dPCA.set_ylabel('Dimension 2')
-    ax3dPCA.set_zlabel('Dimension 3')
+    # ax3dPCA.set_xlabel('Dimension 1')
+    # ax3dPCA.set_ylabel('Dimension 2')
+    # ax3dPCA.set_zlabel('Dimension 3')
     
-    fig3dPCA.savefig(args.savepath+'3D_PCA_GT'+cdsetting+'.png', dpi = 300)
+    # fig3dPCA.savefig(args.savepath+'3D_PCA_GT'+cdsetting+'.png', dpi = 300)
 
 
 
 
-    fig3dTSNE = plt.figure(figsize=(14,12))
-    ax3dTSNE = plt.axes(projection='3d')
-    ax3dTSNE.scatter3D(TSNE_embed[:,0], TSNE_embed[:,1], TSNE_embed[:,2], 
-                  c=labels[0], cmap='plasma')
-    ax3dTSNE.scatter3D(TSNE_embed[idx,0], TSNE_embed[idx,1], TSNE_embed[idx,2], 
-                 c='red', s = 300, marker = '.',
-                 depthshade = False)
+    # fig3dTSNE = plt.figure(figsize=(14,12))
+    # ax3dTSNE = plt.axes(projection='3d')
+    # ax3dTSNE.scatter3D(TSNE_embed[:,0], TSNE_embed[:,1], TSNE_embed[:,2], 
+    #               c=labels[0], cmap='plasma')
+    # ax3dTSNE.scatter3D(TSNE_embed[idx,0], TSNE_embed[idx,1], TSNE_embed[idx,2], 
+    #              c='red', s = 300, marker = '.',
+    #              depthshade = False)
 
-    ax3dTSNE.set_xlabel('Dimension 1')
-    ax3dTSNE.set_ylabel('Dimension 2')
-    ax3dTSNE.set_zlabel('Dimension 3')
+    # ax3dTSNE.set_xlabel('Dimension 1')
+    # ax3dTSNE.set_ylabel('Dimension 2')
+    # ax3dTSNE.set_zlabel('Dimension 3')
     
 
-    fig3dTSNE.savefig(args.savepath+'3D_TSNE_GT'+cdsetting+'.png', dpi = 300)
+    # fig3dTSNE.savefig(args.savepath+'3D_TSNE_GT'+cdsetting+'.png', dpi = 300)
     
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/OLD_1_23_2024/'
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/Single_sim_dpd_identity/'
     #savepath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/Single_sim_dpd_identity/'
 
     loadpath_main = args.savepath
+    #loadpath_main = path
     savepath_main = sp
 
     #preallocate results table
@@ -423,7 +426,7 @@ def run_simulations(args, save_results = False, which_net = 0, which_ingraph=0, 
                     pickle.dump(out, f)
                 
     print('done')
-    return out, tables, Graphs, X, target_labels, S_all, S_sub, louv_preds, [best_perf_idx, best_loss_idx]
+    return out, tables, Graphs, X, target_labels, S_all, S_sub, louv_preds, [best_perf_idx, best_loss_idx], Mods
             
 
 
@@ -460,10 +463,10 @@ args.connect = 'disc'
 args.subgraph_type = 'small world'
 #args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/Single_sim_dpd_identity/'
 
-args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/unequal_dists/'
-#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example8_output/'
-
-
+#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/unequal_dists/'
+#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example_loss_comparisons/loss_on_data/'
+#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example_loss_comparisons/loss_on_embed/'
+args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example_loss_comparisons/loss_on_embed_boosted_xloss/'
 simulation_dict = {'SD': args.SD,
                    'Layers': args.layers,
                    'Connection': args.connect,
@@ -497,24 +500,24 @@ saveit = True
 #disconnected settings
 param_dict = {'epochs': ep, 
               'hidden': [256, 128, 64, 32],
-              'gamma': 1e-4,
+              'gamma': 1e-3,
               'delta': 1e-3,
-              'lambda': [1e-4, 1e-5],
+              'lambda': [1e-3, 1e-4],
               'input_graph': wg,
               'network': wn,
               'learning_rate': 1e-5,
               'true_comms': True,
               'cms': [15, 5],
               'use_attn': True,
-              'attn_heads': 10,
+              'attn_heads': 20,
               'normalize': True}
 
-out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx = run_simulations(args = args,
+out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx, models = run_simulations(args = args,
     save_results=saveit,
     savepath = sp,
     which_net=wn,
     which_ingraph=wg,
-    reso=[1,1,1,1],
+    reso=[0.5, 1],
     hd=param_dict['hidden'],
     gam = param_dict['gamma'],
     delt = param_dict['delta'],
@@ -695,4 +698,5 @@ ax2[1].set_xlabel('Dimension 1')
 ax2[1].set_ylabel('Dimension 2')
 ax2[1].set_title(' PCA Embedding-Comm1-projection (Predicted)')
 
-
+if saveit == True:
+    fig.savefig(sp+'topclusters_plotted_on_embeds.pdf')

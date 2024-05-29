@@ -28,7 +28,7 @@ library(ggpubr)
 library(ggthemes)
 library(plyr)
 basepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-figpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/'
+figpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/'
 
 library(ggpubr)
 # tab = read.csv(paste0(basepath, 'DATA/Toy_examples/Intermediate_examples/Results/MASTER_results_old_5_2_2024.csv'))
@@ -111,74 +111,57 @@ For each simulation, we configure the number of communities in the middle and up
 
 ### Examples {-}
 
-In examples 1-10 we use the true graph as the input graph and we assess the quality of performance primarily on the ability to infer communities for the top layer.
 
-**Example 1-3** 
-Examples 1-2 illustrate the impact of the attribute reconstruction loss. Example 3 . Specifically, Example 1 demonstrates the negative effects of overemphasizing the attribute reconstruction loss by setting its parameter too high, which dilutes the impact of graph reconstruction. This imbalance leads to inaccuracies in the reconstructed graph. Example 2 shows that when graph reconstruction is given equal priority to other loss components, HCD can resolve the correct communities. In Example 3, the modularity loss component is turned off by setting its value to zero to investigate the importance of modularity loss component on performance.
-
-In all three examples, we apply HCD to the 3-layer, disconnected, small-world network in the intermediate networks dataset. In addition, all three examples use the same number of autoencoder layers, settings for clustering loss component, and 10 attention heads. All parameter settings for these examples are detailed in **table** \@ref(tab:ex123params). Specific outcomes for each example are discussed in greater detail in the Results section. 
-
- 
-
-**Examples 4-5**
 
 # Results {-}
 
-Previously we applied our HCD method to all complex and intermediate datasets looking at various parameters such as the input graph and some initial test values for loss hyperparameters. Our previous findings are outlined in the lab report from 3/13/2024 and pointed out several issues that remain to be addressed. Below, we address these points in detail and provide supporting examples from applying HCD to networks in the Intermediate Networks dataset (**Table** \@ref(tab:tab4)).
+### Comparing small world, scale free, and random graphs: small world disconnected intermediate networks {-}
 
-### An additional loss component is needed to help further reduce the tendency of HCD to combine smaller communities into super-communities. {-} 
+In this section, we compare HCD and louvain performance on small world, scale free, and random graph networks in this simplest/easiest scenario: 3-layer intermediate networks with origin nodes simulated from $N(\mu_k, \sigma)$ distributions. These three hierarchies are the simplest in terms of the separability of the communities in the middle and top layers. A full summary of the networks in this dataset can be found in *Table* \@ref(tab:tab4). We apply HCD with the "best" parameter settings from our previous results outlined in *Report 4/15/2025* which are summarized in **Table** \@ref(tab:ex891011params). 
 
-  * We have since implemented a hierarchical adaptation of the Kmeans approach which aims to ensure members clustered to the same community have the smallest possible dissimilarity. See the latest update of the HCD pseudo code to view the specific mathematical details. 
 
-### How should we assess performance when comparing the Louvain method and our HCD method? {-} 
+### Issues with loss function {-}
 
-  * Louvain uses a heuristic hierarchical community partitioning approach to find the communities that maximize modularity within a local greedy search of the space of possible partitions. The predicted communities are the final community assignments that arise when no additional assignment changes can improve the modularity - when a local optimum of modularity has been achieved. This leads to a single set of community predictions which may represent either the top layer of the true hierarchy or it may represent one of the middle layers. It may also be a blend of middle and top layers. As a result, we will compare the predictions from the Louvain method to the truth for both the middle and top layer communities. 
-  For our HCD method, we set the community detection module to mirror the simulation truth (i.e 2 layers corresponding to $15$ middle layer communities and $5$ top layer communities). Therefore, HCD provides two sets of community predictions corresponding to the two upper layers in the hierarchy. However, there is no assurance that the predicted communities will accurately align with the hierarchical structure they're intended to represent.
-  To evaluate performance, we compare the predicted middle-layer communities against the true community assignments for both the middle and top layers. Additionally, we compare the predicted top-layer communities to the true top-layer assignments. This approach generates three sets of performance metrics, which we can then qualitatively compare against the results from the Louvain method.
+Our loss function combines four components: (i) MSE loss on the reconstructed graph, (ii) BCE loss on the reconstructed graph, (iii) modularity for community predictions summed across all $\ell$ hierarchical layers in the hierarchy, and (iv) the clustering loss measured as the Within Cluster Sum of squares (WCSS) for community predictions summed across all $\ell$ hierarchical layers. Components (i - ii) apply to the graph auto encoder (GATE) and aim to ensure the learned embedding respects the original node attributes and input graph. Components (iii - iv) evaluate the quality of the community predictions where loss component (iii) evalutes their quality relative to the input graph and loss component (iv) evaluates their quality with respect to the node attributes. Currently the WCSS clustering loss component is calculated on the embeddings as follows: 
+
+\[ L_C = \sum_{\ell=1}^\mathcal{L} \frac{1}{k_{\ell-1}\cdot k_\ell} tr({\bf D}_\ell^T {\bf D}_\ell) \tag{1}\label{eq:eq1}\]
+
+where $\ell$ is the number of hierarchical layers, $k_\ell$ is the number predicted communities in the $\ell^{th}$ hierarchical graph, and where ${\bf D}_\ell \in \mathbb{R}^{q \times k_\ell}$ is a matrix of node deviations computed as:
+
+\[ {\bf D}_\ell =\left[{\bf \tilde X}^{(\ell-1)}\right]^T - {\bf M}_\ell{\bf P}_\ell^T \tag{2}\label{eq:eq2}\]
+
+where ${\bf \tilde X}^{(\ell - 1)} \in \mathbb{R}^{N \times q}$ is the node embedding in the preceding hierarchical layer, ${\bf P}_\ell \in \mathbb{R}^{k_{\ell-1} \times k_\ell}$ is a matrix of community assignment probabilities, and ${\bf M}_\ell \in \mathbb{R}^{q\times k_\ell}$ is matrix of community centroids. 
+One challenge with defining the clustering loss component on the model embedding is that it creates a bias which encourages the model to shift the positions of the nodes in the embedding space so that they are closer together enabling a better score on the loss function. 
+
+To help illustrate this, we present three more examples outlined in **Table** \@ref(tab:exlossparams) where we apply HCD to a small world network with 3 layers and origin nodes simulated from different distributions. In the first example, **Clustering Loss Example 1**, we apply HCD with the usual parameters settings and the clustering loss as defined above. In this example, the clustering bias is made apparent when comparing the nodes and their true communities in both the PCA and embedding spaces. As can be seen in **Figure** \@ref(fig:examplelossfig1) the top layer communities are completely separated in the PC space and so should be easily detected, however, we can see that they are more ambiguous when viewed in the embedding space. The final predictions from this example lead to parts of two communities to be merged into a single super-community. In effect the model has cheated to get a better overall loss (**Table** \@ref(tab:exlossperf), **Figures** \@ref(fig:examplelossfig2) - \@ref(fig:examplelossfig5)). 
+
+
+To address this bias, we adjust the clustering loss function given **eq 1** to compute the loss using the original node attributes. Since the node features remain unchanged through the training process the model is not encouraged to manipulate their presentations in the embedding space. To compute the loss using the original node attributes, we must know the mapping between the original $N$ nodes to their community representations in higher hierarchical layers. This can be done through a simple multiplication of the assignment probabilities from previous layers:
+
+\[ {\bf Q}_\ell = \bf{P}_1 \otimes {\bf P_2} \otimes \cdots \otimes {\bf P}_{\ell -1}  \]
+
+Where the operation ${\bf Q}_\ell = {\bf P}_{\ell -1 } \otimes {\bf P}_\ell$ is the dot product between matrices ${\bf P}_{\ell -1 }$ and ${\bf P}_\ell$ where the elements in $\bf Q$ are computed as
+
+\[q_{i,j} = {\bf p}_{\ell -1,i}^T \circ  {\bf p}_{\ell,j} = \sum_{s = 1}^{k_{\ell - 1}} p_{i,s}^{(\ell - 1)} \cdot p_{s,j}^{(\ell)}\]
+
+this is akin to computing the marginal probability of assigning node $n_i$ to community $C_k$ in the $\ell^{th}$ hierarchical layer:
+
+\[ = \sum_{m = 1}^{k_{\ell - 1}}Pr\left( n_i \in C_m^{(\ell - 1)}\right) \cdot Pr\left(n_i \in C_{k}^{(\ell)}| n_i \in C_m^{(\ell - 1)} \ \right) \]
+
+We present the results from **Cluster Loss Example 2** which uses the above clustering loss computed on the original node features applied to the same network as in Cluster Loss Example 1. As can be seen in **Figures** \@ref(fig:examplelossfig3) - \@ref(fig:examplelossfig6) and **Table** \@ref(tab:exlossperf), using the node attributes to compute the cluster loss leads to perfect clustering performance on the top layer communities, but the middle layer communities are no longer detectable. This is possible due to a known issue with k-means like optimization in which communities that are too small or nested within larger structures are undetectable. 
+
+In **Cluster Loss Example 3** we again apply the HCD model with the same clustering loss component as in Cluster Loss Example 1, but this time we increase the attribute reconstruction loss to see if the bias in the model's predictions were due to the attribute reconstruction have negligable influence on the total loss. As can be seen in **Table** \@ref(tab:exlossperf), this did little to improve performance. However, increasing the attribute reconstruction loss component does appear to prevent overgrouping as all five communities are detected to some degree (**Figures** \@ref(fig:examplelossfig4) - \@ref(fig:examplelossfig7)). This suggest that with further refinement of this parameter, the loss computed on the embeddings can detect the true communities and further provide some community-level information about intermediate layers in the hierarchy. 
+
+### Using Approximate Graphs as Input {-}
+
+In this section, compare the performance of HCD and Louvain when the input graph is an approximation of the true graph. We apply both methods to the small world, scale free, and random graph networks used in Examples 8-11. For each application, we use the correlation matrix of the node attributes wherein correlations weaker than 0.5 are disregarded and set to zero (Section *Application to Intermediate Networks*). The parameter settings are provided in **Table** \@ref(tab:ex121314params). We apply HCD with same clustering loss parameter settings as Example 11 as this settings lead to greater performance. The performance results are given in **Table** \@ref(tab:example121314perf). 
+
+
+
   
-### Settings for tuning parameters {-}
-  
-**Examples 1 - 2; When the attribute reconstruction loss is too large:** To ensure that the loss for graph reconstruction isn't overshadowed, we find it necessary to downweight the tuning parameters for the attribute reconstruction, modularity, and clustering loss components. We demonstrate this by applying HCD to a disconnected small-world intermediate network, using the true adjacency matrix as input. In this network, the communities at the top layer are completely isolated from each other.
-  If the attribute reconstruction loss is set too high, the model can generate artificial connections in the graph. As shown in **Figure** \@ref(fig:example1fig1), HCD has divided the original graph into two separate subgraphs by creating false links between the first three communities and the last two. This results in distinct blocks in the reconstructed adjacency matrix. Additionally, in **Figure** \@ref(fig:example1fig2), you can see that these false connections cause the affected nodes to be incorrectly assigned to the same top-level communities. This occurs because the high attribute reconstruction loss encourages the model to form connections that aid in attribute prediction, even if they do not reflect the true graph structure (**Figure** \@ref(fig:example1fig2)). The PCA plot in **Figure** \@ref(fig:example1fig4) indicates that the model is essentially grouping nodes based on their similarity along the first two principle dimensions of attribute space, which leads to these inaccurate connections.
-  To correct this, we downweight the tuning parameter for the attribute reconstruction component, giving graph reconstruction a higher priority during training (**Figure** \@ref(fig:example2fig1)). This adjustment leads to a more accurate representation of the adjacency matrix and better predictions for the top-layer communities (**Figures** \@ref(fig:example2fig2) - \@ref(fig:example2fig3) ; **Table** \@ref(tab:example123perf)).
-  
-**Modularity is necessary:** 
-Our HCD method uses two loss components to assess the quality of inferred communities: (i) modularity loss and (ii) clustering loss. These two components approach community structure from different angles. Modularity loss evaluates the quality of clusters based on the input graph, ensuring that communities have more internal connections than external ones. Clustering loss, however, focuses on node features and aims to form communities where the nodes are as similar as possible, measured by their Euclidean distance to the community centroid.
 
-In Example 3, we set the modularity tuning parameter to zero to examine whether clustering loss alone can resolve community assignments. Our results show that both metrics are needed for the best outcome (**Figures** \@ref(fig:example3fig1) - \@ref(fig:example3fig3); **Table** \@ref(tab:example123perf)). Turning off modularity leads to overgrouping of communities 1 and 3 (**Figure** \@ref(fig:example3fig2)), likely because of their similarity along the first principal dimension of the attribute space (**Figure** \@ref(fig:example3fig3)). This suggests that modularity plays a crucial role in separating clusters that might be structurally different but have similar feature patterns. 
+### future points to investigate {-}
 
-**Do tuning parameter settings hold for more complicated networks?** In Example 4, we extend the setup from Example 2 by applying HCD to the more complex fully connected small-world intermediate network to evaluate whether the parameters from the earlier example still hold under more complicated structural relationships.  (**Table** \@ref(tab:ex123params)). As shown in **Table** \@ref(tab:example45perf), prediction performance of HCD for top-level communities is lower than in Example 2, which is understandable given the increased structural complexity of this network. Despite this drop in performance, HCD outperforms the Louvain method with a NMI score of $72.8\%$, compared to Louvain's $63.8\%$. 
-
-In this example, the Louvain method achieves high homogeneity ($79.1\%$) but lower completeness ($53.4\%$), indicating that the top-layer communities are being broken into smaller, internally consistent, groups. This imbalance results in a lower overall NMI (see Figure \@ref(fig:example4fig1)).
-
-In contrast, HCD achieves a better balance between these two metrics, with homogeneity at $72.5\%$ and completeness at $73.2\%$ (**Figure** \@ref(fig:example4fig2); **Table** \@ref(tab:example45perf)). This balance contributes to HCD's higher overall NMI. However, the reduced NMI for HCD compared to its performance in Example 2 is largely due to several misallocated nodes. This misallocation is likely caused by greater heterogeneity in the top-layer communities within this more complex network, as illustrated by the PCA presented in **Figure** \@ref(fig:example4fig3).
-
-Similarly, in Example 5, we replicate the setup from Example 3 - turning off modularity - while applying HCD to the same fully connected small-world network. **Table** \@ref(tab:example45perf) shows that turning off modularity results in reduced performance, with a slightly lower NMI score of $69.2\%$. This further validates our earlier finding that modularity is required to achieve optimal results.
-
-### Should parent (origin) nodes be simulated from the same or different distributions? {-}
-
-When simulating the networks for the datasets outlined in the section ** we use the hierarchy to generate the nodes at the bottom/observed layer under a specific directed graph structure (small world, scale free, random graph). This allows for nodes in the bottom layer to be traced through the levels of the hierarchy to their respective communities in each level. The simualted gene expression for the nodes in the observed layer is then generated using the topological order of the network relating the nodes at this level. Under this framework, nodes which have no parents are generated first from a normal distribution with zero mean and fixed variance 
-
-\[ N_{i,k} \sim N(0, \sigma) \]
-
-Here $N_{i,k}$ is the $i^{th}$ parent node in the $k^{th}$ middle layer communitity. This framework causes all node communities to have some similarity because they all originate from the same parents. This is clearly illustrated in PC space where all communities diverge from a central location (**Figure** \@ref(fig:example6fig1)). This similarity amongst communities may underly poorer performance for HCD, especially on more complicated networks. Therefore in Examples 6-7, we test the performance of HCD on the disconnect and fully connected small world networks when the networks are simulated by generating a different distribution for each parent node
-
-\[ N_{i,k} \sim N(\mu_k, \sigma) \]
-  
-Simulating the hierarchy under this framework allows the parent nodes belonging to each community to have a unique distribution and corresponds to greater separability along the first principle dimension of the attribute space **Figure** \@ref(fig:example6fig2). 
-
-Despite greater separation along the first principle dimension, HCD performance was much worse for the disconnected small world network simulated in this way (**Table** \@ref(tab:example67perf)). As can be seen in **Figure** \@ref(fig:example6fig3), HCD produces a result similar to what we experienced in Example 3 where communities at the top layer are grouped into super-communities leading to higher comleteness ($84\%$) but much lower homogenity ($51.7\%$) when compared to the Louvain method applied to the same network (homogenity $100\%$, completeness $70.5\%$). This in part could be due to the parameter settings used previously being no longer applicable because the nature of how the data are simualted has been changed. This is supported by larger absolute loss for the clustering component - potentially washing out the graph reconstruction loss. This suggests this component may need to be downweighted further. An alternative explanation is that the model does not have enough learning capability to capture the communities correctly. We explore both possibilities further:
-
-  * **Clustering Loss Downweighted Further** - In Example 7, we downwight the clustering loss even further so that the clustering loss for the middle layer is $\lambda_{middle} = 0.0001$ and for the top layer is $\lambda_{top} = 0.00001$. As shown in **Table** \@ref(tab:example67perf), this greatly improved performance for HCD with NMI now comparamble to Louvain method applied to the same network. 
-  
-  * **Clustering Loss Downweighted Further $+$ Expanded Learning Capacity** - In Example 8, we use downweighted clustering loss and expand model learning capacity to see if performance can be improved further.
-  
-  
-  
-### Applications to scale free and random graph networks
-
-
-### Using Approximate Graphs as Input
 
 # Tables
 
@@ -259,9 +242,9 @@ if(compile.to.pdf){
 
 
 \newpage
-```{r tab4, eval = T, echo=F, message=F, warning=F}
+```{r tab4, eval = T, echo=F, message=F, warning=F, fig.cap = 'This table gives a summary of the hierarchical networks in the intermediate networks dataset where origin nodes are initialized from a normal distribution with unique means for each community.'}
 
-inter_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/OLD_DATA_5_2_2024/intermediate_examples_network_statistics.csv')[,-1]
+inter_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples_unique_dist/intermediate_examples_network_statistics.csv')[,-1]
 
 inter_net_stats$modularity_top = round(inter_net_stats$modularity_top, 3)
 inter_net_stats$avg_node_degree_top = round(inter_net_stats$avg_node_degree_top, 3)
@@ -297,7 +280,7 @@ if(compile.to.pdf){
 
 
 \newpage
-```{r tab5, eval = T, echo=F, message=F, warning=F}
+```{r tab5, eval = T, echo=F, message=F, warning=F, fig.cap = 'This table gives a summary of the networks included in the simple networks dataset'}
 
 toy_net_stats = read.csv('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/toy_examples_network_statistics.csv')[,-1]
 
@@ -360,28 +343,56 @@ if(compile.to.pdf){
 
 
 
-```{r ex123params, echo=F, eval = T, message=F, warning=F}
 
-ex1.params = read.csv(paste0(figpath, 'example1_output/param_settings.csv'), row.names = 1)
-ex1.params = rbind.data.frame(ex1.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Disc-SMW'),
-                              c('Dataset', 'Intermediate Networks'))
-ex2.params = read.csv(paste0(figpath, 'example2_output/param_settings.csv'), row.names = 1)
-ex2.params = rbind.data.frame(ex2.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Disc-SMW'),
-                              c('Dataset', 'Intermediate Networks'))
-ex3.params = read.csv(paste0(figpath, 'example3_output/param_settings.csv'), row.names = 1)
-ex3.params = rbind.data.frame(ex3.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Disc-SMW'),
-                              c('Dataset', 'Intermediate Networks'))
-ex4.params = read.csv(paste0(figpath, 'example4_output/param_settings.csv'), row.names = 1)
-ex4.params = rbind.data.frame(ex4.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Full-SMW'),
-                              c('Dataset', 'Intermediate Networks'))
-ex5.params = read.csv(paste0(figpath, 'example5_output/param_settings.csv'), row.names = 1)
-ex5.params = rbind.data.frame(ex5.params, c('Input Graph', 'True Graph'), c('Network', '3layer-Full-SMW'),
-                              c('Dataset', 'Intermediate Networks'))
 
-cn = colnames(ex1.params)
-colnames(ex1.params) = c('Parameter', "Example 1")
-ctab = cbind(ex1.params, ` ` = rep('', 14), `Examples 2, 4, 6` = ex2.params[,-1], `Examples 3` = ex3.params[,-1],
-             `Example 4` = ex4.params[,-1], `Example 5` = ex5.params[,-1])
+
+
+
+```{r ex891011params, echo=F, eval = T, message=F, warning=F}
+
+#prevpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/'
+ex10.params = read.csv(paste0(figpath, 'example10_output/param_settings.csv'), row.names = 1)
+ex10.params = rbind.data.frame(ex10.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-RG-DiffDist-Inter'))
+
+
+ex8.params = read.csv(paste0(figpath, 'example8_output/param_settings.csv'), row.names = 1)
+ex8.params = rbind.data.frame(ex8.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Scale Free/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-SF-DiffDist-Inter'))
+
+
+ex9.params = read.csv(paste0(figpath, 'example9_output/param_settings.csv'), row.names = 1)
+ex9.params = rbind.data.frame(ex9.params,
+                              c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Random Graph/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-SMW-DiffDist-Inter'))
+
+
+ex11.params = read.csv(paste0(figpath, 'example11_output/param_settings.csv'), row.names = 1)
+ex11.params = rbind.data.frame(ex11.params,
+                              c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-SMW-DiffDist-Inter'))
+
+
+cn = colnames(ex8.params)
+colnames(ex8.params) = c('Parameter', "Example 8")
+ctab = cbind(ex8.params, ` ` = rep('', 17), `Example 9` = ex9.params[,-1], `Example 10` = ex10.params[,-1],
+             `Example 11` = ex11.params[,-1])
 
 
 if(compile.to.pdf){
@@ -390,7 +401,94 @@ if(compile.to.pdf){
 }else{
   kable(ctab, format = 'html', digits = 3,
       row.names = F, booktabs = T, escape = F,
-      caption = 'HCD settings for Examples 1 - 5.')%>%
+      caption = 'HCD settings for Examples 8-11.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
+}
+
+```
+
+
+
+
+```{r example891011perf, echo=F, eval = T, message=F, warning=F}
+
+ex8.tab = read.csv(paste0(figpath, 'example8_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex9.tab = read.csv(paste0(figpath, 'example9_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex10.tab = read.csv(paste0(figpath, 'example10_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex11.tab = read.csv(paste0(figpath, 'example11_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+lbls = paste0('**', ex8.tab[,1], '**')
+
+ex8.tab[,1] = ex9.tab[,1] = ex10.tab[,1] = ex11.tab[,1] = lbls
+cn = colnames(ex8.tab)
+ctab1 = rbind(c(' ', '**Example 8:**', '**Scale Free**', ''), 
+             ex8.tab, 
+             c('', '**Example 9:**', '**Random Graph**', ''), 
+             ex9.tab) 
+             
+ctab2 = rbind(c('', '**Example 10:**', '**Small World**', ''),
+             ex10.tab,
+             c('', '**Example 11:**', '**Small World**', ''),
+             ex11.tab
+             )
+
+final.ctab = cbind(ctab1, ctab2)
+
+
+if(compile.to.pdf){
+  # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+  #     caption = '')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+}else{
+  kable(final.ctab, format = 'html', digits = 3,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'Performance metrics for Louvain method and HCD in Examples 8-11. For details regarding parameter settings see Examples 8-11 under section <i>Examples</i>. All networks are disconnected with 3 layers and all origin nodes are simulated from a normal distribution with unique center.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
+}
+
+
+
+```
+
+
+
+
+```{r exlossparams, echo=F, eval = T, message=F, warning=F}
+
+ex1loss.params = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_embed/param_settings.csv'), row.names = 1)
+ex1loss.params = rbind.data.frame(ex1loss.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', 'Special-3L-SMW-DiffDist-Inter'))
+ex2loss.params = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_data/param_settings.csv'), row.names = 1)
+ex2loss.params = rbind.data.frame(ex2loss.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', 'Special-3L-SMW-DiffDist-Inter'))
+ex3loss.params = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_embed_boosted_xloss/param_settings.csv'), row.names = 1)
+ex3loss.params = rbind.data.frame(ex3loss.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', 'Special-3L-SMW-DiffDist-Inter'))
+
+
+cn = colnames(ex1loss.params)
+colnames(ex1loss.params) = c('Parameter', "Clustering Loss Example 1")
+ctab = cbind(ex1loss.params, ` ` = rep('', 17), `Clustering Loss Example 2` = ex2loss.params[,-1],
+             `Clustering Loss Example 3` = ex3loss.params[,-1])
+
+
+if(compile.to.pdf){
+  # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
+  #     caption = '')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
+}else{
+  kable(ctab, format = 'html', digits = 3,
+      row.names = F, booktabs = T, escape = F,
+      caption = 'HCD settings for Loss Examples 1-3.')%>%
   kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
 }
 
@@ -400,14 +498,15 @@ if(compile.to.pdf){
 
 
 
-```{r example123perf, echo=F, eval = T, message=F, warning=F}
+```{r exlossperf, echo=F, eval = T, message=F, warning=F}
 
-ex1.tab = read.csv(paste0(figpath, 'example1_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-ex2.tab = read.csv(paste0(figpath, 'example2_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-ex3.tab = read.csv(paste0(figpath, 'example3_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-cn = colnames(ex1.tab)
-ctab = cbind(ex1.tab, ` ` = rep('', 5), ex2.tab[,-1], ex3.tab[,-1])
-
+ex1loss.tab = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_embed/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex2loss.tab = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_data/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex3loss.tab = read.csv(paste0(figpath, 'example_loss_comparisons/loss_on_embed_boosted_xloss/best_iteration_toplayer_metrics.csv'), row.names = 1)
+#ex3.tab = read.csv(paste0(figpath, 'example3_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+cn = colnames(ex1loss.tab)
+#ctab = cbind(ex1.tab, ` ` = rep('', 5), ex2.tab[,-1], ex3.tab[,-1])
+ctab = cbind(ex1loss.tab, ` ` = rep('', 5), ex2loss.tab[,-1], ` ` = rep('', 5), ex3loss.tab[,-1])
 
 if(compile.to.pdf){
   # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
@@ -415,8 +514,8 @@ if(compile.to.pdf){
 }else{
   kable(ctab, format = 'html', digits = 3,
       row.names = F, booktabs = T, escape = F,
-      caption = 'Performance metrics for Louvain method and HCD in Examples 1 - 3. For details regarding parameter settings see Examples 1 - 3 under section <i>Examples</i>. All results are for the disconnected small-world intermediate network.')%>%
-  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)%>%add_header_above(c(' ' = 1, "Example 1" = 4, "Example 2" = 3, 'Example 3' = 3))
+      caption = 'Performance metrics for Louvain method and HCD in Loss Examples 1 - 3. In these examples, two versions of the clustering loss component of HCD are compared on a small world 3 layer disconnected network with unique parent nodes (i.e simulated from different distributions). For specific details regarding the parameter settings see Loss Examples 1 - 3 under section <i>Examples</i>. The same network is used in both examples and HCD and the Louvain method are applied to the same data. In example 1, the clustering loss is computed using the node embeddings. In example 2, the clustering loss is computed using the original node attributes.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 12)%>%add_header_above(c(' ' = 1, "Clustering Loss Example 1" = 4, "Clustering Loss Example 2" = 3, "Clustering Loss Example 3" = 4))
 }
 
 
@@ -426,12 +525,55 @@ if(compile.to.pdf){
 
 
 
-```{r example45perf, echo=F, eval = T, message=F, warning=F}
 
-ex4.tab = read.csv(paste0(figpath, 'example4_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-ex5.tab = read.csv(paste0(figpath, 'example5_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-cn = colnames(ex4.tab)
-ctab = cbind(ex4.tab, ` ` = rep('', 5), ex5.tab[,-1])
+
+
+
+
+
+
+
+
+
+
+
+<!-- Examples 12-14 -->
+
+
+```{r ex121314params, echo=F, eval = T, message=F, warning=F}
+
+#prevpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/'
+ex12.params = read.csv(paste0(figpath, 'example10_output/param_settings.csv'), row.names = 1)
+ex12.params = rbind.data.frame(ex12.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Small World/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-RG-DiffDist-Inter'))
+
+
+ex13.params = read.csv(paste0(figpath, 'example8_output/param_settings.csv'), row.names = 1)
+ex13.params = rbind.data.frame(ex13.params, c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Scale Free/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-SF-DiffDist-Inter'))
+
+
+ex14.params = read.csv(paste0(figpath, 'example9_output/param_settings.csv'), row.names = 1)
+ex14.params = rbind.data.frame(ex14.params,
+                              c('Input Graph', 'True Graph'),
+                              c('Layers', 3),
+                              c('Network Type', 'Random Graph/Disconnected'),
+                              c('Dataset', 'Intermediate Networks'),
+                              c('Origin Node Dist.', '$N(\\mu_k, \\sigma)$'),
+                              c('Network ID:', '3L-SMW-DiffDist-Inter'))
+
+
+cn = colnames(ex12.params)
+colnames(ex12.params) = c('Parameter', "Example 12")
+ctab = cbind(ex12.params, ` ` = rep('', 17), `Example 13` = ex13.params[,-1], `Example 14` = ex14.params[,-1])
 
 
 if(compile.to.pdf){
@@ -440,128 +582,116 @@ if(compile.to.pdf){
 }else{
   kable(ctab, format = 'html', digits = 3,
       row.names = F, booktabs = T, escape = F,
-      caption = 'Performance metrics for Louvain method and HCD in Examples 4-5. For details regarding parameter settings see Examples 4-5 under section <i>Examples</i>. All results are for the fully connected small-world intermediate network.')%>%
-  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)%>%add_header_above(c(' ', "Example 4" = 3, "Example 5" = 4))
+      caption = 'HCD settings for Examples 12-14.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
 }
-
-
 
 ```
 
 
 
-```{r example67perf, echo=F, eval = T, message=F, warning=F}
 
-ex6.tab = read.csv(paste0(figpath, 'example6_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-ex7.tab = read.csv(paste0(figpath, 'example7_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
-cn = colnames(ex6.tab)
-ctab = cbind(ex6.tab, ` ` = rep('', 5), ex7.tab[,-1])
+
+```{r example121314perf, echo=F, eval = T, message=F, warning=F}
+ex12.tab = read.csv(paste0(figpath, 'example12_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex13.tab = read.csv(paste0(figpath, 'example13_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+ex14.tab = read.csv(paste0(figpath, 'example14_output/best_iteration_toplayer_metrics.csv'), row.names = 1)
+lbls = paste0('**', ex12.tab[,1], '**')
+
+ex12.tab[,1] = ex13.tab[,1] = ex14.tab[,1] = lbls
+cn = colnames(ex12.tab)
+ctab1 = rbind(c(' ', '**Example 12:**', '**Small World**', ''), 
+             ex12.tab, 
+             c('', '**Example 13:**', '**Scale Free**', ''), 
+             ex13.tab) 
+
+ph = as.data.frame(matrix(rep('', 5*4), nrow =5, ncol = 4))
+colnames(ph) = cn
+ctab2 = rbind(c('', '**Example 14:**', '**Random Graph**', ''),
+             ex14.tab,
+             c('', '', ''), ph)
+
+final.ctab = cbind(ctab1, ctab2)
 
 
 if(compile.to.pdf){
   # kable(grid, format = 'latex', digits = 2, row.names = F, booktabs = T,
   #     caption = '')%>%kable_styling(latex_options = c("striped", "hold_postion"),font_size = 10)%>%kable_styling(font_size = 10)%>%column_spec(1, '8em')
 }else{
-  kable(ctab, format = 'html', digits = 3,
+  kable(final.ctab, format = 'html', digits = 3,
       row.names = F, booktabs = T, escape = F,
-      caption = 'Performance metrics for Louvain method and HCD in Examples 6-7. For details regarding parameter settings see Examples 4-5 under section <i>Examples</i>. All results are for the fully connected small-world intermediate network.')%>%
-  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)%>%add_header_above(c(' ', "Example 6" = 3, "Example 7" = 4))
+      caption = 'Performance metrics for Louvain method and HCD in Examples 12-14. For details regarding parameter settings see Examples 12-14 under section <i>Examples</i>. All networks are disconnected with 3 layers and all origin nodes are simulated from a normal distribution with unique center.')%>%
+  kable_classic(full_width = F, html_font = "Cambria")%>%kable_styling(bootstrap_options = 'striped')%>%kable_styling(font_size = 14)
 }
 
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 # Figures 
 
+```{r ex891011fig1, eval = T, echo = F, fig.cap='Prediction performance for Examples 8-10',fig.height=8, fig.width=12}
+include_graphics(paste0(figpath,'ex8910_combined_heatmaps.png'))
 
-```{r example1fig1, echo=FALSE, message=F, warning=F, fig.height=5, fig.width=10, fig.cap = 'The true and reconstructed adjacency matrix for Example 1 application of HCD to the disconnected small-world intermediate network. Left: the reconstructed adjacency matrix after 500 training epochs. Right: The input graph and true adjacency matrix.'}
-include_graphics(paste0(figpath, 'example1_output/smw_disc_3_layer_epoch_500_Adjacency_maps.png'))
-
-```
-
-
-```{r example1fig2, echo=FALSE, message=F, warning=F, fig.height=5, fig.width=10, fig.cap = 'The middle and top layer community predictions corresponding to Example 1 - application of HCD to disconnected small-world intermeidate network.'}
-include_graphics(paste0(figpath, 'example1_output/best_iteration_303epoch_303_heatmaps.png'))
-```
-
-```{r example1fig3, echo=FALSE, message=F, warning=F, fig.align='center', fig.height=8, fig.width=15, fig.cap = 'Example 1 training loss curves.'}
-include_graphics(paste0(figpath, 'example1_output/500_epochs_training_loss.png'))
-```
-
-
-```{r example1fig4, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space. Colors correspond to the predicted top layer community assignments corresponding the application in Example 1 for the \"best\" performing epoch.'}
-include_graphics(paste0(figpath, 'example1_output/Top Layer_3D_PCA_Plot.png'))
-```
-
-
-```{r example2fig1, echo=FALSE, message=F, warning=F, fig.align='center', fig.height=8, fig.width=10, fig.cap = 'Example 2 training loss curves.'}
-include_graphics(paste0(figpath, 'example2_output/500_epochs_training_loss_curves.png'))
-```
-
-
-```{r example2fig2, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The true and reconstructed adjacency matrix for Example 2 application of HCD to the disconnected small-world intermediate network. Left: the reconstructed adjacency matrix after 500 training epochs. Right: The input graph and true adjacency matrix.'}
-include_graphics(paste0(figpath, 'example2_output/smw_disc_3_layer_epoch_500_Adjacency_maps.png'))
-```
-
-
-```{r example2fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The middle and top layer community predictions corresponding to Example 2 - application of HCD to disconnected small-world intermeidate network with downweighted attribute reconstruction loss'}
-include_graphics(paste0(figpath, 'example2_output/best_iteration_476epoch_476_heatmaps.png'))
-```
-
-
-```{r example3fig1, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The true and reconstructed adjacency matrix for Example 3 - application of HCD to the disconnected small-world intermediate network. Left: the reconstructed adjacency matrix after 500 training epochs. Right: The input graph and true adjacency matrix.'}
-include_graphics(paste0(figpath, 'example3_output/best_iteration_124epoch_124_Adjacency_maps.png'))
-```
-
-
-```{r example3fig2, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The middle and top layer community predictions corresponding to Example 3 - application of HCD to disconnected small-world intermeidate network with downweighted attribute reconstruction loss'}
-include_graphics(paste0(figpath, 'example3_output/best_iteration_124epoch_124_heatmaps.png'))
-```
-
-
-```{r example3fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space. Colors correspond to the predicted top layer community assignments corresponding the application in Example 1 for the \"best\" performing epoch.'}
-include_graphics(paste0(figpath, 'example3_output/Top Layer_3D_PCA_Plot.png'))
-```
-
-```{r example4fig1, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'Louvain community predictions compared to the true middle and top layer communities for the fully connected small-world intermediate network'}
-include_graphics(paste0(figpath, 'example4_output/Louvain_results.png'))
-```
-
-```{r example4fig2, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'The middle and top layer community predictions corresponding to Example 4 - application of HCD to the fully-connected, small-world intermeidate network.'}
-include_graphics(paste0(figpath, 'example4_output/best_iteration_187epoch_187_heatmaps.png'))
-```
-
-
-```{r example4fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the fully connected, small-world intermeidate netowrk. Colors correspond to the predicted top layer community assignments corresponding the application in Example 4 for the \"best\" performing epoch.'}
-include_graphics(paste0(figpath, 'example4_output/Top Layer_3D_PCA_Plot.png'))
-```
-
-```{r example6fig1, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the disconnected, small-world intermeidate netowrk. Colors correspond to the true top layer communities. In this network, orign nodes are simulated from the same distribution resulting in all communities originating from a central point in the PC space. Red points represent parent nodes'}
-include_graphics(paste0(figpath, 'example6_output/3D_PCA_GTCommon_dist.png'))
-```
-
-
-
-```{r example6fig2, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the disconnected, small-world intermeidate network. In this network, orign nodes are simulated from a unique distribution resulting in all communities originating at distinct points in the PC space. Red points represent parent nodes'}
-include_graphics(paste0(figpath, 'example6_output/3D_PCA_GT.png'))
-```
-
-
-
-```{r example6fig3, echo=FALSE, message=F, warning=F, fig.height=8, fig.width=10, fig.cap = 'A plot of the nodes in the first three prinicple dimensions of the attribute space for the fully connected, small-world intermeidate netowrk. Colors correspond to the predicted top layer community assignments corresponding the application in Example 6 for the \"best\" performing epoch.'}
-include_graphics(paste0(figpath, 'example6_output/Top Layer_3D_PCA_Plot.png'))
-```
-
-
-
-```{r example6fig4, echo=FALSE, message=F, warning=F, fig.height=10, fig.width=12, fig.align='center', fig.cap = 'Example 6 training loss curves.'}
-include_graphics(paste0(figpath, 'example6_output/training_loss_curves.png'))
 ```
 
 
 
 
+
+
+
+
+
+
+<!-- Clustering Loss Examples -->
+```{r examplelossfig1, echo=F, eval=T, fig.cap='TSNE/PCA of nodes attribute matrix. Colors indicate true community assignments at the top layer of the hierarchy', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'example_loss_comparisons/loss_on_embed/Top Layer_tSNE_PCA_Plot.png'))
+
+```
+
+
+```{r examplelossfig2, echo = F, eval = T, fig.cap='TSNE/PCA of node embeddings at the bottleneck layer of GATE (top) and the first hierarchical layer (bottom). Colors indicate the predicted community assignments at the top layer of the hierarchy for Clustering Loss Example 1', fig.height=10, fig.width=12}
+include_graphics(paste0(figpath, 'example1lossfig_embed.png'))
+
+```
+
+```{r examplelossfig3, echo = F, eval = T, fig.cap='TSNE/PCA of node embeddings at the bottleneck layer of GATE (top) and the first hierarchical layer (bottom). Colors indicate the predicted community assignments at the top layer of the hierarchy for Clustering Loss Example 2', fig.height=10, fig.width=12}
+include_graphics(paste0(figpath, 'example2lossfig_embed.png'))
+
+```
+
+```{r examplelossfig4, echo = F, eval = T, fig.cap='TSNE/PCA of node embeddings at the bottleneck layer of GATE (top) and the first hierarchical layer (bottom). Colors indicate the predicted community assignments at the top layer of the hierarchy for Clustering Loss Example 3', fig.height=10, fig.width=12}
+include_graphics(paste0(figpath, 'example3lossfig_embed.png'))
+
+```
+
+
+```{r examplelossfig5, eval = T, echo =F,  fig.cap='Prediction performance for Clustgering Loss Example 1', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'example_loss_comparisons/loss_on_embed/best_iteration_34epoch_34_heatmaps.png'))
+
+```
+
+```{r examplelossfig6, eval = T, echo =F,  fig.cap='Prediction performance for Clustering Loss Example 2', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'example_loss_comparisons/loss_on_data/best_iteration_99epoch_99_heatmaps.png'))
+
+```
+
+```{r examplelossfig7, eval = T, echo =F,  fig.cap='Prediction performance for Clustering Loss Example 2', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'example_loss_comparisons/loss_on_embed_boosted_xloss/best_iteration_327epoch_327_heatmaps.png'))
+
+```
 
 
 # References

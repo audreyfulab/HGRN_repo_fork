@@ -86,7 +86,7 @@ class ClusterLoss(nn.Module):
         super(ClusterLoss, self).__init__()
 
     
-    
+    # forward method for loss computed using input feature matrix
     # def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
         
     #     """
@@ -94,7 +94,7 @@ class ClusterLoss(nn.Module):
     #     Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
     #     Attributes: Node feature matrix
     #     Probabilities: a list of length l corresponding the assignment probabilities for 
-    #                    assigning nodes to communities in l hierarchical layers
+    #                     assigning nodes to communities in l hierarchical layers
     #     Cluster_labels: list of length l containing cluster assignment labels 
     #     """
     #     N = Attributes.shape[0]
@@ -118,7 +118,7 @@ class ClusterLoss(nn.Module):
 
 
 
-
+    # forward method for loss computed using GAE model embedding
     def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
 
         """
@@ -131,7 +131,6 @@ class ClusterLoss(nn.Module):
         Cluster_labels: list of length l containing cluster assignment labels 
         """
         #N = Attributes[0].shape[0]
-        N = Attributes.shape[0]
         loss = torch.Tensor([0])
         loss_list = []
         #problist = [torch.eye(N)]+Probabilities

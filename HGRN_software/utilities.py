@@ -48,6 +48,7 @@ def open_pickled(filename):
 
 #This function computes the within cluster sum of squares (WCSS)
 #----------------------------------------------------------------
+# within cluster loss computed using input feature matrix
 # def WCSS(X, Plist, k):
     
 #     """
@@ -69,7 +70,7 @@ def open_pickled(filename):
 
 
 
-
+# within cluster loss computed using GAE model embedding
 def WCSS(X, P, k):
 
     """

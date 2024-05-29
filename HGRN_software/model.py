@@ -12,7 +12,7 @@ from model_layer import gaeGAT_layer as GAT
 from model_layer import multi_head_GAT
 from model_layer import Comm_DenseLayer as CDL
 from collections import OrderedDict
-
+from torchinfo import summary
 
 
 class GATE(nn.Module):
@@ -129,21 +129,26 @@ class HCD(nn.Module):
 
         # set layer normalization
         if normalize_inputs == True:
-            self.act_norm = nn.LayerNorm(nodes)
+            self.act_norm = nn.LayerNorm(attrib)
         else:
             self.act_norm = nn.Identity()
             
+        #normalization for dpd_activation
+        self.dpd_norm = nn.LayerNorm(nodes)
         #set dot product decoder activation to sigmoid
         self.dpd_act = nn.Sigmoid()
         #self.dpd_act = nn.Identity()
         
         
     def forward(self, X, A):
+        
+        #normalize inputs
+        H = self.act_norm(X)
         #get representation
-        Z, A = self.encoder(X,A)
+        Z, A = self.encoder(H,A)
         #reconstruct adjacency matrix using simple dot-product decoder
         #A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
-        A_hat = self.dpd_act(self.act_norm(torch.mm(Z, Z.transpose(0,1))))
+        A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))
         #reconstruct node features
         X_hat, A = self.decoder(Z, A)
         #fit hierarchy
@@ -154,4 +159,12 @@ class HCD(nn.Module):
         #return 
         return X_hat, A_hat, X_all_final, A_all_final, P_all, S
         #return X_hat
+        
+    def summarize(self):
+        print('-----------------GATE-Encoder-------------------')
+        summary(self.encoder)
+        print('-----------------GATE-Decoder-------------------')
+        summary(self.decoder)
+        print('----------Community-Detection-Module------------')
+        summary(self.commModule)
         

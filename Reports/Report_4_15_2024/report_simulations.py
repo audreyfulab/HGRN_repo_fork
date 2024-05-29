@@ -39,7 +39,8 @@ torch.manual_seed(123)
 
 
 
-def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
+def run_simulations(save_results = False, which_dataset = ['common_dist','unique_dist'],
+                    which_net = 0, which_ingraph=1, gam = 1, delt = 1, 
                     lam = 1, learn_rate = 1e-4, epochs = 10, updates = 10, reso = [1,1], 
                     hd = [256, 128, 64], use_true_comms =True, cms = [], 
                     activation = 'LeakyReLU', use_gpu = True, verbose = True,
@@ -57,7 +58,11 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
     #savepath_main ='/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
     
     #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/Toy_examples/Intermediate_examples/OLD_1_23_2024/'
-    loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/OLD_DATA_5_2_2024/'
+    if which_dataset == 'common_dist':
+        loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/OLD_DATA_5_2_2024/'
+    else:
+        loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples_unique_dist/'
+    #loadpath_main = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example_loss_comparisons/loss_on_embed/'
     savepath_main = savepath
     
     structpath = ['small_world/','scale_free/','random_graph/']
@@ -341,32 +346,32 @@ def run_simulations(save_results = False, which_net = 0, which_ingraph=1, gam = 
     print('done')
     return out, tables, Graphs, X, target_labels, S_all, S_sub, louv_preds, [best_perf_idx, best_loss_idx]
             
- 
     
-#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example5_output/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example14_output/'
 # smw simple data: [true clusts]
 # smw complex: []
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
 ep = 500
-wn = 0
-wg = 0
+wn = 4
+wg = 3
 saveit = False
-sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
-#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test2/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
+sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test2/'
 
 
 #disconnected settings
-param_dict = {'epochs': ep, 
-              'hidden': [256, 128, 64, 32],
+param_dict = {'dataset': 'unique_dist',
+              'epochs': ep, 
+              'hidden': [512, 256, 128, 64, 32],
               'gamma': 1e-4,
               'delta': 1e-3,
-              'lambda': [1e-3, 1e-4],
+              'lambda': [1e-4, 1e-5],
               'input_graph': wg,
               'network': wn,
               'learning_rate': 1e-5,
               'true_comms': True,
               'use_attn': True,
-              'attn_heads': 10,
+              'attn_heads': 30,
               'normalize': True}
 
 
@@ -385,6 +390,7 @@ param_dict = {'epochs': ep,
 #               'normalize': True}
 
 out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx = run_simulations(
+    which_dataset = param_dict['dataset'],
     save_results=saveit,
     savepath = sp,
     which_net=wn,
@@ -441,7 +447,7 @@ print('*'*50)
 
 print('----------Middle preds to middle truth----------')
 homo_m2m, comp_m2m, nmi_m2m = node_clust_eval(true_labels=truth[::-1][0], 
-                                  pred_labels = out[0][bp][-2][0], verbose=False)
+                                  pred_labels = out[0][bp][-3][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_m2m, comp_m2m, nmi_m2m
     ))
@@ -449,7 +455,7 @@ print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
 
 print('----------Middle preds to top truth----------')
 homo_m2t, comp_m2t, nmi_m2t = node_clust_eval(true_labels=truth[::-1][1], 
-                                  pred_labels = out[0][bp][-2][0], verbose=False)
+                                  pred_labels = out[0][bp][-3][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_m2t, comp_m2t, nmi_m2t
     ))
@@ -465,7 +471,7 @@ print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
 
 print('----------top preds to top truth----------')
 homo_t2t, comp_t2t, nmi_t2t = node_clust_eval(true_labels=truth[::-1][1], 
-                                  pred_labels = out[0][bp][-2][1], verbose=False)
+                                  pred_labels = out[0][bp][-3][1], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_t2t, comp_t2t, nmi_t2t
     ))
@@ -486,22 +492,22 @@ if saveit:
     best_iter_metrics.to_csv(sp+'best_iteration_toplayer_metrics.csv')
 
 
-G = nx.from_numpy_array((out[0][bp][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy())
-templabs = np.arange(0, data.shape[0])
-clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(truth[1]))}
-nx.draw_networkx(G, node_color = truth[1], 
-                 node_size = 30,
-                 font_size = 8,
-                 with_labels = False,
-                 labels = clust_labels,
-                 cmap = 'plasma')
+# G = nx.from_numpy_array((out[0][bp][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy())
+# templabs = np.arange(0, data.shape[0])
+# clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(truth[1]))}
+# nx.draw_networkx(G, node_color = truth[1], 
+#                  node_size = 30,
+#                  font_size = 8,
+#                  with_labels = False,
+#                  labels = clust_labels,
+#                  cmap = 'plasma')
 #Top layer TSNE and PCA
 post_hoc_embedding(graph=out[0][bp][3][0]-torch.eye(data.shape[0]), 
                         input_X = data,
                         data=data, 
                         probabilities=out[0][bp][4],
                         size = 150.0,
-                        labels = out[0][bp][-2],
+                        labels = out[0][bp][-3],
                         truth = truth[::-1],
                         fs=10,
                         node_size = 25, 
@@ -515,11 +521,76 @@ post_hoc_embedding(graph=out[0][bp][3][0]-torch.eye(data.shape[0]),
 plot_clust_heatmaps(A = graphs[wg], 
                     A_pred = out[0][bp][1]-torch.eye(data.shape[0]), 
                     true_labels = truth, 
-                    pred_labels = out[0][bp][-2], 
+                    pred_labels = out[0][bp][-3], 
                     layers = 3, 
                     epoch = bp, 
                     save_plot = saveit, 
                     sp = sp+'best_iteration_'+str(bp))
+
+
+
+
+
+
+
+
+
+
+#tsne
+TSNE_data=TSNE(n_components=3, 
+               learning_rate='auto',
+               init='random', 
+               perplexity=3).fit_transform(out[0][bp][2][0].detach().numpy())
+#pca
+PCs = PCA(n_components=3).fit_transform(out[0][bp][2][0].detach().numpy())
+
+
+fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+#tsne plot
+ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax1[0].set_xlabel('Dimension 1')
+ax1[0].set_ylabel('Dimension 2')
+ax1[0].set_title(' t-SNE Embedding Bottleneck (Predicted)')
+#adding node labels
+    
+#PCA plot
+ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax1[1].set_xlabel('Dimension 1')
+ax1[1].set_ylabel('Dimension 2')
+ax1[1].set_title(' PCA Embedding-Bottleneck_(Predicted)')
+
+
+
+x1 = torch.mm(out[0][bp][2][0], out[0][bp][2][1].transpose(0,1))
+
+TSNE_data2=TSNE(n_components=3, 
+               learning_rate='auto',
+               init='random', 
+               perplexity=3).fit_transform(x1.detach().numpy())
+#pca
+PCs2 = PCA(n_components=3).fit_transform(x1.detach().numpy())
+
+#tsne plot
+ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax2[0].set_xlabel('Dimension 1')
+ax2[0].set_ylabel('Dimension 2')
+ax2[0].set_title(' t-SNE Embedding Comm1-projection (Predicted)')
+#adding node labels
+    
+#PCA plot
+ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax2[1].set_xlabel('Dimension 1')
+ax2[1].set_ylabel('Dimension 2')
+ax2[1].set_title(' PCA Embedding-Comm1-projection (Predicted)')
+
+if saveit == True:
+    fig.savefig(sp+'topclusters_plotted_on_embeds.pdf')
+
+
+
+
+
+
 
 
 

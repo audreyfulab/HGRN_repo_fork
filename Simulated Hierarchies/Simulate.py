@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from HGRN_hierarchicalgraph import hierachical_graph 
 from HGRN_hierarchicalgraph import generate_pseudo_expression
 from HGRN_hierarchicalgraph import same_cluster
+from utilities import pickle_data
 from random import randint as rd   
 from random import seed
 import pdb
@@ -39,7 +40,7 @@ def simulate_graph(args):
         ts_h1_graph = list(nx.topological_sort(h1_graph))
         adj_h1_graph = nx.adjacency_matrix(h1_graph, ts_h1_graph).todense()
     
-        h2_graph = hierachical_graph(top_graph=h1_graph, 
+        h2_graph, subgraphs2 = hierachical_graph(top_graph=h1_graph, 
                                      subgraph_node_number=args.nodes_per_super2, 
                                      subgraph_type =args.subgraph_type, 
                                      sub_graph_prob=args.subgraph_prob, 
@@ -83,7 +84,7 @@ def simulate_graph(args):
     
         #for 3layer hierarchies
         if args.layers == 3:
-            h3_graph = hierachical_graph(top_graph=h2_graph, 
+            h3_graph, subgraphs3 = hierachical_graph(top_graph=h2_graph, 
                                          subgraph_node_number=args.nodes_per_super3, 
                                          subgraph_type =args.subgraph_type, 
                                          sub_graph_prob=args.subgraph_prob, 
@@ -132,7 +133,7 @@ def simulate_graph(args):
         ts_h1_graph = list(h1_graph.nodes())
         adj_h1_graph = nx.adjacency_matrix(h1_graph, ts_h1_graph).todense()
         
-        h2_graph = hierachical_graph(top_graph = h1_graph, 
+        h2_graph, subgraphs2 = hierachical_graph(top_graph = h1_graph, 
                                      subgraph_node_number=args.nodes_per_super2, 
                                      subgraph_type =args.subgraph_type, 
                                      sub_graph_prob=args.subgraph_prob, 
@@ -175,7 +176,7 @@ def simulate_graph(args):
     
         #for 3 layer hierarchies
         if args.layers == 3:
-            h3_graph = hierachical_graph(top_graph=h2_graph, 
+            h3_graph, subgraphs3 = hierachical_graph(top_graph=h2_graph, 
                                          subgraph_node_number=args.nodes_per_super3, 
                                          subgraph_type =args.subgraph_type, 
                                          sub_graph_prob=args.subgraph_prob, 
@@ -254,6 +255,10 @@ def simulate_graph(args):
                  gen_express= pe,
                  labels = ts_full)
         
+        pickle_data([h1_graph, [h2_graph, subgraphs2]], 
+                    filepath = args.savepath,
+                    filename = 'directed_graphs')
+        
         adj_all = [h1_undi_adj, h2_undi_adj]
         nx_all = [ts_h1_graph, ts_full]
     else:
@@ -265,6 +270,10 @@ def simulate_graph(args):
                  adj_layer3= h3_undi_adj, 
                  gen_express= pe,
                  labels = ts_full)
+        
+        pickle_data([h1_graph, [h2_graph, subgraphs2], [h3_graph, subgraphs3]], 
+                    filepath = args.savepath,
+                    filename = 'directed_graphs')
         
         adj_all = [h1_undi_adj, h2_undi_adj, h3_undi_adj]
         nx_all = [ts_h1_graph, ts_h2_graph, ts_full]

@@ -60,7 +60,7 @@ args = parser.parse_args()
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
 args.connect_prob = 0.01
-args.common_dist = True
+args.common_dist = False
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
@@ -70,7 +70,8 @@ args.common_dist = True
 # args.SD = 0.1
 # args.node_degree = 5
 
-mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
+#mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
+mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples_unique_dist/'
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
 
 structpath = ['small_world/','scale_free/','random_graph/']

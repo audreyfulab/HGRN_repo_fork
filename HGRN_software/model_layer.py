@@ -146,9 +146,9 @@ class gaeGAT_layer(nn.Module):
         LeakyReLU        sqrt(2 / (1 + (-m)^2)
     """
 
-    def __init__(self, in_features, out_features, attention_act = ['LeakyReLU','Sigmoid'], 
-                 act = nn.Identity(), norm = True, alpha=0.2, gain = 1.414,
-                 dropout = 0.2):
+    def __init__(self, nodes, in_features, out_features, attention_act = ['LeakyReLU','Sigmoid'], 
+                 act = nn.Identity(), norm = True, alpha=0.2, init_bias = 0, gain = 1,
+                 dropout = 0.2, use_bias = True):
         super(gaeGAT_layer, self).__init__()
         #store in and features for layer
         self.in_features = in_features
@@ -157,7 +157,10 @@ class gaeGAT_layer(nn.Module):
         #set dense linear layer parameters and initialize
         self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
         nn.init.xavier_uniform_(self.W.data, gain=gain)
-        
+        #Set bias parameters
+        self.b = nn.Parameter(torch.zeros(size=(1,out_features)))
+        if use_bias:
+            torch.nn.init.constant_(self.b.data, init_bias)
         #attention applied to self
         self.a_s = nn.Parameter(torch.zeros(size=(out_features, 1)))
         nn.init.xavier_uniform_(self.a_s.data, gain=gain)
@@ -174,7 +177,7 @@ class gaeGAT_layer(nn.Module):
             
             
         if self.norm == True:
-            self.act_norm = nn.LayerNorm(in_features)
+            self.act_norm = nn.LayerNorm(out_features)
         else:
             self.act_norm = nn.Identity()
             
@@ -192,9 +195,8 @@ class gaeGAT_layer(nn.Module):
                 A: Adjacency matrix
         """
         X, A = inputs
-        X = self.act_norm(X)
         #compute dense layer embeddings - default activation is identity function
-        H_in = self.act(torch.mm(X, self.W))
+        H_in = self.act(torch.mm(X, self.W)+self.b)
         #compute the attention for self
         M_s = torch.mul(A, torch.mm(H_in, self.a_s))
         #compute the attendtion for neighbors
@@ -209,8 +211,8 @@ class gaeGAT_layer(nn.Module):
         temp_atten = torch.where(A > 0, concat_atten, zero_vec)
         C_atten = F.softmax(temp_atten, dim=1)
         #compute final embeddings
-        H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)))
-        
+        H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)+self.b))
+        X = self.act_norm(H_out)
         return (H_out, A)
         
 
@@ -231,7 +233,7 @@ class  multi_head_GAT(nn.Module):
 
     def __init__(self, nodes, in_features, out_features, heads = 1, 
                   attention_act = ['LeakyReLU','Sigmoid'], act = nn.Identity(), 
-                  norm = True, alpha=0.2, gain = 1.414, dropout = 0.2, concat = 'sum'):
+                  norm = True, alpha=0.2, gain = 1, dropout = 0.2, concat = 'sum'):
         super(multi_head_GAT, self).__init__()
         
         self.nodes = nodes
@@ -244,7 +246,8 @@ class  multi_head_GAT(nn.Module):
         self.num_heads = heads
         self.attention_layers = []
 
-        self.attention_layer = gaeGAT_layer(in_features = self.in_features, 
+        self.attention_layer = gaeGAT_layer(nodes = self.nodes,
+                                            in_features = self.in_features, 
                                             out_features = self.out_features * self.num_heads, 
                                             attention_act = self.attn_act, 
                                             act = self.act, 
@@ -300,15 +303,26 @@ class Comm_DenseLayer(nn.Module):
         LeakyReLU        sqrt(2 / (1 + (-m)^2)
     """
 
-    def __init__(self, in_feats, out_comms, norm = True, alpha=0.01, gain = 1.414):
+    def __init__(self, in_feats, out_comms, norm = True, alpha=0.01, use_bias = True, 
+                 init_bias = 0, layer_gain = 'automatic'):
         super(Comm_DenseLayer, self).__init__()
         #store community info
         self.in_feats = in_feats
         self.out_comms = out_comms
         self.norm = norm
+        #set parameter initilization gain
+        if layer_gain == 'automatic':
+            self.gain = nn.init.calculate_gain('leaky_relu', alpha)
+        else:
+            self.gain = layer_gain
         #set dense linear layer parameters and initialize
         self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
-        nn.init.xavier_uniform_(self.W.data, gain=gain)
+        nn.init.xavier_uniform_(self.W.data, gain=self.gain)
+        #initialize zero bias
+        self.b = nn.Parameter(torch.zeros(size=(1,out_comms)))
+        #initialize bias term with constant term
+        if use_bias:
+            torch.nn.init.constant_(self.b.data, init_bias)
         #set layer activation
         self.act = nn.LeakyReLU(negative_slope=alpha)
         #normalize inputs
@@ -331,7 +345,7 @@ class Comm_DenseLayer(nn.Module):
         A=inputs[1]
         Z = self.act_norm(Z)
         #compute assignment probabilities
-        P = F.softmax(torch.mm(Z, self.W), dim = 1)
+        P = F.softmax(torch.mm(Z, self.W)+self.b, dim = 1)
         #get the centroids and layer adjacency matrix
         X_tilde = self.act(torch.mm(Z.transpose(0,1), P)).transpose(0,1)
         A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
