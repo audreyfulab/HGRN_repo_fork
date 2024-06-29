@@ -346,17 +346,21 @@ def run_simulations(save_results = False, which_dataset = ['common_dist','unique
     print('done')
     return out, tables, Graphs, X, target_labels, S_all, S_sub, louv_preds, [best_perf_idx, best_loss_idx]
             
-    
-#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_5_13_2024/example14_output/'
+
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_6_5_2024/example_loss_comparisons/loss_on_data/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_6_5_2024/example_loss_comparisons/loss_on_embed/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_6_5_2024/example_loss_comparisons/loss_on_embed_boosted_xloss/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_6_5_2024/example15_output/'
+sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_6_5_2024/example17_output/'
 # smw simple data: [true clusts]
 # smw complex: []
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
-ep = 500
-wn = 4
+ep = 100
+wn = 5
 wg = 3
-saveit = False
+saveit = True
 #sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/'
-sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test2/'
+#sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test2/'
 
 
 #disconnected settings
@@ -364,7 +368,7 @@ param_dict = {'dataset': 'unique_dist',
               'epochs': ep, 
               'hidden': [512, 256, 128, 64, 32],
               'gamma': 1e-4,
-              'delta': 1e-3,
+              'delta': 1e-2,
               'lambda': [1e-4, 1e-5],
               'input_graph': wg,
               'network': wn,

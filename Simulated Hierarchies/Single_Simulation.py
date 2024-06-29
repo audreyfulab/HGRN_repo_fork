@@ -25,9 +25,9 @@ import pandas as pd
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
-from Simulate import simulate_graph
-from simulation_utilities import compute_graph_STATs, sort_labels
-from utilities import get_input_graph
+from simulation_software.Simulate import simulate_graph
+from simulation_software.simulation_utilities import compute_graph_STATs, sort_labels
+from model.utilities import get_input_graph
 #import os
 #os.chdir('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/')
 import warnings
@@ -41,11 +41,11 @@ import time
 from sklearn.manifold import TSNE
 import pickle
 from sklearn.decomposition import PCA
-from model_layer import gaeGAT_layer as GAT
-from model import GATE, CommClassifer, HCD
-from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity, post_hoc_embedding, compute_beth_hess_comms
-from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, build_true_graph, get_input_graph, plot_nodes, plot_clust_heatmaps
+from model.model_layer import gaeGAT_layer as GAT
+from model.model import GATE, CommClassifer, HCD
+from model.train import CustomDataset, batch_data, fit
+from simulation_software.simulation_utilities import compute_modularity, post_hoc_embedding, compute_beth_hess_comms
+from model.utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, build_true_graph, get_input_graph, plot_nodes, plot_clust_heatmaps
 import seaborn as sbn
 import matplotlib.pyplot as plt
 from community import community_louvain as cl
@@ -58,8 +58,8 @@ from sklearn.manifold import TSNE
 import pickle
 from sklearn.decomposition import PCA
 
-rd.seed(123)
-torch.manual_seed(123)
+# rd.seed(123)
+# torch.manual_seed(123)
 #set seed
 #rd.seed(333)
 
@@ -426,64 +426,83 @@ parser.add_argument('--subgraph_type', dest='subgraph_type', default='small worl
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
 parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20,20), type=tuple)
-parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
+parser.add_argument('--node_degree_middle', dest='node_degree_middle', default=5, type=int)
+parser.add_argument('--node_degree_bottom', dest='node_degree_bottom', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
 parser.add_argument('--layers',dest='layers', default = 2, type=int)
 parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
 parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
 parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
+parser.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
+parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.5), type=tuple)
+parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
 args = parser.parse_args()
-#rd.seed(123)
-#torch.manual_seed(123)
-
-# args.connect = 'full'
-# args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.01
+args.connect_prob = 0.05
 args.common_dist = False
 args.subgraph_prob = 0.05
-
 args.SD = 0.1
-args.node_degree = 3
 args.force_connect = True
 args.layers = 3
-args.connect = 'full'
+args.connect = 'disc'
 args.subgraph_type = 'small world'
+args.use_weighted_graph = False
+args.node_degree_bottom = 15
+args.node_degree_middle = 3
 #args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/Single_sim_dpd_identity/'
 
-#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/unequal_dists/'
-args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example7_output/'
+args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/unequal_dists/'
+#args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/example7_output/'
+sp = args.savepath
 
 
-    
 #cms:
 # smw simple data: [true clusts]
 # smw complex: []
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
-ep = 200
+ep = 100
 wn = 0
 wg = 0
 saveit = False
+#disconnected settings
+param_dict = {'dataset': 'unique_dist',
+              'epochs': ep, 
+              'hidden': [512, 256, 128, 64, 32],
+              'gamma': 1e-4,
+              'delta': 1e-2,
+              'lambda': [1e-4, 1e-5],
+              'input_graph': wg,
+              'network': wn,
+              'learning_rate': 1e-5,
+              'true_comms': True,
+              'use_attn': True,
+              'attn_heads': 30,
+              'normalize': True}
+
+
 out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx = run_simulations(args,
     save_results=saveit,
-    reso=[1,1],
-    hd=[512, 416, 256, 128, 64, 32],
-    gam = 1e-4,
-    delt = 1e-2,
-    lam = [5e-4, 1e-5],
-    learn_rate=1e-5,
-    cms=[15, 5],
-    epochs = ep,
-    updates = ep,
+    which_net=wn,
+    which_ingraph=wg,
+    reso=[1,1,1,1],
+    hd=param_dict['hidden'],
+    gam = param_dict['gamma'],
+    delt = param_dict['delta'],
+    lam = param_dict['lambda'],
+    learn_rate=param_dict['learning_rate'],
+    use_true_comms=param_dict['true_comms'],
+    cms=[100, 15],
+    epochs = param_dict['epochs'],
+    updates = param_dict['epochs'],
     activation = 'Sigmoid',
     TOAL=False,
-    use_multi_head=True,
-    attn_heads=20,
+    use_multi_head=param_dict['use_attn'],
+    attn_heads=param_dict['attn_heads'],
     verbose = True,
     return_result = 'best_perf_top',
-    normalize_inputs=True)
-
+    normalize_inputs=param_dict['normalize'])
 
 bp, bl = idx
+
 
 
 params_df = pd.DataFrame([['Hidden Layer Dimensions: ', str([496, 392, 256, 128, 64, 32])],
@@ -498,19 +517,7 @@ params_df = pd.DataFrame([['Hidden Layer Dimensions: ', str([496, 392, 256, 128,
                           ['Normalize_inputs: ',str(True)]],
                           columns=['Parameter','Value'])
 
-# params_df = pd.DataFrame([['Hidden Layer Dimensions: ', str([256, 128, 64, 32])],
-#                           ['X_loss: ', 1e-1],
-#                           ['Modularity_loss: ', 1e-1],
-#                           ['Clustering_loss: ', str([5e-2, 1e-3])],
-#                           ['Learning_rate: ', 1e-5],
-#                           ['True Comms: ', str(True)],
-#                           ['Epochs: ', str(500)],
-#                           ['Multi Head Attn: ', str(True)],
-#                           ['Attn. Heads: ', str(5)],
-#                           ['Normalize_inputs: ',str(True)]],
-#                           columns=['Parameter','Value'])
-
-params_df.to_csv(args.savepath+'param_settings.csv')
+params_df.to_csv(sp+'param_settings.csv')
 
 
 print('Louvain compared to middle')
@@ -525,7 +532,7 @@ print('*'*50)
 
 print('----------Middle preds to middle truth----------')
 homo_m2m, comp_m2m, nmi_m2m = node_clust_eval(true_labels=truth[::-1][0], 
-                                  pred_labels = out[0][bp][-2][0], verbose=False)
+                                  pred_labels = out[0][bp][-3][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_m2m, comp_m2m, nmi_m2m
     ))
@@ -533,7 +540,7 @@ print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
 
 print('----------Middle preds to top truth----------')
 homo_m2t, comp_m2t, nmi_m2t = node_clust_eval(true_labels=truth[::-1][1], 
-                                  pred_labels = out[0][bp][-2][0], verbose=False)
+                                  pred_labels = out[0][bp][-3][0], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_m2t, comp_m2t, nmi_m2t
     ))
@@ -549,7 +556,7 @@ print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
 
 print('----------top preds to top truth----------')
 homo_t2t, comp_t2t, nmi_t2t = node_clust_eval(true_labels=truth[::-1][1], 
-                                  pred_labels = out[0][bp][-2][1], verbose=False)
+                                  pred_labels = out[0][bp][-3][1], verbose=False)
 print('Homogeneity = {}, \nCompleteness = {}, \nNMI = {}'.format(
     homo_t2t, comp_t2t, nmi_t2t
     ))
@@ -567,71 +574,25 @@ best_iter_metrics = pd.DataFrame([['louvain vs middle']+np.round([homo_l2m, comp
                                  columns=['Comparison','Homogeneity','Completeness','NMI'])
 
 if saveit:
-    best_iter_metrics.to_csv(args.savepath+'best_iteration_toplayer_metrics.csv')
-
-#sbn.heatmap(np.array([preds[0].detach().numpy(), truth[0]]).transpose())
-#[node_clust_eval(truth[0], i, verbose = True) for i in preds]
-#[node_clust_eval(i, louv_pred, verbose = True) for i in truth]
+    best_iter_metrics.to_csv(sp+'best_iteration_toplayer_metrics.csv')
 
 
-# fig, ax = plt.subplots(figsize = (12, 10))
-# df1 = pd.DataFrame(np.array([preds[0].cpu().detach().numpy(), preds[1].cpu().detach().numpy(), 
-#                     louv_pred, truth[1], truth[0]]).T, 
-#                     columns = ['HCD Middle', 'HCD Top', 'Louvain', 'Truth Middle', 'Truth Top'])
-
-# sbn.heatmap(df1, ax = ax)
-
-# fig.savefig('')
-
-# fig, ax = plt.subplots(figsize = (14,10))
-# G = nx.from_numpy_array((graphs[0]- torch.eye(data.shape[0])).cpu().detach().numpy())
-# nx.draw_networkx(G, pos=nx.shell_layout(G), 
-#                   with_labels = True,
-#                   font_size = 10,
-#                   node_color = truth[0], 
-#                   ax = ax,
-#                   node_size = 100,
-#                   cmap = 'rainbow')
-# fig2, ax2 = plt.subplots(figsize = (14,10))
-# nx.draw_networkx(G, pos=nx.shell_layout(G), 
-#                   with_labels = True,
-#                   font_size = 10,
-#                   node_size = 150,
-#                   node_color = truth[1], 
-#                   ax = ax2,
-#                   cmap = 'tab20')
-
-epoch = ep-1
-#Top layer TSNE and PCA
-# post_hoc_embedding(graph=out[0][epoch][3][0]-torch.eye(data.shape[0]), 
-#                         input_X = data,
-#                         embed=out[0][epoch][2][0], 
-#                         probabilities=out[0][epoch][4],
-#                         size = 150.0,
-#                         labels = preds,
-#                         truth = truth[::-1],
-#                         fs=10,
-#                         path = '', 
-#                         node_size = 25, 
-#                         font_size = 10)
-
-
-G = nx.from_numpy_array((out[0][bp][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy())
-templabs = np.arange(0, data.shape[0])
-clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(truth[1]))}
-nx.draw_networkx(G, node_color = truth[1], 
-                 node_size = 30,
-                 font_size = 8,
-                 with_labels = False,
-                 labels = clust_labels,
-                 cmap = 'plasma')
+# G = nx.from_numpy_array((out[0][bp][3][0]-torch.eye(data.shape[0])).cpu().detach().numpy())
+# templabs = np.arange(0, data.shape[0])
+# clust_labels = {list(G.nodes)[k]: templabs.tolist()[k] for k in range(len(truth[1]))}
+# nx.draw_networkx(G, node_color = truth[1], 
+#                  node_size = 30,
+#                  font_size = 8,
+#                  with_labels = False,
+#                  labels = clust_labels,
+#                  cmap = 'plasma')
 #Top layer TSNE and PCA
 post_hoc_embedding(graph=out[0][bp][3][0]-torch.eye(data.shape[0]), 
                         input_X = data,
                         data=data, 
                         probabilities=out[0][bp][4],
                         size = 150.0,
-                        labels = out[0][bp][-2],
+                        labels = out[0][bp][-3],
                         truth = truth[::-1],
                         fs=10,
                         node_size = 25, 
@@ -639,14 +600,73 @@ post_hoc_embedding(graph=out[0][bp][3][0]-torch.eye(data.shape[0]),
                         font_size = 10,
                         include_3d_plots = True,
                         save = saveit,
-                        path = args.savepath)
+                        path = sp)
 
 
 plot_clust_heatmaps(A = graphs[wg], 
-                    A_pred = out[0][bp][3][0]-torch.eye(data.shape[0]), 
+                    A_pred = out[0][bp][1]-torch.eye(data.shape[0]), 
                     true_labels = truth, 
-                    pred_labels = out[0][bp][-2], 
+                    pred_labels = out[0][bp][-3], 
                     layers = 3, 
                     epoch = bp, 
                     save_plot = saveit, 
-                    sp = args.savepath+'best_iteration_'+str(bp))
+                    sp = sp+'best_iteration_'+str(bp))
+
+
+
+
+
+
+
+
+
+
+#tsne
+TSNE_data=TSNE(n_components=3, 
+               learning_rate='auto',
+               init='random', 
+               perplexity=3).fit_transform(out[0][bp][2][0].detach().numpy())
+#pca
+PCs = PCA(n_components=3).fit_transform(out[0][bp][2][0].detach().numpy())
+
+
+fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+#tsne plot
+ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax1[0].set_xlabel('Dimension 1')
+ax1[0].set_ylabel('Dimension 2')
+ax1[0].set_title(' t-SNE Embedding Bottleneck (Predicted)')
+#adding node labels
+    
+#PCA plot
+ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax1[1].set_xlabel('Dimension 1')
+ax1[1].set_ylabel('Dimension 2')
+ax1[1].set_title(' PCA Embedding-Bottleneck_(Predicted)')
+
+
+
+x1 = torch.mm(out[0][bp][2][0], out[0][bp][2][1].transpose(0,1))
+
+TSNE_data2=TSNE(n_components=3, 
+               learning_rate='auto',
+               init='random', 
+               perplexity=3).fit_transform(x1.detach().numpy())
+#pca
+PCs2 = PCA(n_components=3).fit_transform(x1.detach().numpy())
+
+#tsne plot
+ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax2[0].set_xlabel('Dimension 1')
+ax2[0].set_ylabel('Dimension 2')
+ax2[0].set_title(' t-SNE Embedding Comm1-projection (Predicted)')
+#adding node labels
+    
+#PCA plot
+ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = out[0][bp][-3][1], cmap = 'plasma')
+ax2[1].set_xlabel('Dimension 1')
+ax2[1].set_ylabel('Dimension 2')
+ax2[1].set_title(' PCA Embedding-Comm1-projection (Predicted)')
+
+if saveit == True:
+    fig.savefig(sp+'topclusters_plotted_on_embeds.pdf')
