@@ -8,19 +8,15 @@ Created on Fri Sep 29 00:22:43 2023
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 import time
 import torch.optim as optimizers 
-from model.utilities import Modularity, BCSS, WCSS, node_clust_eval
-import matplotlib.pyplot as plt
-import seaborn as sbn
+from model.utilities import Modularity, WCSS, node_clust_eval
 from tqdm import tqdm
-from model.utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df
-from model.utilities import plot_loss, plot_perf, plot_adj, plot_nodes, plot_clust_heatmaps
-import pdb
+from model.utilities import trace_comms
+from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
+
 #------------------------------------------------------
 #custom pytorch dataset
 class CustomDataset(Dataset):
@@ -199,7 +195,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     )
     
     #set loss functions
-    A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
+    #A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
+    A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
     X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
 
@@ -215,8 +212,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         start_epoch = time.time()
         if epoch % update_interval == 0:
             print('Epoch {} starts !'.format(epoch))
-            print('=' * 80)
-            print('=' * 80)
+            print('=' * 55)
+            print('=' * 55)
         total_loss = 0
         model.train()
         
@@ -337,16 +334,16 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                    save=save_output,
                                    path = output_path+'midde_Clusters_result_'+str(epoch+1))
                     
-                if verbose == True: #plotting heatmaps: 
-                    print('plotting heatmaps...')
-                    plot_clust_heatmaps(A = A, 
-                                        A_pred = A_pred, 
-                                        true_labels = true_labels, 
-                                        pred_labels = S_relab[-k:], 
-                                        layers = k+1, 
-                                        epoch = epoch+1, 
-                                        save_plot = save_output, 
-                                        sp = output_path)
+                
+                print('plotting heatmaps...')
+                plot_clust_heatmaps(A = A, 
+                                    A_pred = A_pred, 
+                                    true_labels = true_labels, 
+                                    pred_labels = S_relab[-k:], 
+                                    layers = k+1, 
+                                    epoch = epoch+1, 
+                                    save_plot = save_output, 
+                                    sp = output_path)
                 
                 
                 

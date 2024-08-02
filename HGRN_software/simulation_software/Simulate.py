@@ -28,7 +28,7 @@ import pdb
 
 def simulate_graph(args): 
     
-    seed(args.seed_number)
+    #seed(args.seed_number)
     nodes_by_layer = []
     edges_by_layer = []
     if args.connect == 'full':

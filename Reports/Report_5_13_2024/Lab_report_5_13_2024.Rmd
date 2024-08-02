@@ -117,7 +117,7 @@ For each simulation, we configure the number of communities in the middle and up
 
 ### Comparing small world, scale free, and random graphs: small world disconnected intermediate networks {-}
 
-In this section, we compare HCD and louvain performance on small world, scale free, and random graph networks in this simplest/easiest scenario: 3-layer intermediate networks with origin nodes simulated from $N(\mu_k, \sigma)$ distributions. These three hierarchies are the simplest in terms of the separability of the communities in the middle and top layers. A full summary of the networks in this dataset can be found in *Table* \@ref(tab:tab4). We apply HCD with the "best" parameter settings from our previous results outlined in *Report 4/15/2025* which are summarized in **Table** \@ref(tab:ex891011params). 
+In this section, we compare HCD and louvain performance on small world, scale free, and random graph networks in this simplest/easiest scenario: 3-layer intermediate networks with origin nodes simulated from $N(\mu_k, \sigma)$ distributions. These three hierarchies are the simplest in terms of the separability of the communities in the middle and top layers. A full summary of the networks in this dataset can be found in *Table* \@ref(tab:tab4). We apply HCD with the "best" parameter settings from our previous results outlined in *Report 4/15/2025* which are summarized in **Table** \@ref(tab:ex891011params). Overall, HCD performs fairly well under these parameter settings for the scale free and small world networks (**Table** \@ref(tab:example891011perf)). However, performance on the random graph network is much lower - likely due to the lack of community structure in this network (**Figure** \@ref(fig:fig)). For the scale free and small world networks, HCD performs similar to the Louvain method. Like the Lovain method, HCD is primarily capturing the top layer in the small world network and the middle layer in the scale free network. Overall, these performance values are lower than previously reported in *Report 4/15/2025*. This is may be because the data simulation procedure is different (i.e unique dists for parent nodes) and the parameter settings need to be futher tuned. In **Example 11** we should that HCD is able to achieve considerably improved performance after downweighting the clustering loss further (**Table** \@ref(tab:example891011perf)).
 
 
 ### Issues with loss function {-}
@@ -138,15 +138,16 @@ To help illustrate this, we present three more examples outlined in **Table** \@
 
 To address this bias, we adjust the clustering loss function given **eq 1** to compute the loss using the original node attributes. Since the node features remain unchanged through the training process the model is not encouraged to manipulate their presentations in the embedding space. To compute the loss using the original node attributes, we must know the mapping between the original $N$ nodes to their community representations in higher hierarchical layers. This can be done through a simple multiplication of the assignment probabilities from previous layers:
 
-\[ {\bf Q}_\ell = \bf{P}_1 \otimes {\bf P_2} \otimes \cdots \otimes {\bf P}_{\ell -1}  \]
+\[ {\bf Q}_\ell = \prod_{i = 1}^{\mathcal{\ell - 1}}{\bf P}_i\]
+\[{\bf P}_1 \times {\bf P_2} \times \cdots \times {\bf P}_{\ell -1}  \]
 
 Where the operation ${\bf Q}_\ell = {\bf P}_{\ell -1 } \otimes {\bf P}_\ell$ is the dot product between matrices ${\bf P}_{\ell -1 }$ and ${\bf P}_\ell$ where the elements in $\bf Q$ are computed as
 
 \[q_{i,j} = {\bf p}_{\ell -1,i}^T \circ  {\bf p}_{\ell,j} = \sum_{s = 1}^{k_{\ell - 1}} p_{i,s}^{(\ell - 1)} \cdot p_{s,j}^{(\ell)}\]
 
-this is akin to computing the marginal probability of assigning node $n_i$ to community $C_k$ in the $\ell^{th}$ hierarchical layer:
+for $p_{i,j}^{(\ell)} \in {\bf P}_\ell$. The vector product is akin to computing the marginal probability of assigning node $n_i$ to community $C_k$ in the $\ell^{th}$ hierarchical layer summed or all possible assignments in the previous layer(s):
 
-\[ = \sum_{m = 1}^{k_{\ell - 1}}Pr\left( n_i \in C_m^{(\ell - 1)}\right) \cdot Pr\left(n_i \in C_{k}^{(\ell)}| n_i \in C_m^{(\ell - 1)} \ \right) \]
+\[ q_{m,k}= \sum_{m = 1}^{k_{\ell - 1}}Pr\left( n_i \in C_m^{(\ell - 1)}\right) \cdot Pr\left(n_i \in C_{k}^{(\ell)}| n_i \in C_m^{(\ell - 1)} \ \right) \]
 
 We present the results from **Cluster Loss Example 2** which uses the above clustering loss computed on the original node features applied to the same network as in Cluster Loss Example 1. As can be seen in **Figures** \@ref(fig:examplelossfig3) - \@ref(fig:examplelossfig6) and **Table** \@ref(tab:exlossperf), using the node attributes to compute the cluster loss leads to perfect clustering performance on the top layer communities, but the middle layer communities are no longer detectable. This is possible due to a known issue with k-means like optimization in which communities that are too small or nested within larger structures are undetectable. 
 
@@ -544,7 +545,7 @@ if(compile.to.pdf){
 
 #prevpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_4_15_2024/'
 ex12.params = read.csv(paste0(figpath, 'example10_output/param_settings.csv'), row.names = 1)
-ex12.params = rbind.data.frame(ex12.params, c('Input Graph', 'True Graph'),
+ex12.params = rbind.data.frame(ex12.params, c('Input Graph', '0.5 Corr. Graph'),
                               c('Layers', 3),
                               c('Network Type', 'Small World/Disconnected'),
                               c('Dataset', 'Intermediate Networks'),
@@ -553,7 +554,7 @@ ex12.params = rbind.data.frame(ex12.params, c('Input Graph', 'True Graph'),
 
 
 ex13.params = read.csv(paste0(figpath, 'example8_output/param_settings.csv'), row.names = 1)
-ex13.params = rbind.data.frame(ex13.params, c('Input Graph', 'True Graph'),
+ex13.params = rbind.data.frame(ex13.params, c('Input Graph', '0.5 Corr. Graph'),
                               c('Layers', 3),
                               c('Network Type', 'Scale Free/Disconnected'),
                               c('Dataset', 'Intermediate Networks'),
@@ -563,7 +564,7 @@ ex13.params = rbind.data.frame(ex13.params, c('Input Graph', 'True Graph'),
 
 ex14.params = read.csv(paste0(figpath, 'example9_output/param_settings.csv'), row.names = 1)
 ex14.params = rbind.data.frame(ex14.params,
-                              c('Input Graph', 'True Graph'),
+                              c('Input Graph', '0.5 Corr. Graph'),
                               c('Layers', 3),
                               c('Network Type', 'Random Graph/Disconnected'),
                               c('Dataset', 'Intermediate Networks'),
@@ -693,6 +694,28 @@ include_graphics(paste0(figpath, 'example_loss_comparisons/loss_on_embed_boosted
 
 ```
 
+
+
+
+```{r example121314fig1, eval = T, echo =F,  fig.cap='True and predicted adjacency matrices for examples 12 - 14', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'Fu HCD Presentation Files/Adjacency_Heatmaps_combined.png'))
+
+```
+
+```{r example121314fig2, eval = T, echo =F,  fig.cap='Heatmaps showing HCD prediction performance for examples 12 - 14', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'Fu HCD Presentation Files/heatmaps.png'))
+
+```
+
+```{r example121314fig3, eval = T, echo =F,  fig.cap='Correlations on the simulated data and HCD model bottleneck dimension embeddings for examples 12-14', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'Fu HCD Presentation Files/Correlation_graphs_combined.png'))
+
+```
+
+```{r example121314fig4, eval = T, echo =F,  fig.cap='Loss curves for examples 12 - 14', fig.height=8, fig.width=12}
+include_graphics(paste0(figpath, 'Fu HCD Presentation Files/Losses combined.png'))
+
+```
 
 # References
 \bibliographystyle{unsrt}

@@ -162,9 +162,9 @@ class HCD(nn.Module):
         
     def summarize(self):
         print('-----------------GATE-Encoder-------------------')
-        summary(self.encoder)
+        print(summary(self.encoder))
         print('-----------------GATE-Decoder-------------------')
-        summary(self.decoder)
+        print(summary(self.decoder))
         print('----------Community-Detection-Module------------')
-        summary(self.commModule)
+        print(summary(self.commModule))
         

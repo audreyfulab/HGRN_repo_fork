@@ -155,12 +155,15 @@ class gaeGAT_layer(nn.Module):
         self.out_features = out_features
         self.norm = norm
         #set dense linear layer parameters and initialize
-        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
-        nn.init.xavier_uniform_(self.W.data, gain=gain)
-        #Set bias parameters
-        self.b = nn.Parameter(torch.zeros(size=(1,out_features)))
-        if use_bias:
-            torch.nn.init.constant_(self.b.data, init_bias)
+        # self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
+        # nn.init.xavier_uniform_(self.W.data, gain=gain)
+        # #Set bias parameters
+        # self.b = nn.Parameter(torch.zeros(size=(1,out_features)))
+        # if use_bias:
+        #     torch.nn.init.constant_(self.b.data, init_bias)
+        
+        self.LinearLayer = nn.Linear(self.in_features, self.out_features,
+                                     bias = use_bias)
         #attention applied to self
         self.a_s = nn.Parameter(torch.zeros(size=(out_features, 1)))
         nn.init.xavier_uniform_(self.a_s.data, gain=gain)
@@ -196,7 +199,8 @@ class gaeGAT_layer(nn.Module):
         """
         X, A = inputs
         #compute dense layer embeddings - default activation is identity function
-        H_in = self.act(torch.mm(X, self.W)+self.b)
+        #H_in = self.act(torch.mm(X, self.W)+self.b)
+        H_in = self.LinearLayer(X)
         #compute the attention for self
         M_s = torch.mul(A, torch.mm(H_in, self.a_s))
         #compute the attendtion for neighbors
@@ -211,7 +215,8 @@ class gaeGAT_layer(nn.Module):
         temp_atten = torch.where(A > 0, concat_atten, zero_vec)
         C_atten = F.softmax(temp_atten, dim=1)
         #compute final embeddings
-        H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)+self.b))
+        #H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)+self.b))
+        H_out = self.act(torch.mm(self.dropout(C_atten), H_in))
         X = self.act_norm(H_out)
         return (H_out, A)
         
@@ -316,21 +321,25 @@ class Comm_DenseLayer(nn.Module):
         else:
             self.gain = layer_gain
         #set dense linear layer parameters and initialize
-        self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
-        nn.init.xavier_uniform_(self.W.data, gain=self.gain)
-        #initialize zero bias
-        self.b = nn.Parameter(torch.zeros(size=(1,out_comms)))
-        #initialize bias term with constant term
-        if use_bias:
-            torch.nn.init.constant_(self.b.data, init_bias)
+        # self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
+        # nn.init.xavier_uniform_(self.W.data, gain=self.gain)
+        # #initialize zero bias
+        # self.b = nn.Parameter(torch.zeros(size=(1,out_comms)))
+        # #initialize bias term with constant term
+        # if use_bias:
+        #     torch.nn.init.constant_(self.b.data, init_bias)
+        self.Linearlayer = nn.Linear(in_features = in_feats, 
+                                     out_features = out_comms, 
+                                     bias = use_bias)
         #set layer activation
         self.act = nn.LeakyReLU(negative_slope=alpha)
         #normalize inputs
         if self.norm == True:
             self.act_norm = nn.LayerNorm(in_feats)
+            self.centroid_norm = nn.LayerNorm(out_comms)
         else:
             self.act_norm = nn.Identity()
-        
+            self.centroid_norm = nn.Identity()
 
     
     def forward(self, inputs):
@@ -345,9 +354,10 @@ class Comm_DenseLayer(nn.Module):
         A=inputs[1]
         Z = self.act_norm(Z)
         #compute assignment probabilities
-        P = F.softmax(torch.mm(Z, self.W)+self.b, dim = 1)
+        #P = F.softmax(torch.mm(Z, self.W)+self.b, dim = 1)
+        P = F.softmax(self.Linearlayer(Z), dim = 1)
         #get the centroids and layer adjacency matrix
-        X_tilde = self.act(torch.mm(Z.transpose(0,1), P)).transpose(0,1)
+        X_tilde = self.act(self.centroid_norm(torch.mm(Z.transpose(0,1), P)))
         A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
         #store
         inputs[0] = X_tilde

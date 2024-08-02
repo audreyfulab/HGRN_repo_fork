@@ -10,11 +10,11 @@ Created on Thu May  9 12:38:18 2024
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model_layer import Comm_DenseLayer as CDL
+from model.model_layer import Comm_DenseLayer as CDL
 from collections import OrderedDict
-from pyg_model_layer import GAT_layer
+from model.pyg_model_layer import GAT_layer
 import torch_geometric.utils as pyg_utils
-
+from torchinfo import summary
 
 
 
@@ -170,6 +170,14 @@ class HCD(nn.Module):
         #return 
         return X_hat, A_hat, X_all_final, A_all_final, P_all, S
         #return X_hat
+        
+    def summarize(self):
+        print('-----------------GATE-Encoder-------------------')
+        print(summary(self.encoder))
+        print('-----------------GATE-Decoder-------------------')
+        print(summary(self.decoder))
+        print('----------Community-Detection-Module------------')
+        print(summary(self.commModule))
 
 
 

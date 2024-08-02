@@ -714,11 +714,13 @@ def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save
     sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
     sbn.heatmap(A.cpu().detach().numpy(), ax = ax1[1])
     
-    fig2, ax2 = plt.subplots(1,2, figsize=(12,10))
-    TL = true_labels.copy()
-    TL.reverse()   
+    ax1[0].set_title(f'Predicted adjacency matrix at epoch {epoch}')
+    ax1[1].set_title('True adjacency_matrix')
+    
+    fig2, ax2 = plt.subplots(1,2, figsize=(12,10)) 
     if layers == 3:
-
+        TL = true_labels.copy()
+        TL.reverse()  
         first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[0])).T,
                                    columns = ['Predicted_Middle','Truth_middle'])
         second_layer = pd.DataFrame(np.vstack((pred_labels[1], TL[1])).T,
@@ -728,7 +730,8 @@ def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save
             
             
     else:
-        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[1])).T,
+        TL = true_labels.copy()
+        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[0])).T,
                                        columns = ['Predicted_Top','Truth_Top'])
         sbn.heatmap(first_layer, ax = ax2[0])
         

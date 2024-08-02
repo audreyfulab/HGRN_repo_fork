@@ -17,11 +17,10 @@ import sys
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
-from model_layer import gaeGAT_layer as GAT
-from model import GATE, CommClassifer, HCD
-from train import CustomDataset, batch_data, fit
-from simulation_utilities import compute_modularity, post_hoc_embedding, compute_beth_hess_comms
-from utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph, plot_nodes, plot_clust_heatmaps
+from model.model import HCD
+from model.train import CustomDataset, batch_data, fit
+from simulation_software.simulation_utilities import compute_modularity, post_hoc_embedding, compute_beth_hess_comms
+from model.utilities import resort_graph, trace_comms, node_clust_eval, gen_labels_df, LoadData, get_input_graph, plot_nodes, plot_clust_heatmaps
 import seaborn as sbn
 import matplotlib.pyplot as plt
 from community import community_louvain as cl
