@@ -320,14 +320,7 @@ class Comm_DenseLayer(nn.Module):
             self.gain = nn.init.calculate_gain('leaky_relu', alpha)
         else:
             self.gain = layer_gain
-        #set dense linear layer parameters and initialize
-        # self.W = nn.Parameter(torch.zeros(size=(in_feats, out_comms)))
-        # nn.init.xavier_uniform_(self.W.data, gain=self.gain)
-        # #initialize zero bias
-        # self.b = nn.Parameter(torch.zeros(size=(1,out_comms)))
-        # #initialize bias term with constant term
-        # if use_bias:
-        #     torch.nn.init.constant_(self.b.data, init_bias)
+            
         self.Linearlayer = nn.Linear(in_features = in_feats, 
                                      out_features = out_comms, 
                                      bias = use_bias)
@@ -335,11 +328,9 @@ class Comm_DenseLayer(nn.Module):
         self.act = nn.LeakyReLU(negative_slope=alpha)
         #normalize inputs
         if self.norm == True:
-            self.act_norm = nn.LayerNorm(in_feats)
-            self.centroid_norm = nn.LayerNorm(out_comms)
+            self.act_norm = nn.LayerNorm(out_comms)
         else:
             self.act_norm = nn.Identity()
-            self.centroid_norm = nn.Identity()
 
     
     def forward(self, inputs):
@@ -347,17 +338,17 @@ class Comm_DenseLayer(nn.Module):
         inputs: a list [Z, A, A_tilde, S] where 
                 Z: Node representations   N x q
                 A: Adjacency matrix   N x N
-                A_tilde:
-                S:
+                A_tilde: graph for connected communities
+                S: predicted class labels
         """
         Z=inputs[0]
         A=inputs[1]
-        Z = self.act_norm(Z)
         #compute assignment probabilities
         #P = F.softmax(torch.mm(Z, self.W)+self.b, dim = 1)
         P = F.softmax(self.Linearlayer(Z), dim = 1)
         #get the centroids and layer adjacency matrix
-        X_tilde = self.act(self.centroid_norm(torch.mm(Z.transpose(0,1), P)))
+        X_tilde = self.act(self.act_norm(torch.mm(Z.transpose(0,1), P)))
+        #X_tilde = self.act(torch.mm(Z.transpose(0,1), P))
         A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
         #store
         inputs[0] = X_tilde
