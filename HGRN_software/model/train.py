@@ -14,7 +14,7 @@ import time
 import torch.optim as optimizers 
 from model.utilities import Modularity, WCSS, node_clust_eval
 from tqdm import tqdm
-from model.utilities import trace_comms
+from model.utilities import trace_comms, get_layered_performance
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
 
 #------------------------------------------------------
@@ -65,16 +65,11 @@ class ModularityLoss(nn.Module):
  
     
  
-    
- 
-    
- 
-    
- 
-    
+
  
 #------------------------------------------------------  
 class ClusterLoss(nn.Module):
+    
     def __init__(self):
         """
         Hierarchical Clustering Loss
@@ -153,12 +148,40 @@ class ClusterLoss(nn.Module):
 
 
 
-
-
-
+def evaluate(model, X, A, k, true_labels):
     
+    model.eval()
+    X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
+    S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
+    perf_layers = get_layered_performance(k, S_trace_eval[1], true_labels)
+        
+    return perf_layers, (X_pred, A_pred, S_pred)
 
 
+
+def print_performance(history, comm_layers, k):
+    lnm = ['top']+['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
+    for i in range(0, k):
+        print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
+        print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
+            history[-1][i][0], 
+            history[-1][i][1], 
+            history[-1][i][2]))
+        print('-' * 80)
+        
+        
+        
+def print_losses(epoch, total_loss, mod_loss_hist, clust_loss_hist, X_loss_hist, A_loss_hist):
+    #------------------------------
+    print('\nEpoch {} \nTotal Loss = {:.4f}'.format(
+        epoch+1, total_loss
+        ))
+    
+    print('\nModularity = {}, \nClustering = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
+        np.round(mod_loss_hist[-1],4),
+        np.round(clust_loss_hist[-1],4),
+        X_loss_hist[-1], 
+        A_loss_hist[-1]))
     
    
 
@@ -168,8 +191,8 @@ class ClusterLoss(nn.Module):
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2,
         normalize = True, comm_loss = ['Modularity', 'Clustering'], 
-        true_labels = [], turn_off_A_loss = False, save_output = False,  
-        output_path = 'path/to/output', fs = 10, ns = 10, 
+        true_labels = [], turn_off_A_loss = False, validation_data = None, 
+        save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, 
         verbose = True, **kwargs):
     """
     
@@ -182,6 +205,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     mod_loss_hist=[]
     clust_loss_hist=[]
     perf_hist = []
+    valid_perf_hist = []
     updates = []
     time_hist = []
     comm_layers = len(model.comm_sizes)
@@ -213,7 +237,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         if epoch % update_interval == 0:
             print('Epoch {} starts !'.format(epoch))
             print('=' * 55)
-            print('=' * 55)
+            print('-' * 55)
+            print('=' * 55+'\n')
         total_loss = 0
         model.train()
         
@@ -221,7 +246,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         optimizer.zero_grad()
         #batch = data.transpose(0,1)
         #compute forward output
-        X_hat, A_hat, X_all, A_all, P_all, S = model.forward(X, A)
+        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A)
         S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
         
         #update all output list
@@ -258,47 +283,39 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         X_loss_hist.append(gamma*float(X_loss.cpu().detach().numpy()))
         mod_loss_hist.append(delta*np.array(Modloss_values))
         clust_loss_hist.append(Clustloss_values)
-        #evaluating performance homogenity, completeness and NMI
-        perf_layers = []
-        lnm = ['top']+['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
-        if k <3:
-            for i in range(0, k):   
-                preds = S_relab[::-1][-k:][i].cpu().detach().numpy()
-                eval_metrics = node_clust_eval(true_labels=true_labels[i],
-                                               pred_labels=preds, 
-                                               verbose=False)
-                perf_layers.append(eval_metrics.tolist())
-            perf_hist.append(perf_layers)
         
+        #--------------------------------------------------------------------
+        #evaluating performance homogenity, completeness and NMI
+        train_perf, output = evaluate(model, X, A, k, true_labels)
+        #update history
+        perf_hist.append(train_perf)
+        X_pred, A_pred, S_pred = output
+        
+        #check for and apply validation 
+        if validation_data:
+            X_val, A_val, val_labels, val_size = validation_data
+            valid_perf, output = evaluate(model, X_val, A_val, k, val_labels)
+            valid_perf_hist.append(valid_perf)
         
         #evaluate epoch
         if (epoch+1) % update_interval == 0:
             
             #store update interval
             updates.append(epoch+1)
-            model.eval()
-            #model forward
-            X_pred, A_pred, X_list, A_list, P_list, S_pred = model.forward(X, A)
-            #print update of performance metrics
-            for i in range(0, k):
-                print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-                print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
-                    perf_hist[-1][i][0], perf_hist[-1][i][1], perf_hist[-1][i][2]))
-                print('-' * 80)
-            
-            
-            #loss printing
-            #------------------------------
-            print('\nEpoch {} \nTotal Loss = {:.4f}'.format(
-                epoch+1, total_loss
-                ))
-            
 
-            print('\nModularity = {}, \nClustering = {}, \nX Recontrstuction = {:.4f}, \nA Recontructions = {:.4f}'.format(
-                np.round(mod_loss_hist[-1],4),
-                np.round(clust_loss_hist[-1],4),
-                X_loss_hist[-1], 
-                A_loss_hist[-1]))
+            #print performance 
+            print('MODEL PEFORMANCE\n')
+            print_performance(perf_hist, comm_layers, k)
+            
+            #print validation performance
+            if validation_data:
+                print('VALIDATION PERFORMANCE\n')
+                print_performance(valid_perf_hist, comm_layers, k)
+            
+            print('MODEL LOSS\n')
+            #loss printing
+            print_losses(epoch, total_loss, mod_loss_hist, clust_loss_hist, 
+                         X_loss_hist, A_loss_hist)
            
             
             
@@ -306,7 +323,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #plotting training curves
             if ((epoch+1) >= 10):
                 #loss plot
-                print('plotting loss curve...')
+                print('plotting loss curve ...')
                 plot_loss(epoch = epoch, 
                           loss_history = loss_history, 
                           recon_A_loss_hist = A_loss_hist, 
@@ -317,7 +334,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                           save = save_output)
                 if verbose == True:
                     #plotting graphs in networkx 
-                    print('plotting nx graphs...')
+                    print('plotting nx graphs ...')
                     plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
                                labels=S_relab[-k:][-1], 
                                path = output_path+'Top_Clusters_result_'+str(epoch+1),
@@ -335,7 +352,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                    path = output_path+'midde_Clusters_result_'+str(epoch+1))
                     
                 
-                print('plotting heatmaps...')
+                print('plotting heatmaps ...')
                 plot_clust_heatmaps(A = A, 
                                     A_pred = A_pred, 
                                     true_labels = true_labels, 
@@ -346,23 +363,25 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                     sp = output_path)
                 
                 
+                #plot the performance history
+                if len(perf_hist)>1:
+                    print('plotting performance curves ...')
+                    #performance plot
+                    plot_perf(update_time = updates[-1], 
+                              performance_hist = perf_hist, 
+                              valid_hist = valid_perf_hist,
+                              epoch = epoch, 
+                              path= output_path, 
+                              save = save_output)
                 
-            if len(perf_hist)>1:
-                print('plotting performance curves')
-                #performance plot
-                plot_perf(update_time = updates[-1], 
-                          performance_hist = perf_hist, 
-                          epoch = epoch, 
-                          path= output_path, 
-                          save = save_output)
                 
-            
                 
+                    
                 
             
             print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
         time_hist.append(time.time() - start_epoch)
             
     #return 
-    X_final, A_final, X_all_final, A_all_final, P_all_final, S_final = model.forward(X, A)
+    X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model.forward(X, A)
     return all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist

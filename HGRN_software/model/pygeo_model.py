@@ -37,21 +37,24 @@ class GATEgeo(nn.Module):
             
             if use_multi_head == True:
                 # add multi head attendtion layers to dictionary
-                module_dict.update({'GATpyg_multi_'+str(out): GAT_layer(nodes = in_nodes, 
-                                                                        in_features=in_attrib,
-                                                                        out_features=out,
-                                                                        heads=attn_heads,
-                                                                        norm = normalize,
-                                                                        **kwargs)})
+                layer_name = 'GATpyg_multi_'+str(idx)+'-'+str(out)
+                module_dict.update({layer_name: GAT_layer(nodes = in_nodes, 
+                                                          in_features=in_attrib,
+                                                          out_features=out,
+                                                          heads=attn_heads,
+                                                          norm = normalize,
+                                                          **kwargs)})
+            
             else:
                 #add GAT layers to dictionary
-                module_dict.update({'GATpyg_'+str(out): GAT_layer(nodes = in_nodes, 
-                                                                  in_features=in_attrib,
-                                                                  out_features=out,
-                                                                  heads=1,
-                                                                  norm=normalize,
-                                                                  **kwargs)}) 
-                 
+                layer_name = 'GATpyg_'+str(idx)+'-'+str(out)
+                module_dict.update({layer_name: GAT_layer(nodes = in_nodes, 
+                                                          in_features=in_attrib,
+                                                          out_features=out,
+                                                          heads=1,
+                                                          norm=normalize,
+                                                          **kwargs)}) 
+            
             module_dict.update({'act'+str(out): layer_act})
             
             in_attrib = out
@@ -61,13 +64,13 @@ class GATEgeo(nn.Module):
         
         
     def forward(self, X, A):
-        
+        weights_list = []
         ei, ea = pyg_utils.dense_to_sparse(A)
         #A_SPT = pyg_utils.to_torch_csr_tensor(Asparse[0], Asparse[1])
         #ei, ea = pyg_utils.to_edge_index(A_SPT)
-        H, E, attr = self.seqmodel((X, ei, ea))
+        H, E, attr, weights_list = self.seqmodel((X, ei, ea, weights_list))
         
-        return (H, A) 
+        return (H, A, weights_list) 
     
     
 class CommClassifer(nn.Module):
@@ -87,10 +90,10 @@ class CommClassifer(nn.Module):
         for idx, comms in enumerate(comm_sizes):
             #add GAT layers to dictionary
             module_dict.update({'Comm_Linear_'+str(comms): CDL(in_feats = in_attrib, 
-                                                         out_comms = comms,
-                                                         norm = normalize,
-                                                         **kwargs)})
-            
+                                                               out_comms = comms,
+                                                               norm = normalize,
+                                                               **kwargs)})
+
         
         #build model by pytorch sequential
         self.model = nn.Sequential(module_dict)
@@ -123,6 +126,7 @@ class HCD(nn.Module):
         decode_dims.append(attrib)
         self.comm_sizes = comm_sizes
         self.hidden_dims = hidden_dims
+        self.normalize_inputs = normalize_inputs
         #set up encoder
         self.encoder = GATEgeo(in_nodes = nodes, 
                                in_attrib = attrib, 
@@ -145,30 +149,38 @@ class HCD(nn.Module):
 
         # set layer normalization
         if normalize_inputs == True:
-            self.act_norm = nn.LayerNorm(nodes)
+            self.act_norm = nn.LayerNorm(attrib)
         else:
             self.act_norm = nn.Identity()
             
         #set dot product decoder activation to sigmoid
         self.dpd_act = nn.Sigmoid()
-        #self.dpd_act = nn.Identity()
+        #normalization for dpd_activation
+        #self.dpd_norm = nn.LayerNorm(nodes)
+        self.dpd_norm = nn.Identity()
         
         
     def forward(self, X, A):
+        
+        #normalize input
+        H = self.act_norm(X)
+        
         #get representation
-        Z, A = self.encoder(X,A)
+        Z, A, encoder_attention_weights = self.encoder(H,A)
+        
         #reconstruct adjacency matrix using simple dot-product decoder
         #A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
-        A_hat = self.dpd_act(self.act_norm(torch.mm(Z, Z.transpose(0,1))))
-        #reconstruct node features
-        X_hat, A = self.decoder(Z, A)
+        A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))
+            
+        #get reconstructed adjacency
+        X_hat, A, decoder_attention_weights = self.decoder(Z, A)
         #fit hierarchy
         X_top, A_top, X_all, A_all, P_all, S = self.commModule(Z, A)
         
         A_all_final = [A]+A_all
         X_all_final = [Z]+X_all
         #return 
-        return X_hat, A_hat, X_all_final, A_all_final, P_all, S
+        return X_hat, A_hat, X_all_final, A_all_final, P_all, S, {'encoder': encoder_attention_weights, 'decoder':decoder_attention_weights}
         #return X_hat
         
     def summarize(self):
@@ -178,6 +190,8 @@ class HCD(nn.Module):
         print(summary(self.decoder))
         print('----------Community-Detection-Module------------')
         print(summary(self.commModule))
+        
+    
 
 
 

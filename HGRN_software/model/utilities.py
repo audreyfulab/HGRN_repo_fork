@@ -636,17 +636,23 @@ def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_los
 
 # a simple function for plotting the performance curves during training
 #----------------------------------------------------------------
-def plot_perf(update_time, performance_hist, epoch, path='path/to/file', save = True):
+def plot_perf(update_time, performance_hist, valid_hist, epoch, path='path/to/file', save = True):
     #evaluation metrics
     layers = len(performance_hist[0])
     titles = ['Top Layer', 'Middle Layer']
     fig, ax = plt.subplots(1, 2, figsize=(12,10))
     for i in range(0, layers):
         layer_hist = [j[i] for j in performance_hist]
+        if len(valid_hist) > 0:
+            valid_layer_hist = [j[i] for j in valid_hist]
         #homogeneity
         ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,0], label = 'Homogeneity')
         ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,1], label = 'Completeness')
         ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,2], label = 'NMI')
+        if len(valid_hist) > 0:
+            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,0], linestyle='--', label = 'Validation Homogeneity')
+            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,1], linestyle='--', label = 'Validation Completeness')
+            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,2], linestyle='--', label = 'Validation NMI')
         ax[i].set_xlabel('Training Epochs')
         ax[i].set_ylabel('Performance')
         ax[i].set_title(titles[i]+' Performance')
@@ -743,8 +749,16 @@ def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save
 
 
 
-
-
+def get_layered_performance(k, S_relab, true_labels):
+    perf_layers = []
+    for i in range(0, k):   
+        preds = S_relab[::-1][-k:][i].cpu().detach().numpy()
+        eval_metrics = node_clust_eval(true_labels=true_labels[i],
+                                       pred_labels=preds, 
+                                       verbose=False)
+        perf_layers.append(eval_metrics.tolist())
+    
+    return perf_layers
 
 
 

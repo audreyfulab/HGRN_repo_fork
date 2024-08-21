@@ -421,7 +421,7 @@ def run_simulations(args, save_results = False, which_net = 0, which_ingraph=0, 
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
 parser.add_argument('--connect_prob', dest='connect_prob', default='use_baseline', type=str)
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
-parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
+parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=2, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
@@ -434,7 +434,7 @@ parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
 parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
 parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
 parser.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
-parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.5), type=tuple)
+parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.2), type=tuple)
 parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
 args = parser.parse_args()
 args.connect_prob = 0.05
@@ -445,7 +445,7 @@ args.force_connect = True
 args.layers = 3
 args.connect = 'disc'
 args.subgraph_type = 'small world'
-args.use_weighted_graph = False
+args.use_weighted_graph = True
 args.node_degree_bottom = 15
 args.node_degree_middle = 3
 #args.savepath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/Results/test/Single_sim_dpd_identity/'
@@ -461,21 +461,21 @@ sp = args.savepath
 # sfr simple data: [128, 5] atn: 20 heads, lam = [0.1, 0.1]
 ep = 100
 wn = 0
-wg = 0
+wg = 2 #uses the R > 0.5 input graph 
 saveit = False
 #disconnected settings
 param_dict = {'dataset': 'unique_dist',
               'epochs': ep, 
-              'hidden': [512, 256, 128, 64, 32],
-              'gamma': 1e-4,
-              'delta': 1e-2,
-              'lambda': [1e-4, 1e-5],
+              'hidden': [256, 128, 64, 32],
+              'gamma': 1e-3,
+              'delta': 0,
+              'lambda': [1e-3, 1e-4],
               'input_graph': wg,
               'network': wn,
               'learning_rate': 1e-5,
               'true_comms': True,
               'use_attn': True,
-              'attn_heads': 30,
+              'attn_heads': 20,
               'normalize': True}
 
 
@@ -483,14 +483,14 @@ out, res, graphs, data, truth, preds, preds_sub, louv_pred, idx = run_simulation
     save_results=saveit,
     which_net=wn,
     which_ingraph=wg,
-    reso=[1,1,1,1],
+    reso=[1,1],
     hd=param_dict['hidden'],
     gam = param_dict['gamma'],
     delt = param_dict['delta'],
     lam = param_dict['lambda'],
     learn_rate=param_dict['learning_rate'],
     use_true_comms=param_dict['true_comms'],
-    cms=[100, 15],
+    cms=[15, 5],
     epochs = param_dict['epochs'],
     updates = param_dict['epochs'],
     activation = 'Sigmoid',

@@ -42,7 +42,7 @@ rd.seed(123)
 torch.manual_seed(123)
 
 
-def run_simulations(dataset = ['complex', 'intermediate','toy'],
+def run_simulations(dataset = ['complex', 'intermediate','toy', 'cora', 'pubmed'],
                     parent_dist = ['equal','unequal'],
                     readpath = '/mnt/ceph/jarredk/',
                     save_results = False, gam = 1, delt = 1, lam = [1,1], learn_rate = 1e-4, 
@@ -60,6 +60,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
 
     savepath_main = sp
     
+    if dataset in ['complex', 'intermediate', 'toy']
     # set filepath and settings grid
     if dataset == 'complex':
         #set data path
@@ -116,7 +117,7 @@ def run_simulations(dataset = ['complex', 'intermediate','toy'],
         grid2 = product(struct_nm, connect_nm, layer_nm)
         grid3 = product(struct, connect, layers)
         
-    else:
+    elif dataset == 'toy':
         loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Toy_examples/'
         
         connect_nm =['disc_', 'full_']

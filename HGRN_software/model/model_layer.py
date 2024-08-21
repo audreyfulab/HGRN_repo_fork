@@ -218,7 +218,7 @@ class gaeGAT_layer(nn.Module):
         #H_out = self.act(torch.mm(self.dropout(C_atten), torch.mm(X, self.W)+self.b))
         H_out = self.act(torch.mm(self.dropout(C_atten), H_in))
         X = self.act_norm(H_out)
-        return (H_out, A)
+        return (H_out, A, [])
         
 
 
@@ -271,8 +271,7 @@ class  multi_head_GAT(nn.Module):
                 A: Adjacency matrix
         """
         
-        
-        H, A = self.attention_layer(inputs)
+        H, A, attn = self.attention_layer(inputs[:2])
         
         
         attn_stacked = H.view(self.nodes, self.num_heads, self.out_features)
@@ -283,7 +282,7 @@ class  multi_head_GAT(nn.Module):
         if self.concat == 'product':
             H_final = attn_stacked.prod(dim = 1)
             
-        return (H_final, A)
+        return (H_final, A, attn_stacked)
             
             
             
@@ -347,7 +346,7 @@ class Comm_DenseLayer(nn.Module):
         #P = F.softmax(torch.mm(Z, self.W)+self.b, dim = 1)
         P = F.softmax(self.Linearlayer(Z), dim = 1)
         #get the centroids and layer adjacency matrix
-        X_tilde = self.act(self.act_norm(torch.mm(Z.transpose(0,1), P)))
+        X_tilde = self.act(self.act_norm(torch.mm(Z.transpose(0,1), P))).transpose(0,1)
         #X_tilde = self.act(torch.mm(Z.transpose(0,1), P))
         A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
         #store

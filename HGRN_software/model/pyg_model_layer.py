@@ -93,7 +93,8 @@ class GAT_layer(nn.Module):
         self.GAT = GATv2Conv(in_channels=in_features,
                              out_channels=out_features,
                              heads=heads,
-                             dropout=dropout)
+                             dropout=dropout,
+                             concat = False)
         
         # Define normalization layer
         if self.norm:
@@ -101,29 +102,32 @@ class GAT_layer(nn.Module):
         else:
             self.act_norm = nn.Identity()
         
-        self.final_linear = nn.Linear(out_features * heads, out_features, bias = use_bias)
+        #self.final_linear = nn.Linear(out_features * heads, out_features, bias = use_bias)
         
     def forward(self, inputs):
         """
         Forward pass for the GAT layer.
         """
-        X, E, attr = inputs
-
+        X, E, attr, attention_list = inputs
+        nodes = X.shape[0]
         # Compute the GAT layer output
-        H = self.GAT(x=X, edge_index=E)
-
-        # Reshape and concatenate heads
-        H_out = H.view(self.nodes, -1)  # (num_nodes, out_features * heads)
-
+        H, (edge_index, attention_weights) = self.GAT(x=X, edge_index=E, return_attention_weights=True)
+        
+        # append attention weights to existing list
+        attention_list.append((edge_index, attention_weights))
+        
         # Apply the final linear transformation
-        H_out = self.final_linear(H_out)
+        # H_linear = self.final_linear(H)
+        
+        # Reshape and concatenate heads
+        #H_out = H.view(nodes, -1)  # (num_nodes, out_features * heads)
+        #H_out = H.reshape(nodes, self.out_features, self.heads).sum(-1)
 
         # Apply normalization
-        H_out = self.act_norm(H_out)
+        H_norm = self.act_norm(H)
 
-        return (H_out, E, attr)
+        return (H_norm, E, attr, attention_list)
 
 
 
-            
      

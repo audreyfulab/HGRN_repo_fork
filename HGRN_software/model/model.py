@@ -145,19 +145,19 @@ class HCD(nn.Module):
         #normalize inputs
         H = self.act_norm(X)
         #get representation
-        Z, A = self.encoder(H,A)
+        Z, A, encoder_attention = self.encoder(H,A)
         #reconstruct adjacency matrix using simple dot-product decoder
         #A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
         A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))
         #reconstruct node features
-        X_hat, A = self.decoder(Z, A)
+        X_hat, A, decoder_attention = self.decoder(Z, A)
         #fit hierarchy
         X_top, A_top, X_all, A_all, P_all, S = self.commModule(Z, A)
         
         A_all_final = [A]+A_all
         X_all_final = [Z]+X_all
         #return 
-        return X_hat, A_hat, X_all_final, A_all_final, P_all, S
+        return X_hat, A_hat, X_all_final, A_all_final, P_all, S, [encoder_attention, decoder_attention]
         #return X_hat
         
     def summarize(self):
