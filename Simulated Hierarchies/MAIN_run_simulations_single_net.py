@@ -10,8 +10,7 @@ Created on Wed Oct 18 10:46:39 2023
 import torch
 import numpy as np
 import pandas as pd
-from model.model import HCD
-from model.pygeo_model import HCD as HCDgeo
+from model.model import HCD 
 from model.train import fit
 from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, read_benchmark_CORA, post_hoc
 import pickle
@@ -55,19 +54,12 @@ def run_single_simulation(args, **kwargs):
     nodes, attrib = X.shape
     
     print('-'*25+'setting up and fitting models'+'-'*25)
-    if args.framework == 'pygeometric':
-        model = HCDgeo(nodes, attrib, ae_hidden_dims=args.AE_hidden_size,
-                       ll_hidden_dims = args.LL_hidden_size,
-                       comm_sizes=comm_sizes, normalize_inputs = args.normalize_layers,
-                       use_multi_head = args.use_multihead_attn,
-                       attn_heads = args.attn_heads, dropout = args.dropout_rate,
-                       use_output_layers = args.add_output_layers).to(device)
-    else:
-        model = HCD(nodes, attrib, hidden_dims=args.hidden_size, 
-                    comm_sizes=comm_sizes, attn_act=args.activation, 
-                    normalize_inputs = args.normalize_layers,
-                    use_multi_head = args.use_multihead_attn,
-                    attn_heads = args.attn_heads, dropout = args.dropout_rate).to(device)
+    model = HCD(nodes, attrib, ae_hidden_dims=args.AE_hidden_size,
+                ll_hidden_dims = args.LL_hidden_size,
+                comm_sizes=comm_sizes, normalize_inputs = args.normalize_layers,
+                use_multi_head = args.use_multihead_attn,
+                attn_heads = args.attn_heads, dropout = args.dropout_rate,
+                use_output_layers = args.add_output_layers).to(device)
         
             
     print('summary of model architecture:')
