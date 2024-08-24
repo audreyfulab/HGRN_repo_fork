@@ -31,7 +31,7 @@ import ast
 import random as rd
 from sklearn.manifold import TSNE
 import pickle
-from sklearn.decomposition import PCA\
+from sklearn.decomposition import PCA
 
 rd.seed(123)
 torch.manual_seed(123)

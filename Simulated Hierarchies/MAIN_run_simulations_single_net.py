@@ -1,0 +1,170 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 18 10:46:39 2023
+
+@author: Bruin
+"""
+
+
+#preamble
+import torch
+import numpy as np
+import pandas as pd
+from model.model import HCD
+from model.pygeo_model import HCD as HCDgeo
+from model.train import fit
+from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, read_benchmark_CORA, post_hoc
+import pickle
+import random as rd
+
+
+
+def run_single_simulation(args, **kwargs):
+    
+    
+    if args.set_seed:
+        rd.seed(123)
+        torch.manual_seed(123)
+    
+    device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
+    print('***** Using device {} ********'.format(device))
+    
+    
+    savepath_main = args.sp
+    
+    if args.dataset in ['complex', 'intermediate', 'toy']:
+        
+        loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
+            
+        X, A, target_labels, comm_sizes = set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, device, **kwargs)
+                    
+        valid = None       
+                
+    else:
+        
+        if args.dataset == 'cora':
+            train_size, test_size = args.train_test_size
+            train, test, valid = read_benchmark_CORA(args, 
+                                                     PATH = '/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/',
+                                                     use_split=args.split_data,
+                                                     percent_train=train_size,
+                                                     percent_test=test_size)
+            X, A, target_labels, comm_sizes = train
+            
+    layers = len(comm_sizes)
+    nodes, attrib = X.shape
+    
+    print('-'*25+'setting up and fitting models'+'-'*25)
+    if args.framework == 'pygeometric':
+        model = HCDgeo(nodes, attrib, ae_hidden_dims=args.AE_hidden_size,
+                       ll_hidden_dims = args.LL_hidden_size,
+                       comm_sizes=comm_sizes, normalize_inputs = args.normalize_layers,
+                       use_multi_head = args.use_multihead_attn,
+                       attn_heads = args.attn_heads, dropout = args.dropout_rate,
+                       use_output_layers = args.add_output_layers).to(device)
+    else:
+        model = HCD(nodes, attrib, hidden_dims=args.hidden_size, 
+                    comm_sizes=comm_sizes, attn_act=args.activation, 
+                    normalize_inputs = args.normalize_layers,
+                    use_multi_head = args.use_multihead_attn,
+                    attn_heads = args.attn_heads, dropout = args.dropout_rate).to(device)
+        
+            
+    print('summary of model architecture:')
+    model.summarize()
+        
+    #preallocate results table
+    res_table = pd.DataFrame(columns = ['Beth_Hessian_Comms',
+                                        'Communities_Upper_Limit',
+                                        'Max_Modularity',
+                                        'Modularity',
+                                        'Reconstruction_A',
+                                        'Reconstruction_X', 
+                                        'Metrics',
+                                        'Number_Predicted_Comms',
+                                        'Louvain_Modularity',
+                                        'Louvain_Metrics',
+                                        'Louvain_Predicted_comms'])
+    
+    
+    print('finished set up stage ...')
+    #fit the models
+    print("*"*80)
+    
+    #train the model
+    out, pred_list = fit(model, X, A, 
+                         k = layers,
+                         optimizer='Adam', 
+                         epochs = args.training_epochs, 
+                         update_interval=args.steps_between_updates, 
+                         layer_resolutions=args.resolution,
+                         lr = args.learning_rate, 
+                         gamma = args.gamma, 
+                         delta = args.delta, 
+                         lamb = args.lambda_, 
+                         true_labels = target_labels, 
+                         validation_data = valid,
+                         verbose=args.verbose, 
+                         save_output=args.save_results, 
+                         turn_off_A_loss= args.remove_graph_loss,
+                         output_path=savepath_main, 
+                         ns = args.plotting_node_size, 
+                         burn_in = args.burn_in_period,
+                         use_graph_updating = args.use_graph_updating,
+                         fs = args.fs)
+         
+    #handle output and return relevant values               
+    results = handle_output(args, out, A, comm_sizes)
+    beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, indices, metrics, preds, trace = results
+    
+    bpi, bli = indices
+    S_sub, S_layer, S_all = trace
+    
+    #run louvain method on same dataset
+    if args.run_louvain:
+        louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, out, A, len(comm_sizes), savepath_main, bpi, target_labels)          
+    else:
+        louv_metrics, louv_mod, louv_num_comms, louv_preds = (None, None, None, None)
+    
+    
+    if args.post_hoc_plots:
+        post_hoc(args, 
+                 output = out, 
+                 data = X, 
+                 adjacency = A, 
+                 predicted = pred_list[bpi],
+                 truth = target_labels,
+                 louv_pred = louv_preds,
+                 bp = bpi,
+                 k_layers = layers,
+                 verbose = True)
+    
+    
+    #update performance table
+    row_add = [beth_hessian,
+               np.round(upper_limit.cpu().detach().numpy()),
+               np.round(max_mod.cpu().detach().numpy(),4),
+               tuple(comm_loss[-1].tolist()), 
+               recon_A[-1], 
+               recon_X[-1],
+               metrics[-1], 
+               preds[-1],
+               louv_mod,
+               louv_metrics,
+               louv_num_comms]
+    print(row_add)
+    print('updating performance statistics...')
+    res_table.loc[0] = row_add
+    print('*'*80)
+    print(res_table.loc[0])
+    print('*'*80)
+    if args.save_results == True:
+        res_table.to_csv(savepath_main+'Simulation_Results'+'.csv')
+        with open(savepath_main+'Simulation_Results_'+'OUTPUT'+'.pkl', 'wb') as f:
+            pickle.dump(out, f)
+
+
+    print('done')
+    return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices
+
+

@@ -49,38 +49,16 @@ def open_pickled(filename):
 #This function computes the within cluster sum of squares (WCSS)
 #----------------------------------------------------------------
 # within cluster loss computed using input feature matrix
-# def WCSS(X, Plist, k):
+def WCSS(X, Plist, k):
     
-#     """
-#     Computes Hierarchical Within-Cluster Sum of Squares
-#     X: node feature matrix N nodes by q features
-#     P: assignment probabilities for assigning N nodes to k clusters
-#     k: number of clusters
-#     """
-    
-#     P = torch.linalg.multi_dot(Plist)
-#     N = X.shape[0]
-#     oneN = torch.ones(N, 1)
-#     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
-#     D = X.T - torch.mm(M, P.T)
-#     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
-    
-#     return MSW, M
-
-
-
-
-# within cluster loss computed using GAE model embedding
-def WCSS(X, P, k):
-
     """
-    Within-Cluster Sum of Squares
     Computes Hierarchical Within-Cluster Sum of Squares
     X: node feature matrix N nodes by q features
     P: assignment probabilities for assigning N nodes to k clusters
     k: number of clusters
     """
-
+    
+    P = torch.linalg.multi_dot(Plist)
     N = X.shape[0]
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
@@ -88,6 +66,28 @@ def WCSS(X, P, k):
     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
     
     return MSW, M
+
+
+
+
+# within cluster loss computed using GAE model embedding
+# def WCSS(X, P, k):
+
+#     """
+#     Within-Cluster Sum of Squares
+#     Computes Hierarchical Within-Cluster Sum of Squares
+#     X: node feature matrix N nodes by q features
+#     P: assignment probabilities for assigning N nodes to k clusters
+#     k: number of clusters
+#     """
+
+#     N = X.shape[0]
+#     oneN = torch.ones(N, 1)
+#     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
+#     D = X.T - torch.mm(M, P.T)
+#     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
+    
+#     return MSW, M
 
     
 
@@ -715,13 +715,21 @@ def plot_adj(A, path, **kwargs):
     
 #a simple function to plot the clustering heatmaps
 #---------------------------------------------------------------- 
-def plot_clust_heatmaps(A, A_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
+def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
     fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
     sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
     sbn.heatmap(A.cpu().detach().numpy(), ax = ax1[1])
+    ax1[0].set_title(f'Reconstructed Adjacency At Epoch {epoch}')
+    ax1[1].set_title('Input Adjacency Matrix')
     
-    ax1[0].set_title(f'Predicted adjacency matrix at epoch {epoch}')
-    ax1[1].set_title('True adjacency_matrix')
+    
+    fig11, ax11 = plt.subplots(1,2, figsize=(12,10))
+    sbn.heatmap(X_pred.cpu().detach().numpy(), ax = ax11[0])
+    ax11[0].set_title(r'Reconstructed Attributes At Epoch {epoch}')
+    sbn.heatmap(X.cpu().detach().numpy(), ax = ax11[1])
+    ax11[1].set_title('Input Attributes')
+    
+    
     
     fig2, ax2 = plt.subplots(1,2, figsize=(12,10)) 
     if layers == 3:

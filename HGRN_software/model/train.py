@@ -16,6 +16,7 @@ from model.utilities import Modularity, WCSS, node_clust_eval
 from tqdm import tqdm
 from model.utilities import trace_comms, get_layered_performance
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
+import copy
 
 #------------------------------------------------------
 #custom pytorch dataset
@@ -78,42 +79,9 @@ class ClusterLoss(nn.Module):
 
     
     # forward method for loss computed using input feature matrix
-    # def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
+    def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
         
-    #     """
-    #     Computes forward loss for hierarchical within-cluster sum of squares loss
-    #     Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
-    #     Attributes: Node feature matrix
-    #     Probabilities: a list of length l corresponding the assignment probabilities for 
-    #                     assigning nodes to communities in l hierarchical layers
-    #     Cluster_labels: list of length l containing cluster assignment labels 
-    #     """
-    #     N = Attributes.shape[0]
-    #     loss = torch.Tensor([0])
-    #     loss_list = []
-    #     ptensor_list = [torch.eye(N)]+Probabilities
-    #     for idx, labels in enumerate(Cluster_labels):
-    #         #compute total number of clusters
-    #         number_of_clusters = len(torch.unique(labels))
-    #         #within cluster sum of squares
-    #         within_ss, centroids = WCSS(X = Attributes,
-    #                                     Plist = ptensor_list[:(idx+2)],
-    #                                     k = number_of_clusters)
-            
-    #         #update loss list
-    #         loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
-    #         #update loss
-    #         loss += Lamb[idx]*within_ss
-
-    #     return loss, loss_list
-
-
-
-    # forward method for loss computed using GAE model embedding
-    def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
-
         """
-        computes forward loss
         Computes forward loss for hierarchical within-cluster sum of squares loss
         Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
         Attributes: Node feature matrix
@@ -121,26 +89,59 @@ class ClusterLoss(nn.Module):
                         assigning nodes to communities in l hierarchical layers
         Cluster_labels: list of length l containing cluster assignment labels 
         """
-        #N = Attributes[0].shape[0]
+        N = Attributes.shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        #problist = [torch.eye(N)]+Probabilities
-        #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
-        for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
+        ptensor_list = [torch.eye(N)]+Probabilities
+        for idx, labels in enumerate(Cluster_labels):
             #compute total number of clusters
             number_of_clusters = len(torch.unique(labels))
             #within cluster sum of squares
-            within_ss, centroids = WCSS(X = features,
-                                        P = probs,
+            within_ss, centroids = WCSS(X = Attributes,
+                                        Plist = ptensor_list[:(idx+2)],
                                         k = number_of_clusters)
-
-
+            
             #update loss list
             loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
             #update loss
             loss += Lamb[idx]*within_ss
 
         return loss, loss_list
+
+
+
+    # forward method for loss computed using GAE model embedding
+    # def forward(self, Lamb, Attributes, Probabilities, cluster_labels):
+
+    #     """
+    #     computes forward loss
+    #     Computes forward loss for hierarchical within-cluster sum of squares loss
+    #     Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
+    #     Attributes: Node feature matrix
+    #     Probabilities: a list of length l corresponding the assignment probabilities for 
+    #                     assigning nodes to communities in l hierarchical layers
+    #     Cluster_labels: list of length l containing cluster assignment labels 
+    #     """
+    #     #N = Attributes[0].shape[0]
+    #     loss = torch.Tensor([0])
+    #     loss_list = []
+    #     #problist = [torch.eye(N)]+Probabilities
+    #     #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
+    #     for idx, (features, probs, labels) in enumerate(zip(Attributes, Probabilities, cluster_labels)):
+    #         #compute total number of clusters
+    #         number_of_clusters = len(torch.unique(labels))
+    #         #within cluster sum of squares
+    #         within_ss, centroids = WCSS(X = features,
+    #                                     P = probs,
+    #                                     k = number_of_clusters)
+
+
+    #         #update loss list
+    #         loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
+    #         #update loss
+    #         loss += Lamb[idx]*within_ss
+
+    #     return loss, loss_list
 
 
 
@@ -153,9 +154,11 @@ def evaluate(model, X, A, k, true_labels):
     model.eval()
     X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
     S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
+    
+    S_all, S_relab, S_out = S_trace_eval
     perf_layers = get_layered_performance(k, S_trace_eval[1], true_labels)
         
-    return perf_layers, (X_pred, A_pred, S_pred)
+    return perf_layers, (X_pred, A_pred, S_relab)
 
 
 
@@ -193,7 +196,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         normalize = True, comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], turn_off_A_loss = False, validation_data = None, 
         save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, 
-        verbose = True, **kwargs):
+        verbose = True, use_graph_updating = False, burn_in = 5, **kwargs):
     """
     
     """
@@ -210,7 +213,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     time_hist = []
     comm_layers = len(model.comm_sizes)
     print(model)
-    
+    pred_list = []
+    A_hat = None
     #set optimizer Adam
     optimizer = optimizers.Adam(
         model.parameters(),
@@ -245,8 +249,19 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #zero out gradient
         optimizer.zero_grad()
         #batch = data.transpose(0,1)
-        #compute forward output
-        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A)
+        
+        #replace input graph with predicted graph after burn-in learning period
+        if use_graph_updating:
+            if (epoch+1) % burn_in == 0:
+                A_forward = torch.tensor(A_hat.detach().numpy()).requires_grad_()
+            else:
+                A_forward = A
+        else:
+            A_forward = A
+            
+        #compute forward output 
+        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A_forward)
+        
         S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
         
         #update all output list
@@ -261,8 +276,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #modularity loss (only computed over the last k layers of community model)
         Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
         #Compute clustering loss
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
-        #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
+        #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
+        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
         
         if(turn_off_A_loss == True):
             loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
@@ -284,13 +299,18 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         mod_loss_hist.append(delta*np.array(Modloss_values))
         clust_loss_hist.append(Clustloss_values)
         
+        
+        # if use_graph_updating:
+        #     if (epoch+1) > burn_in:
+        #         A = A_hat.detach()
+            
         #--------------------------------------------------------------------
         #evaluating performance homogenity, completeness and NMI
         train_perf, output = evaluate(model, X, A, k, true_labels)
         #update history
         perf_hist.append(train_perf)
         X_pred, A_pred, S_pred = output
-        
+        pred_list.append(S_pred)
         #check for and apply validation 
         if validation_data:
             X_val, A_val, val_labels, val_size = validation_data
@@ -355,6 +375,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 print('plotting heatmaps ...')
                 plot_clust_heatmaps(A = A, 
                                     A_pred = A_pred, 
+                                    X = X,
+                                    X_pred = X_pred,
                                     true_labels = true_labels, 
                                     pred_labels = S_relab[-k:], 
                                     layers = k+1, 
@@ -384,4 +406,4 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
     #return 
     X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model.forward(X, A)
-    return all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist
+    return (all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist), pred_list
