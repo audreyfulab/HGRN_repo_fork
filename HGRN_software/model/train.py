@@ -122,6 +122,7 @@ class ClusterLoss(nn.Module):
     #                     assigning nodes to communities in l hierarchical layers
     #     Cluster_labels: list of length l containing cluster assignment labels 
     #     """
+    
     #     #N = Attributes[0].shape[0]
     #     loss = torch.Tensor([0])
     #     loss_list = []
@@ -193,10 +194,10 @@ def print_losses(epoch, total_loss, mod_loss_hist, clust_loss_hist, X_loss_hist,
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2,
-        normalize = True, comm_loss = ['Modularity', 'Clustering'], 
         true_labels = [], turn_off_A_loss = False, validation_data = None, 
         save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, 
-        verbose = True, use_graph_updating = False, burn_in = 5, **kwargs):
+        verbose = True, **kwargs):
+    
     """
     
     """
@@ -214,7 +215,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     comm_layers = len(model.comm_sizes)
     print(model)
     pred_list = []
-    A_hat = None
+    
     #set optimizer Adam
     optimizer = optimizers.Adam(
         model.parameters(),
@@ -248,19 +249,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         
         #zero out gradient
         optimizer.zero_grad()
-        #batch = data.transpose(0,1)
         
-        #replace input graph with predicted graph after burn-in learning period
-        if use_graph_updating:
-            if (epoch+1) % burn_in == 0:
-                A_forward = torch.tensor(A_hat.detach().numpy()).requires_grad_()
-            else:
-                A_forward = A
-        else:
-            A_forward = A
-            
         #compute forward output 
-        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A_forward)
+        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A)
         
         S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
         
@@ -280,7 +271,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
         
         if(turn_off_A_loss == True):
-            loss = 0*A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
+            loss = gamma*X_loss+Clust_loss-delta*Mod_loss
         else:
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
         

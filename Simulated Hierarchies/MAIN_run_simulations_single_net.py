@@ -54,12 +54,19 @@ def run_single_simulation(args, **kwargs):
     nodes, attrib = X.shape
     
     print('-'*25+'setting up and fitting models'+'-'*25)
-    model = HCD(nodes, attrib, ae_hidden_dims=args.AE_hidden_size,
+    model = HCD(
+                nodes, attrib, 
+                ae_hidden_dims=args.AE_hidden_size,
                 ll_hidden_dims = args.LL_hidden_size,
-                comm_sizes=comm_sizes, normalize_inputs = args.normalize_layers,
-                use_multi_head = args.use_multihead_attn,
-                attn_heads = args.attn_heads, dropout = args.dropout_rate,
-                use_output_layers = args.add_output_layers).to(device)
+                comm_sizes=comm_sizes, 
+                normalize_input = args.normalize_input,
+                normalize_outputs = args.normalize_layers,
+                ae_operator = args.AE_operator,
+                comm_operator = args.COMM_operator,
+                ae_attn_heads = args.attn_heads, 
+                dropout = args.dropout_rate,
+                use_output_layers = args.add_output_layers,
+                **kwargs).to(device)
         
             
     print('summary of model architecture:')
@@ -101,8 +108,6 @@ def run_single_simulation(args, **kwargs):
                          turn_off_A_loss= args.remove_graph_loss,
                          output_path=savepath_main, 
                          ns = args.plotting_node_size, 
-                         burn_in = args.burn_in_period,
-                         use_graph_updating = args.use_graph_updating,
                          fs = args.fs)
          
     #handle output and return relevant values               

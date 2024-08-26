@@ -29,7 +29,8 @@ def Modularity(A,P,res=1):
     B = A - res*(torch.outer(r,r) / n)
     modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(n)
     return modularity
-    
+
+
 
 
 #----------------------------------------------------------------
@@ -63,7 +64,7 @@ def WCSS(X, Plist, k):
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
     D = X.T - torch.mm(M, P.T)
-    MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
+    MSW = torch.trace(torch.mm(D.T, D))/N
     
     return MSW, M
 
@@ -85,7 +86,7 @@ def WCSS(X, Plist, k):
 #     oneN = torch.ones(N, 1)
 #     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
 #     D = X.T - torch.mm(M, P.T)
-#     MSW = (1/(N*k))*torch.sum(torch.diag(torch.mm(D.T, D)))
+#     MSW = (1/(N*k))*torch.trace(torch.mm(D.T, D))
     
 #     return MSW, M
 

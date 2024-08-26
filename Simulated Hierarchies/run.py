@@ -34,7 +34,7 @@ parser.add_argument('--resolution', nargs='+', type=int, default=[1, 1], help='R
 parser.add_argument('--AE_hidden_size', nargs='+', type=int, default=[256, 128, 64], help='Hidden layer sizes for GATE')
 parser.add_argument('--LL_hidden_size', nargs='+', type=int, default = [64, 64], help='hidden layer sizes learning layers on AE embedding')
 parser.add_argument('--AE_operator', type=str, choices=['GATConv', 'GATv2Conv', 'SAGEConv'], default='GATv2Conv', help='The type of layer that should be used in the graph autoencoder architecture')
-parser.add_argument('--LL_operator', type=str, choices=['Linear', 'GATConv', 'GATv2Conv', 'SAGEConv'], default='Linear', help='The type of layer that should be used in the community detection module')
+parser.add_argument('--COMM_operator', type=str, choices=['Linear', 'GATConv', 'GATv2Conv', 'SAGEConv'], default='Linear', help='The type of layer that should be used in the community detection module')
 parser.add_argument('--use_true_communities', type=bool, default=True, help='Use true communities')
 parser.add_argument('--community_sizes', nargs='+', type=int, default=[15, 5], help='Community sizes')
 parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'Sigmoid'], required=False, help='Activation function')
@@ -51,48 +51,52 @@ parser.add_argument('--run_louvain', type=bool, default=True, help='Run Louvain 
 parser.add_argument('--use_multihead_attn', type=bool, default=True, help='Use attentional graph layers')
 parser.add_argument('--attn_heads', type = int, default = 10, help='The number of attention heads')
 parser.add_argument('--normalize_layers', type=bool, default = True, help='Should layers normalize their output')
-parser.add_argument('--framework', type=str, default='my_framework', choices=['my_framework','pygeometric'], required=False, help='Use my code or pygeo layers')
+parser.add_argument('--normalize_input', type=bool, default=True, help='Should the input features be normalized')
 parser.add_argument('--split_data', type=bool, default=False, help='split data in training, testing, and validation sets')
 parser.add_argument('--train_test_size', nargs='+', type=float, default = [0.8, 0.1], help='fraction of data in training and testing sets')
 parser.add_argument('--post_hoc_plots', type=bool, default=True, help='Boolean - should additional plots of results be made')
-parser.add_argument('--use_graph_updating', type=bool, default=False, help='Boolean - should the graph be updated ')
-parser.add_argument('--burn_in_period', type=int, default=5, help='The number of epochs before graph updating is activating')
 parser.add_argument('--add_output_layers', type=bool, default=False, help ='should extra layers be added between the embedding and prediction layers?')
-
 args = parser.parse_args()
 
 
-args.training_epochs =300
-args.framework = 'pygeometric'
-args.dataset = 'intermediate'
-args.parent_distribution = 'unequal'
-args.use_true_graph = False
-args.use_graph_updating = False
-args.burn_in_period = 3
-args.correlation_cutoff = 0.1
-args.add_output_layers = False
+
+#output save settings
 #args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/test/'
 args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_8_23_2024/graph_recycle_results/'
 args.save_results = False
+
+#model settings
+args.add_output_layers = True
+args.AE_operator = 'GATv2Conv'
+args.COMM_operator = 'Linear'
 args.attn_heads = 5
 args.dropout_rate = 0.3
-args.which_net = 2
-args.normalize_layers = True
-args.AE_hidden_size = [256, 128, 64]
+args.normalize_input = True
+args.normalize_layers = False
+args.AE_hidden_size = [256, 128]
 args.LL_hidden_size = [128, 64] 
-args.steps_between_updates = 50
-args.gamma = 1e-1
+args.gamma = 1
 args.delta = 0
-args.lambda_ = [5e-3, 1e-3]
-args.learning_rate = 1e-3
+args.lambda_ = [1, 1]
+args.learning_rate = 1e-4
+args.remove_graph_loss = False
+
+#training settings
+args.dataset = 'intermediate'
+args.parent_distribution = 'unequal'
+args.which_net = 1
+args.training_epochs = 200
+args.steps_between_updates = 50
+args.use_true_graph = False
+args.correlation_cutoff = 0.2
 args.return_result = 'best_perf_top'
 args.verbose = False
 args.run_louvain = True
-args.remove_graph_loss = True
+
 args.split_data = False
 args.train_test_size = [0.8, 0.1]
 
-results = run_single_simulation(args)
+results = run_single_simulation(args, heads = 1)
 
 
 

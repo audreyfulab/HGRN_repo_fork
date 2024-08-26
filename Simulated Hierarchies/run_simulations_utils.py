@@ -40,7 +40,7 @@ def load_simulated_data(args):
     # set filepath and settings grid
     if args.dataset == 'complex':
         #set data path
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/'
+        loadpath_main = readpath+'HGRN_repo/Simulated Hierarchies/DATA/complex_networks/'
         #set filepaths
         structpath = ['small_world/','scale_free/','random_graph/']
         connectpath = ['disconnected/', 'fully_connected/']
@@ -96,8 +96,11 @@ def load_simulated_data(args):
         stats = pd.read_csv(readpath+'HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/OLD_DATA_5_2_2024/intermediate_examples_network_statistics.csv')
     
     elif args.dataset == 'toy':
-        loadpath_main = readpath+'HGRN_repo/Simulated_Hierarchies/DATA/Toy_examples/'
-    
+        loadpath_main = readpath+'HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/'
+        
+        connectpath = ['disconnected/', 'fully_connected/']
+        layerpath = ['2_layer/', '3_layer/']
+        
         connect_nm =['disc_', 'full_']
         layer_nm = ['2_layer_','3_layer_']
 
@@ -531,8 +534,10 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
     plot_clust_heatmaps(A = adjacency, 
                         A_pred = output[0][bp][1]-torch.eye(data.shape[0]), 
+                        X = data,
+                        X_pred = output[0][bp][0],
                         true_labels = truth, 
-                        pred_labels = output[0][bp][-3], 
+                        pred_labels = predicted, 
                         layers = k_layers+1, 
                         epoch = bp, 
                         save_plot = args.save_results, 
@@ -550,14 +555,14 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
     fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
     #tsne plot
-    ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = output[0][bp][-3][1], cmap = 'plasma')
+    ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = truth[0], cmap = 'plasma')
     ax1[0].set_xlabel('Dimension 1')
     ax1[0].set_ylabel('Dimension 2')
     ax1[0].set_title(' t-SNE Embedding Bottleneck (Predicted)')
     #adding node labels
         
     #PCA plot
-    ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = output[0][bp][-3][1], cmap = 'plasma')
+    ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = truth[0], cmap = 'plasma')
     ax1[1].set_xlabel('Dimension 1')
     ax1[1].set_ylabel('Dimension 2')
     ax1[1].set_title(' PCA Embedding-Bottleneck_(Predicted)')
@@ -574,14 +579,14 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     PCs2 = PCA(n_components=3).fit_transform(x1.detach().numpy())
 
     #tsne plot
-    ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = output[0][bp][-3][1], cmap = 'plasma')
+    ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = truth[0], cmap = 'plasma')
     ax2[0].set_xlabel('Dimension 1')
     ax2[0].set_ylabel('Dimension 2')
     ax2[0].set_title(' t-SNE Embedding Comm1-projection (Predicted)')
     #adding node labels
         
     #PCA plot
-    ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = output[0][bp][-3][1], cmap = 'plasma')
+    ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = truth[0], cmap = 'plasma')
     ax2[1].set_xlabel('Dimension 1')
     ax2[1].set_ylabel('Dimension 2')
     ax2[1].set_title(' PCA Embedding-Comm1-projection (Predicted)')

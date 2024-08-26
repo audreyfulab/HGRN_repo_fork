@@ -11,25 +11,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 #from model.model_layer import Comm_DenseLayer as CDL
-from model.pyg_model_layer import Comm_DenseLayer2 as CDL2
-from model.pyg_model_layer import Fully_ConnectedLayer as FCL
+from model.model_layer import Comm_DenseLayer2 as CDL2
+from model.model_layer import Fully_ConnectedLayer as FCL
 from collections import OrderedDict
-from model.pyg_model_layer import GAT_layer
+from model.model_layer import AE_layer
 import torch_geometric.utils as pyg_utils
 from torchinfo import summary
 
 
 
-class GATEgeo(nn.Module):
+class GATE(nn.Module):
     """
     GATE model described in https://arxiv.org/pdf/1905.10715.pdf
     
     """
 
     def __init__(self, in_nodes, in_attrib, normalize = True, hid_sizes=[256, 128, 64], 
-                 use_multi_head = False, attn_heads = 1, layer_act = nn.Identity(), 
-                 dropout = 0.2, **kwargs):
-        super(GATEgeo, self).__init__()
+                 attn_heads = 1, layer_act = nn.Identity(), dropout = 0.2, 
+                 operator = 'GATv2Conv', **kwargs):
+        
+        super(GATE, self).__init__()
         #store size
         self.in_nodes = in_nodes
         self.in_attrib = in_attrib
@@ -38,28 +39,17 @@ class GATEgeo(nn.Module):
         module_dict = OrderedDict([])
         for idx, out in enumerate(hid_sizes):
             
-            if use_multi_head == True:
-                # add multi head attendtion layers to dictionary
-                layer_name = 'GATpyg_multi_'+str(idx)+'-'+str(out)
-                module_dict.update({layer_name: GAT_layer(nodes = in_nodes, 
-                                                          in_features=in_attrib,
-                                                          out_features=out,
-                                                          heads=attn_heads,
-                                                          norm = normalize,
-                                                          dropout = dropout,
-                                                          **kwargs)})
-            
-            else:
-                #add GAT layers to dictionary
-                layer_name = 'GATpyg_'+str(idx)+'-'+str(out)
-                module_dict.update({layer_name: GAT_layer(nodes = in_nodes, 
-                                                          in_features=in_attrib,
-                                                          out_features=out,
-                                                          heads=1,
-                                                          norm=normalize,
-                                                          dropout = dropout,
-                                                          **kwargs)
-                                    }) 
+            # add multi head attendtion layers to dictionary
+            layer_name = f'{operator}_'+str(idx)+'-'+str(out)
+            module_dict.update({layer_name: AE_layer(nodes = in_nodes, 
+                                                      in_features=in_attrib,
+                                                      out_features=out,
+                                                      heads=attn_heads,
+                                                      norm = normalize,
+                                                      operator = operator,
+                                                      dropout = dropout,
+                                                      **kwargs)})
+        
             
             module_dict.update({'act'+str(out): layer_act})
             
@@ -99,7 +89,7 @@ class AddLearningLayers(nn.Module):
         
         for idx, size in enumerate(sizes):
             #add output layers to dictionary
-            module_dict.update({'LinearLayer'+str(size): FCL(in_dim = in_attrib, 
+            module_dict.update({f'LinearLayer_{size}_{idx}': FCL(in_dim = in_attrib, 
                                                              out_dim = size,
                                                              norm = normalize,
                                                              dropout = dropout)
@@ -119,15 +109,17 @@ class AddLearningLayers(nn.Module):
 
 
 
-class CommClassifer(nn.Module):
+class CommunityDetectionLayers(nn.Module):
     """
     Community Detection Module
     
     """
 
     def __init__(self, in_nodes, in_attrib, comm_sizes=[60, 10], 
-                 dropout = 0.2, normalize = True, **kwargs):
-        super(CommClassifer, self).__init__()
+                 layer_operator = 'Linear', dropout = 0.2, normalize = True, 
+                 **kwargs):
+        
+        super(CommunityDetectionLayers, self).__init__()
         #store size
         self.in_nodes = in_nodes
         self.in_attrib = in_attrib
@@ -136,11 +128,12 @@ class CommClassifer(nn.Module):
         
         for idx, comms in enumerate(comm_sizes):
             #add output layers to dictionary
-            module_dict.update({'Comm_Linear_'+str(comms): CDL2(in_feats = in_attrib, 
-                                                                out_comms = comms,
-                                                                norm = normalize,
-                                                                dropout = dropout,
-                                                                **kwargs)})
+            module_dict.update({f'Comm_{layer_operator}_'+str(comms): CDL2(in_features = in_attrib, 
+                                                                           out_comms = comms,
+                                                                           norm = normalize,
+                                                                           dropout = dropout,
+                                                                           operator = layer_operator,
+                                                                           **kwargs)})
 
         
         #build model by pytorch sequential
@@ -166,9 +159,11 @@ class HCD(nn.Module):
     """
 
     def __init__(self, nodes, attrib, ae_hidden_dims = [256, 128, 64], 
-                 ll_hidden_dims = [64, 64], comm_sizes = [60, 10],
-                 normalize_inputs = False, dropout = 0.2, use_output_layers = False, 
-                 **kwargs):
+                 ll_hidden_dims = [64, 64], comm_sizes = [60, 10], ae_operator = 'GATv2Conv',
+                 comm_operator = 'Linear', dropout = 0.2, use_output_layers = False, 
+                 normalize_outputs = False, normalize_input = False, ae_attn_heads=1,
+                 temperature = 10, **kwargs):
+        
         super(HCD, self).__init__()
         #copy and reverse decoder layer dims
         decode_dims = ae_hidden_dims.copy()
@@ -178,69 +173,83 @@ class HCD(nn.Module):
         self.comm_sizes = comm_sizes
         self.ae_hidden_dims = ae_hidden_dims
         self.ll_hidden_dims = ll_hidden_dims
-        self.normalize_inputs = normalize_inputs
+        self.normalize_outputs = normalize_outputs
+        self.temperature = temperature
+        
         #set up encoder
-        self.encoder = GATEgeo(in_nodes = nodes, 
-                               in_attrib = attrib, 
-                               hid_sizes=ae_hidden_dims, 
-                               normalize = normalize_inputs, 
-                               dropout = dropout,
-                               **kwargs)
+        self.encoder = GATE(in_nodes = nodes, 
+                            in_attrib = attrib, 
+                            hid_sizes=ae_hidden_dims, 
+                            normalize = normalize_outputs, 
+                            operator=ae_operator,
+                            attn_heads = ae_attn_heads,
+                            dropout = dropout)
         #set up decoder
-        self.decoder = GATEgeo(in_nodes = nodes, 
-                               in_attrib = ae_hidden_dims[-1], 
-                               hid_sizes=decode_dims[1:], 
-                               normalize = normalize_inputs, 
-                               dropout = dropout,
-                               **kwargs)
+        self.decoder = GATE(in_nodes = nodes, 
+                            in_attrib = ae_hidden_dims[-1], 
+                            hid_sizes=decode_dims[1:], 
+                            normalize = normalize_outputs, 
+                            operator = ae_operator,
+                            attn_heads = ae_attn_heads,
+                            dropout = dropout)
         
         if use_output_layers:
             self.fully_connected_layers = AddLearningLayers(in_nodes=nodes, 
                                                             in_attrib=ae_hidden_dims[-1],
                                                             sizes=ll_hidden_dims,
+                                                            normalize=normalize_outputs,
                                                             dropout = dropout)
         
         
             #set up community detection module
-            self.commModule = CommClassifer(in_nodes = nodes, 
-                                            in_attrib = ll_hidden_dims[-1], 
-                                            normalize = normalize_inputs, 
-                                            comm_sizes=comm_sizes,
-                                            dropout = dropout)
+            self.commModule = CommunityDetectionLayers(in_nodes = nodes, 
+                                                       in_attrib = ll_hidden_dims[-1], 
+                                                       normalize = normalize_outputs, 
+                                                       comm_sizes=comm_sizes,
+                                                       layer_operator = comm_operator,
+                                                       dropout = dropout,
+                                                       **kwargs)
         else:
             #set up community detection module
-            self.commModule = CommClassifer(in_nodes = nodes, 
-                                            in_attrib = ae_hidden_dims[-1], 
-                                            normalize = normalize_inputs, 
-                                            comm_sizes=comm_sizes,
-                                            dropout = dropout)
+            self.commModule = CommunityDetectionLayers(in_nodes = nodes, 
+                                                       in_attrib = ae_hidden_dims[-1], 
+                                                       normalize = normalize_outputs, 
+                                                       comm_sizes=comm_sizes,
+                                                       layer_operator = comm_operator,
+                                                       dropout = dropout,
+                                                       **kwargs)
         
-
-        # set layer normalization
-        if normalize_inputs == True:
-            self.act_norm = nn.LayerNorm(attrib)
+        if normalize_input:
+            self.input_norm = nn.LayerNorm(attrib)
         else:
-            self.act_norm = nn.Identity()
-            
+            self.input_norm = nn.Identity()
+        
         #set dot product decoder activation to sigmoid
         self.dpd_act = nn.Sigmoid()
         #normalization for dpd_activation
-        #self.dpd_norm = nn.LayerNorm(nodes)
-        #self.dpd_norm = nn.Identity()
+        #self.dpd_norm = nn.LayerNorm(ae_hidden_dims[-1])
         self.dpd_norm = nn.LayerNorm(nodes)
         
     def forward(self, X, A):
         
         #normalize input
-        H = self.act_norm(X)
+        H = self.input_norm(X)
         
         #get representation
         Z, A, encoder_attention_weights = self.encoder(H,A)
         
+        #Z_norm = self.dpd_norm(Z)
         #reconstruct adjacency matrix using simple dot-product decoder
         #A_hat = self.dpd_act(torch.mm(Z, Z.transpose(0,1)))
         A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))
-            
+        #A_hat = self.dpd_act(torch.mm(Z_norm, Z_norm.transpose(0,1)))
+        
+        #attn_coef = self.dpd_act(encoder_attention_weights[-1][1].mean(dim=1))
+        
+        #reconstruct graph from attention weights
+        #A_hat = pyg_utils.to_dense_adj(encoder_attention_weights[-1][0], 
+        #                               edge_attr=attn_coef).squeeze()
+        
         #get reconstructed adjacency
         X_hat, A, decoder_attention_weights = self.decoder(Z, A)
         
