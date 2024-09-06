@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description='Model Parameters')
 
 parser.add_argument('--dataset', type=str, choices=['complex', 'intermediate', 'toy', 'cora', 'pubmed'], required=False, help='Dataset selection')
 parser.add_argument('--parent_distribution', type=str, choices=['same_for_all', 'unequal'], required=False, help='Parent distribution selection')
-parser.add_argument('--readpath', type=str, default='local', help='Path to read data from')
+parser.add_argument('--read_from', type=str, default='local', choices = ['local','cluster'], help='Path to read data from')
 parser.add_argument('--which_net', type=int, default=0, help='Network selection')
 parser.add_argument('--use_true_graph', type=bool, default=True, help='Sets the input graph to be the true topology')
 parser.add_argument('--correlation_cutoff', type=float, default=0.5, help='Use true graph or float giving graph with specified correlation cutoff')
@@ -48,6 +48,8 @@ parser.add_argument('--sp', type=str, default='/mnt/ceph/jarredk/HGRN_repo/Simul
 parser.add_argument('--plotting_node_size', type=int, default=25, help='Plotting node size')
 parser.add_argument('--fs', type=int, default=10, help='Font size')
 parser.add_argument('--run_louvain', type=bool, default=True, help='Run Louvain algorithm')
+parser.add_argument('--run_kmeans', type=bool, default=True, help='Run KMeans algorithm')
+parser.add_argument('--run_cmeans', type=bool, default=True, help='Run Fuzzy CMeans algorithm')
 parser.add_argument('--use_multihead_attn', type=bool, default=True, help='Use attentional graph layers')
 parser.add_argument('--attn_heads', type = int, default = 10, help='The number of attention heads')
 parser.add_argument('--normalize_layers', type=bool, default = True, help='Should layers normalize their output')
@@ -56,16 +58,20 @@ parser.add_argument('--split_data', type=bool, default=False, help='split data i
 parser.add_argument('--train_test_size', nargs='+', type=float, default = [0.8, 0.1], help='fraction of data in training and testing sets')
 parser.add_argument('--post_hoc_plots', type=bool, default=True, help='Boolean - should additional plots of results be made')
 parser.add_argument('--add_output_layers', type=bool, default=False, help ='should extra layers be added between the embedding and prediction layers?')
+parser.add_argument('--make_directories', type=bool, default=False, help='If true directors are created using os.makedir()')
+parser.add_argument('--use_graph_updating', type=bool, default=False, help='Graph is updated each epoch during training')
 args = parser.parse_args()
 
 
 
 #output save settings
 #args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/test/'
-args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_8_23_2024/graph_recycle_results/'
+args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Reports/Report_8_23_2024/Output/'
 args.save_results = False
+args.make_directories = False
 
 #model settings
+args.use_graph_updating = False
 args.add_output_layers = True
 args.AE_operator = 'GATv2Conv'
 args.COMM_operator = 'Linear'
@@ -73,25 +79,26 @@ args.attn_heads = 5
 args.dropout_rate = 0.3
 args.normalize_input = True
 args.normalize_layers = False
-args.AE_hidden_size = [256, 128]
+args.AE_hidden_size = [256, 256]
 args.LL_hidden_size = [128, 64] 
 args.gamma = 1
-args.delta = 0
+args.delta = 1
 args.lambda_ = [1, 1]
-args.learning_rate = 1e-4
+args.learning_rate = 1e-3
 args.remove_graph_loss = False
 
 #training settings
 args.dataset = 'intermediate'
 args.parent_distribution = 'unequal'
-args.which_net = 1
-args.training_epochs = 200
-args.steps_between_updates = 50
+args.which_net = 3
+args.training_epochs = 10
+args.steps_between_updates = 10
 args.use_true_graph = False
 args.correlation_cutoff = 0.2
 args.return_result = 'best_perf_top'
 args.verbose = False
 args.run_louvain = True
+args.run_kmeans = True
 
 args.split_data = False
 args.train_test_size = [0.8, 0.1]
