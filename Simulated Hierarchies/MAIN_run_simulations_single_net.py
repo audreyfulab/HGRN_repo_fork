@@ -12,19 +12,24 @@ import numpy as np
 import pandas as pd
 from model.model import HCD 
 from model.train import fit
-from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, read_benchmark_CORA, post_hoc
+from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, read_benchmark_CORA, post_hoc, run_kmeans
 import pickle
 import random as rd
-
+import os
 
 
 def run_single_simulation(args, **kwargs):
     
+    if args.save_results:
+        if args.make_directories:
+            print(f'Creating new directory at {os.path.join(args.sp)}')
+            os.makedirs(args.sp, exist_ok=True)
     
     if args.set_seed:
         rd.seed(123)
         torch.manual_seed(123)
     
+    print(f'***** GPU AVAILABLE: {torch.cuda.is_available()} ******')
     device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
     print('***** Using device {} ********'.format(device))
     
@@ -44,7 +49,7 @@ def run_single_simulation(args, **kwargs):
         if args.dataset == 'cora':
             train_size, test_size = args.train_test_size
             train, test, valid = read_benchmark_CORA(args, 
-                                                     PATH = '/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/',
+                                                     PATH = '/benchmarks/',
                                                      use_split=args.split_data,
                                                      percent_train=train_size,
                                                      percent_test=test_size)
@@ -76,7 +81,7 @@ def run_single_simulation(args, **kwargs):
     res_table = pd.DataFrame(columns = ['Beth_Hessian_Comms',
                                         'Communities_Upper_Limit',
                                         'Max_Modularity',
-                                        'Modularity',
+                                        'Comm_Loss',
                                         'Reconstruction_A',
                                         'Reconstruction_X', 
                                         'Metrics',
@@ -108,7 +113,8 @@ def run_single_simulation(args, **kwargs):
                          turn_off_A_loss= args.remove_graph_loss,
                          output_path=savepath_main, 
                          ns = args.plotting_node_size, 
-                         fs = args.fs)
+                         fs = args.fs,
+                         update_graph = args.use_graph_updating)
          
     #handle output and return relevant values               
     results = handle_output(args, out, A, comm_sizes)
@@ -119,9 +125,18 @@ def run_single_simulation(args, **kwargs):
     
     #run louvain method on same dataset
     if args.run_louvain:
-        louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, out, A, len(comm_sizes), savepath_main, bpi, target_labels)          
+        louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, out, A, len(comm_sizes)+1, savepath_main, bpi, target_labels)          
     else:
         louv_metrics, louv_mod, louv_num_comms, louv_preds = (None, None, None, None)
+        
+    #run Kmeans on same dataset
+    if args.run_kmeans:
+        kmeans_preds = run_kmeans(args, X=X.detach().numpy(), 
+                                  labels=target_labels, 
+                                  layers=len(comm_sizes)+1,
+                                  sizes=comm_sizes)
+    else:
+        kmeans_preds = None
     
     
     if args.post_hoc_plots:
@@ -132,6 +147,7 @@ def run_single_simulation(args, **kwargs):
                  predicted = pred_list[bpi],
                  truth = target_labels,
                  louv_pred = louv_preds,
+                 kmeans_pred = kmeans_preds,
                  bp = bpi,
                  k_layers = layers,
                  verbose = True)
