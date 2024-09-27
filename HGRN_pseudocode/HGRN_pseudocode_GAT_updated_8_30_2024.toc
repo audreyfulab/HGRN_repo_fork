@@ -1,0 +1,4 @@
+\contentsline {section}{LIST OF TABLES}{1}{}%
+\contentsline {section}{LIST OF FIGURES}{1}{}%
+\contentsline {section}{\numberline {1}Preprocessing}{2}{}%
+\contentsline {section}{\numberline {2}Training}{2}{}%
