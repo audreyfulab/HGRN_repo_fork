@@ -61,6 +61,8 @@ def run_single_simulation(args, **kwargs):
     print('-'*25+'setting up and fitting models'+'-'*25)
     model = HCD(
                 nodes, attrib, 
+                method=args.use_method,
+                use_kmeans=args.use_softKMeans,
                 ae_hidden_dims=args.AE_hidden_size,
                 ll_hidden_dims = args.LL_hidden_size,
                 comm_sizes=comm_sizes, 
@@ -71,7 +73,8 @@ def run_single_simulation(args, **kwargs):
                 ae_attn_heads = args.attn_heads, 
                 dropout = args.dropout_rate,
                 use_output_layers = args.add_output_layers,
-                **kwargs).to(device)
+                **kwargs
+                ).to(device)
         
             
     print('summary of model architecture:')
@@ -176,7 +179,8 @@ def run_single_simulation(args, **kwargs):
         with open(savepath_main+'Simulation_Results_'+'OUTPUT'+'.pkl', 'wb') as f:
             pickle.dump(out, f)
 
-
+    del model
+    
     print('done')
     return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices
 

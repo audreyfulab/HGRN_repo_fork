@@ -35,7 +35,7 @@ def load_simulated_data(args):
     
     
     if args.read_from == 'local':
-        readpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+        readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
     elif args.read_from == 'cluster':
         readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
         
@@ -73,7 +73,7 @@ def load_simulated_data(args):
         if args.parent_distribution == 'same_for_all':
             loadpath_main = os.path.join(readpath+'Toy_examples/Intermediate_examples/OLD_DATA_5_2_2024/')
         else:
-            loadpath_main = os.path.join(readpath+'Toy_examples/Intermediate_examples_unique_dist/')
+            loadpath_main = os.path.join(readpath+'Toy_examples/Intermediate_examples_unique_dist_sparse/')
         structpath = ['small_world/','scale_free/','random_graph/']
         connectpath = ['disconnected/', 'fully_connected/']
         layerpath = ['3_layer/']
@@ -166,7 +166,7 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
     X = torch.Tensor(pe_sorted).requires_grad_()
     #generate input graphs
     if args.use_true_graph:
-        A = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
+        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes)).requires_grad_()
     else:    
         in_graph, in_adj = get_input_graph(X = pe_sorted, 
                                            method = 'Correlation', 
@@ -348,7 +348,7 @@ def read_benchmark_CORA(args, PATH, use_split = True, percent_train = 0.8, perce
     testing_set = []
     valid_set = []
     if args.read_from == 'local':
-        readpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+        readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
     elif args.read_from == 'cluster':
         readpath = '/mnt/ceph/jarredk//HGRN_repo/Simulated_Hierarchies/DATA/'
     

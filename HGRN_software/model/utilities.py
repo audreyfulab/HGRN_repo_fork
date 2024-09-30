@@ -12,12 +12,18 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
-from sklearn.metrics import roc_auc_score, f1_score, normalized_mutual_info_score,homogeneity_score, completeness_score
+from sklearn.metrics import roc_auc_score, f1_score, normalized_mutual_info_score,homogeneity_score, completeness_score, adjusted_rand_score
 from sklearn.neighbors import kneighbors_graph
 import scipy as spy
 import seaborn as sbn
 import matplotlib.pyplot as plt
 import pickle
+
+
+
+
+
+    
 
 # A simple function which computes the modularity of a graph based on a set of 
 #community assignments
@@ -29,8 +35,6 @@ def Modularity(A,P,res=1):
     B = A - res*(torch.outer(r,r) / n)
     modularity = torch.trace(torch.mm(P.T, torch.mm(B, P)))/(n)
     return modularity
-
-
 
 
 #----------------------------------------------------------------
@@ -50,7 +54,7 @@ def open_pickled(filename):
 #This function computes the within cluster sum of squares (WCSS)
 #----------------------------------------------------------------
 # within cluster loss computed using input feature matrix
-def WCSS(X, Plist, k):
+def WCSS(X, Plist, method):
     
     """
     Computes Hierarchical Within-Cluster Sum of Squares
@@ -58,8 +62,11 @@ def WCSS(X, Plist, k):
     P: assignment probabilities for assigning N nodes to k clusters
     k: number of clusters
     """
-    
-    P = torch.linalg.multi_dot(Plist)
+    if method == 'bottom_up':
+        P = torch.linalg.multi_dot(Plist)
+    else:
+        P = Plist
+        
     N = X.shape[0]
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
@@ -159,13 +166,14 @@ def easy_renumbering(labels):
 #predicted cluster labels. 
 #----------------------------------------------------------------
 def node_clust_eval(true_labels, pred_labels, verbose = True):
-    homogeneity, completeness, nmi = homogeneity_score(true_labels, pred_labels),\
-                                     completeness_score(true_labels, pred_labels),\
-                                     normalized_mutual_info_score(true_labels, pred_labels)
+    homogeneity, completeness, ari, nmi = (np.round(homogeneity_score(true_labels, pred_labels),4),
+                                           np.round(completeness_score(true_labels, pred_labels),4),
+                                           np.round(adjusted_rand_score(true_labels, pred_labels),4),
+                                           np.round(normalized_mutual_info_score(true_labels, pred_labels),4))
     if verbose is True:
-        print("\nHomogeneity = ",homogeneity,"\nCompleteness = ", completeness, "\nNMI = ", nmi)
+        print('\nHomogeneity = {homogeneity} \nCompleteness = {completeness} \nNMI = {nmi} \nARI = {ari}')
     
-    return np.array([homogeneity, completeness, nmi])
+    return np.array([homogeneity, completeness, nmi, ari])
 
 
 
@@ -726,7 +734,7 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
     
     fig11, ax11 = plt.subplots(1,2, figsize=(12,10))
     sbn.heatmap(X_pred.cpu().detach().numpy(), ax = ax11[0])
-    ax11[0].set_title(r'Reconstructed Attributes At Epoch {epoch}')
+    ax11[0].set_title(f'Reconstructed Attributes At Epoch {epoch}')
     sbn.heatmap(X.cpu().detach().numpy(), ax = ax11[1])
     ax11[1].set_title('Input Attributes')
     
@@ -760,10 +768,9 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
 
 def get_layered_performance(k, S_relab, true_labels):
     perf_layers = []
-    for i in range(0, k):   
-        preds = S_relab[::-1][-k:][i].cpu().detach().numpy()
+    for i in range(0, k):
         eval_metrics = node_clust_eval(true_labels=true_labels[i],
-                                       pred_labels=preds, 
+                                       pred_labels=S_relab[i], 
                                        verbose=False)
         perf_layers.append(eval_metrics.tolist())
     

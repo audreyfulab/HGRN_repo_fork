@@ -45,6 +45,33 @@ def add_edges_to_fullgraph(G, nodes_to_add, edges_to_add):
 
 
 
+
+def generate_random_dag_with_gnm(n, m, make_directed = True):
+    G = nx.gnm_random_graph(n, m, directed=make_directed)
+    
+    try:
+        # Find cycles in the graph
+        cycles = list(nx.find_cycle(G, orientation='original'))
+        
+        while cycles:
+            # Remove an edge from each cycle to break it
+            for cycle in cycles:
+                G.remove_edge(cycle[0], cycle[1])
+            
+            # Recheck for cycles after removal
+            cycles = list(nx.find_cycle(G, orientation='original'))
+            
+    except nx.NetworkXNoCycle:
+        # No cycles found, G is already a DAG
+        pass
+    
+    return G
+
+
+
+
+
+
 def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighted = True, 
                       degree=3, connection_prob=0.05, sub_graph_prob=0.01, weight_b = (0.1, 0.3),
                       weight_w = (0.4, 0.8), mixed = None, force_connections = False, 
@@ -138,11 +165,12 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
             ## Random Graph ##
             ##--------------##
             elif (subgraph_type == 'random graph' and (mixed == 'False' or mixed is None)):
-                subgraph = nx.gnm_random_graph(rd(subgraph_node_number[0], 
-                                                  subgraph_node_number[1]),
-                                               rd(subgraph_node_number[0], 
-                                                  subgraph_node_number[1]),
-                                               directed=True)
+                subgraph = generate_random_dag_with_gnm(rd(subgraph_node_number[0], 
+                                                        subgraph_node_number[1]),
+                                                       rd(subgraph_node_number[0], 
+                                                          subgraph_node_number[1]),
+                                                       make_directed=True)
+    
                 G = add_edges_to_subgraph(nx.DiGraph(), subgraph.nodes, subgraph.edges, 
                                        weighted_graph = as_weighted, weighting = weight_w)
                 subgraphs.append(G)

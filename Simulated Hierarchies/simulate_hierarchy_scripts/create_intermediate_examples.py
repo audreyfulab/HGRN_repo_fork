@@ -21,8 +21,8 @@ import pandas as pd
 #sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
+sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/simulation_software/')
 from Simulate import simulate_graph
 from simulation_utilities import compute_graph_STATs
 #import os
@@ -35,8 +35,9 @@ import random as rd
 from itertools import product
 from tqdm import tqdm
 import time
+import os
 #set seed
-rd.seed(333)
+rd.seed(373)
 
 
 # simulation default arguments
@@ -48,18 +49,22 @@ parser.add_argument('--subgraph_type', dest='subgraph_type', default='small worl
 parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
 parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20,20), type=tuple)
-parser.add_argument('--node_degree', dest='node_degree', default=5, type=int)
+parser.add_argument('--node_degree_middle', dest='node_degree_middle', default=3, type=int)
+parser.add_argument('--node_degree_bottom', dest='node_degree_bottom', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
 parser.add_argument('--layers',dest='layers', default = 2, type=int)
 parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
 parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
 parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
+parser.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
+parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.2), type=tuple)
+parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
 args = parser.parse_args()
 
 
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.01
+args.connect_prob = 0.002
 args.common_dist = False
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
@@ -71,8 +76,15 @@ args.common_dist = False
 # args.node_degree = 5
 
 #mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples/'
-mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Toy_examples/Intermediate_examples_unique_dist/'
+path = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+location = 'Toy_examples/Intermediate_examples_unique_dist_sparse/'
+mainpath = os.path.join(path, location)
+if not os.path.exists(mainpath):
+    os.makedirs(mainpath)
 #mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/test/'
+
+
+
 
 structpath = ['small_world/','scale_free/','random_graph/']
 connectpath = ['disconnected/', 'fully_connected/']
@@ -123,7 +135,10 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('='*60)
     print(args)
     print('-'*60)
-    args.savepath = mainpath+''.join(value[0])+''.join(value[1])
+    args.savepath = os.path.join(mainpath+''.join(value[0])+''.join(value[1]))
+    if not os.path.exists(args.savepath):
+        os.makedirs(args.savepath)
+    
     print('saving hierarchy to {} '.format(args.savepath))
     pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, ori = simulate_graph(args)
     print('done')

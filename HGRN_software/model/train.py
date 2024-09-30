@@ -16,7 +16,9 @@ from model.utilities import Modularity, WCSS, node_clust_eval
 from tqdm import tqdm
 from model.utilities import trace_comms, get_layered_performance
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
+import numpy as np
 import copy
+import gc
 
 #------------------------------------------------------
 #custom pytorch dataset
@@ -55,11 +57,14 @@ class ModularityLoss(nn.Module):
     def __init__(self):
         super(ModularityLoss, self).__init__()
         
-    def forward(self, all_A, all_P, resolutions):
+    def forward(self, all_A, all_P, resolutions = None):
         loss = torch.Tensor([0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
-            mod = Modularity(A, P, resolutions[index])
+            if resolutions:
+                mod = Modularity(A, P, resolutions[index])
+            else:
+                mod = Modularity(A, P, res= 1)
             loss+= mod
             loss_list.append(float(mod.cpu().detach().numpy()))
         return loss, loss_list
@@ -79,7 +84,7 @@ class ClusterLoss(nn.Module):
 
     
     # forward method for loss computed using input feature matrix
-    def forward(self, Lamb, Attributes, Probabilities, Cluster_labels):
+    def forward(self, Lamb, Attributes, Probabilities, method):
         
         """
         Computes forward loss for hierarchical within-cluster sum of squares loss
@@ -89,22 +94,38 @@ class ClusterLoss(nn.Module):
                         assigning nodes to communities in l hierarchical layers
         Cluster_labels: list of length l containing cluster assignment labels 
         """
-        N = Attributes.shape[0]
         loss = torch.Tensor([0])
         loss_list = []
-        ptensor_list = [torch.eye(N)]+Probabilities
-        for idx, labels in enumerate(Cluster_labels):
-            #compute total number of clusters
-            number_of_clusters = len(torch.unique(labels))
-            #within cluster sum of squares
-            within_ss, centroids = WCSS(X = Attributes,
-                                        Plist = ptensor_list[:(idx+2)],
-                                        k = number_of_clusters)
+        if not isinstance(Attributes, list):
+            N = Attributes.shape[0]
+            ptensor_list = [torch.eye(N)]
             
+        for idx, P in enumerate(Probabilities):
+            #within cluster sum of squares
+            if isinstance(Attributes, list):
+                Attr = Attributes[idx]
+            else:
+                Attr = Attributes
+            
+            
+            #handle for bottom up vs top down learning
+            if method == 'bottom_up':
+                ptensor_list+=[P]
+            else:
+                ptensor_list = P
+                
+            within_ss, centroids = WCSS(X = Attr,
+                                        Plist = ptensor_list,
+                                        method = method)
+            
+            if isinstance(Lamb, list):
+                weight = Lamb[idx]
+            else:
+                weight = Lamb
             #update loss list
-            loss_list.append(Lamb[idx]*float(within_ss.cpu().detach().numpy()))
+            loss_list.append(weight*float(within_ss.cpu().detach().numpy()))
             #update loss
-            loss += Lamb[idx]*within_ss
+            loss += weight*within_ss
 
         return loss, loss_list
 
@@ -154,10 +175,13 @@ def evaluate(model, X, A, k, true_labels):
     
     model.eval()
     X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
-    S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
-    
-    S_all, S_relab, S_out = S_trace_eval
-    perf_layers = get_layered_performance(k, S_trace_eval[1], true_labels)
+    if model.method == 'bottom_up':
+        S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
+        S_all, S_temp, S_out = S_trace_eval
+        S_relab = [i.detach().numpy() for i in S_temp]
+    else:
+        S_relab = S_pred[::-1]
+    perf_layers = get_layered_performance(k, S_relab, true_labels)
         
     return perf_layers, (X_pred, A_pred, S_relab)
 
@@ -167,10 +191,11 @@ def print_performance(history, comm_layers, k):
     lnm = ['top']+['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
     for i in range(0, k):
         print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-        print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}'.format(
+        print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}, \nARI = {:.4f}'.format(
             history[-1][i][0], 
             history[-1][i][1], 
-            history[-1][i][2]))
+            history[-1][i][2],
+            history[-1][i][3]))
         print('-' * 80)
         
         
@@ -196,7 +221,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2,
         true_labels = [], turn_off_A_loss = False, validation_data = None, 
         save_output = False, output_path = 'path/to/output', fs = 10, ns = 10, 
-        verbose = True, **kwargs):
+        verbose = True, update_graph = False, clear_cache = True, **kwargs):
     
     """
     
@@ -222,7 +247,6 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         lr=lr,
         weight_decay=5e-4
     )
-    
     #set loss functions
     #A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
     A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
@@ -234,7 +258,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     clustering_loss_fn = ClusterLoss()
     #pre-allocate storage space for training info
     all_out = []
-    
+    #A_hat = torch.Tensor(A.detach().numpy()).requires_grad_()
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(tqdm(range(epochs), desc="Fitting...", ascii=False, ncols=75)):
         #epoch printing
@@ -250,10 +274,41 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #zero out gradient
         optimizer.zero_grad()
         
-        #compute forward output 
-        X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A)
         
-        S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S], model.comm_sizes)
+        # if update_graph:
+        #     if epoch>0:  
+        #         temp = A_hat.detach().numpy()
+        #         temp[temp >= float(A_hat.mean())] = 1
+        #         temp[temp< float(A_hat.mean())] = 0
+        #         A_forward = torch.Tensor(temp).requires_grad_()
+        #     else:
+        #         A_forward = A
+        #     X_hat, A_hat, X_all, A_all, P_all, S, AW = model.forward(X, A_forward)
+        # else:
+        #compute forward output 
+        X_hat, A_hat, X_all, A_all, P_all, S_all, AW = model.forward(X, A)
+        
+        if model.method == 'bottom_up':
+            S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S_all], model.comm_sizes)
+            #compute community detection loss components
+            #modularity loss (only computed over the last k layers of community model)
+            Mod_loss, Modloss_values = modularity_loss_fn([A]+A_all[1], P_all, layer_resolutions)
+            #Compute clustering loss
+            #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
+            Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, model.method)
+        else:
+            S_sub, S_relab = [], []
+            #Modularity
+            top_mod_loss, values_top = modularity_loss_fn([A_all[0]], [P_all[0]], layer_resolutions)
+            middle_mod_loss, values_mid = modularity_loss_fn(A_all[-1], P_all[1], layer_resolutions)
+            Mod_loss = top_mod_loss+middle_mod_loss
+            Modloss_values = values_top+[torch.mean(torch.tensor(values_mid)).detach().tolist()]
+            #Compute clustering loss
+            #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
+            Clust_loss_top, Clustloss_values_top = clustering_loss_fn(lamb[0], X, [P_all[0]], model.method)
+            Clust_loss_mid, Clustloss_values_mid = clustering_loss_fn(lamb[1], X_all[-1], P_all[1], model.method)
+            Clust_loss = Clust_loss_top+Clust_loss_mid
+            Clustloss_values = Clustloss_values_top+[torch.mean(torch.tensor(Clustloss_values_mid)).detach().tolist()]
         
         #update all output list
         all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all]])
@@ -263,12 +318,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #compute reconstruction losses for graph and attributes
         X_loss = X_recon_loss(X_hat, X)
         A_loss = A_recon_loss(A_hat, A)
-        #compute community detection loss components
-        #modularity loss (only computed over the last k layers of community model)
-        Mod_loss, Modloss_values = modularity_loss_fn(A_all, P_all, layer_resolutions)
-        #Compute clustering loss
-        #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
-        Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X, P_all, S_relab)
+        
+        
         
         if(turn_off_A_loss == True):
             loss = gamma*X_loss+Clust_loss-delta*Mod_loss
@@ -315,7 +366,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             updates.append(epoch+1)
 
             #print performance 
-            print('MODEL PEFORMANCE\n')
+            print('\nMODEL PEFORMANCE\n')
             print_performance(perf_hist, comm_layers, k)
             
             #print validation performance
@@ -369,7 +420,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                     X = X,
                                     X_pred = X_pred,
                                     true_labels = true_labels, 
-                                    pred_labels = S_relab[-k:], 
+                                    pred_labels = S_pred, 
                                     layers = k+1, 
                                     epoch = epoch+1, 
                                     save_plot = save_output, 
@@ -394,7 +445,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
             print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
         time_hist.append(time.time() - start_epoch)
-            
+    
+    
     #return 
     X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model.forward(X, A)
+    
     return (all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist), pred_list

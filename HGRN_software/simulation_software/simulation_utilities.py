@@ -190,7 +190,7 @@ def compute_beth_hess_comms(A):
 
 
 
-def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth, 
+def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth, 
                        is_torch = True, include_3d_plots = False, ns = 35, size = 10, 
                        fs=14, save = False, path = '', cm = 'plasma', **kwargs):
     layers = len(labels)
@@ -200,13 +200,13 @@ def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth,
         layer_nms = 'Top Layer'
     #convert torch items     
     if is_torch:
-        graph = graph.cpu().detach().numpy()
-        X = data.cpu().detach().numpy()
-        IX = input_X.cpu().detach().numpy()
-        probs = [i.cpu().detach().numpy() for i in probabilities]
-        labels = [i.cpu().detach().numpy() for i in labels]
+        graph = graph.detach().numpy()
+        X = data.detach().numpy()
+        IX = embed_X.detach().numpy()
+        probs = [i.detach().numpy() for i in probabilities]
+        labels = [i.detach().numpy() for i in labels]
         
-    num_nodes = input_X.shape[0]
+    num_nodes = X.shape[0]
     #plot node traced_labels
     
     
@@ -217,7 +217,7 @@ def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth,
     ax3[0].set_title('Correlations Data')
     #heatmap input data correaltions
     sbn.heatmap(np.corrcoef(IX), ax = ax3[1])
-    ax3[1].set_title('Correlation matrix Input Data')
+    ax3[1].set_title('Correlation matrix embeddings')
     fig_nx, ax_nx = plt.subplots(1,2,figsize=(12,10))
     
     for i in range(0, layers):
@@ -320,7 +320,29 @@ def post_hoc_embedding(graph, input_X, data, probabilities, labels, truth,
 
 
 
-
+def plot_(X, cl, size = 10, cm = 'plasma'):
+    
+    TSNE_data=TSNE(n_components=3, 
+                    learning_rate='auto',
+                    init='random', 
+                    perplexity=3).fit_transform(X)
+    #pca
+    PCs = PCA(n_components=3).fit_transform(X)
+    #figs
+    fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+    #tsne plot
+    ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = size, c = cl, cmap = cm)
+    ax1[0].set_xlabel('Dimension 1')
+    ax1[0].set_ylabel('Dimension 2')
+    ax1[0].set_title( 'TSNE')
+    #adding node labels
+        
+    #PCA plot
+    ax1[1].scatter(PCs[:,0], PCs[:,1], s = size, c = cl, cmap = cm)
+    ax1[1].set_xlabel('Dimension 1')
+    ax1[1].set_ylabel('Dimension 2')
+    ax1[1].set_title('PCA')
+    #adding traced_labels
 
 
 
