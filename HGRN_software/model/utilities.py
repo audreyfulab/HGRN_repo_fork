@@ -171,7 +171,7 @@ def node_clust_eval(true_labels, pred_labels, verbose = True):
                                            np.round(adjusted_rand_score(true_labels, pred_labels),4),
                                            np.round(normalized_mutual_info_score(true_labels, pred_labels),4))
     if verbose is True:
-        print('\nHomogeneity = {homogeneity} \nCompleteness = {completeness} \nNMI = {nmi} \nARI = {ari}')
+        print(f'\nHomogeneity = {homogeneity} \nCompleteness = {completeness} \nNMI = {nmi} \nARI = {ari}')
     
     return np.array([homogeneity, completeness, nmi, ari])
 
@@ -742,19 +742,16 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
     
     fig2, ax2 = plt.subplots(1,2, figsize=(12,10)) 
     if layers == 3:
-        TL = true_labels.copy()
-        TL.reverse()  
-        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[0])).T,
-                                   columns = ['Predicted_Middle','Truth_middle'])
-        second_layer = pd.DataFrame(np.vstack((pred_labels[1], TL[1])).T,
-                                        columns = ['Predicted_Top','Truth_Top'])
+        first_layer = pd.DataFrame(np.vstack((pred_labels[0], true_labels[0])).T,
+                                   columns = ['Predicted_Top','Truth_Top'])
+        second_layer = pd.DataFrame(np.vstack((pred_labels[1], true_labels[1])).T,
+                                        columns = ['Predicted_Middle','Truth_Middle'])
         sbn.heatmap(first_layer, ax = ax2[0])
         sbn.heatmap(second_layer, ax = ax2[1])
             
             
     else:
-        TL = true_labels.copy()
-        first_layer = pd.DataFrame(np.vstack((pred_labels[0], TL[0])).T,
+        first_layer = pd.DataFrame(np.vstack((pred_labels[0], true_labels[0])).T,
                                        columns = ['Predicted_Top','Truth_Top'])
         sbn.heatmap(first_layer, ax = ax2[0])
         

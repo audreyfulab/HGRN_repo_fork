@@ -46,26 +46,28 @@ def add_edges_to_fullgraph(G, nodes_to_add, edges_to_add):
 
 
 
-def generate_random_dag_with_gnm(n, m, make_directed = True):
-    G = nx.gnm_random_graph(n, m, directed=make_directed)
-    
-    try:
-        # Find cycles in the graph
-        cycles = list(nx.find_cycle(G, orientation='original'))
+def make_dag(graph):
+    # Step 1: Replace bidirectional edges with a single directed edge
+    for u, v in list(graph.edges()):
+        if graph.has_edge(v, u):
+            # Remove one of the two edges to break the bidirectionality
+            graph.remove_edge(v, u)
+
+    # Step 2: Remove cycles by flipping edges
+    while not nx.is_directed_acyclic_graph(graph):
+        # Find a cycle
+        print('\n resolving cycles...')
+        try:
+            cycle = nx.find_cycle(graph, orientation='original')
+        except nx.NetworkXNoCycle:
+            break
         
-        while cycles:
-            # Remove an edge from each cycle to break it
-            for cycle in cycles:
-                G.remove_edge(cycle[0], cycle[1])
-            
-            # Recheck for cycles after removal
-            cycles = list(nx.find_cycle(G, orientation='original'))
-            
-    except nx.NetworkXNoCycle:
-        # No cycles found, G is already a DAG
-        pass
-    
-    return G
+        # Flip an edge in the cycle
+        u, v, _ = cycle[0]
+        graph.remove_edge(u, v)
+        graph.add_edge(v, u)
+
+    return graph
 
 
 
@@ -104,10 +106,10 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         top_node_g3 = list(top_graph.nodes())[(g_index + g_index):]
         
         for top_node_g1 in top_node_g1: ## sm = small world
-            subgraph_sm = nx.watts_strogatz_graph(rd(subgraph_node_number[0], 
+            subgraph_sm = nx.watts_strogatz_graph(n=rd(subgraph_node_number[0], 
                                                      subgraph_node_number[1]), 
-                                                  degree, 
-                                                  sub_graph_prob/np.mean(subgraph_node_number))
+                                                  k=degree, 
+                                                  p=sub_graph_prob/np.mean(subgraph_node_number))
             #subgraph_sme = nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]
             subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]))
             node_list.append(top_node_g1)
@@ -116,11 +118,10 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         
         
         for top_node_g2 in top_node_g2:
-            subgraph_random = nx.gnm_random_graph(rd(subgraph_node_number[0], 
+            subgraph_random = nx.gnp_random_graph(n=rd(subgraph_node_number[0], 
                                                      subgraph_node_number[1]),
-                                              rd(subgraph_node_number[0], 
-                                                 subgraph_node_number[1]),
-                                              directed=True)
+                                                  p=sub_graph_prob,
+                                                  directed=True)
             subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_random.edges() if u<v]))
             #print(node_list.append(top_node_g2))
             print('random',subgraph_random.nodes())
@@ -149,10 +150,10 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
             ## Small world  ##
             ##--------------##
             if (subgraph_type == 'small world' and (mixed == 'False' or mixed is None)):
-                subgraph = nx.watts_strogatz_graph(rd(subgraph_node_number[0], 
+                subgraph = nx.watts_strogatz_graph(n=rd(subgraph_node_number[0], 
                                                       subgraph_node_number[1]), 
-                                                   degree, 
-                                                   sub_graph_prob/np.mean(subgraph_node_number),
+                                                   k=degree, 
+                                                   p=sub_graph_prob/np.mean(subgraph_node_number),
                                                    seed = seed)
                 
                 
@@ -165,14 +166,22 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
             ## Random Graph ##
             ##--------------##
             elif (subgraph_type == 'random graph' and (mixed == 'False' or mixed is None)):
-                subgraph = generate_random_dag_with_gnm(rd(subgraph_node_number[0], 
-                                                        subgraph_node_number[1]),
-                                                       rd(subgraph_node_number[0], 
-                                                          subgraph_node_number[1]),
-                                                       make_directed=True)
-    
+                # subgraph = generate_random_dag_with_gnp(n = rd(subgraph_node_number[0], 
+                #                                         subgraph_node_number[1]),
+                #                                         p = sub_graph_prob,
+                #                                         make_directed=True)
+                
+                subgraph = nx.gnp_random_graph(n = rd(subgraph_node_number[0], 
+                                                        subgraph_node_number[1]), 
+                                               p = sub_graph_prob,
+                                               directed = True)
+                
+                if not nx.is_directed_acyclic_graph(subgraph):
+                    G = make_dag(subgraph)
+                    
                 G = add_edges_to_subgraph(nx.DiGraph(), subgraph.nodes, subgraph.edges, 
                                        weighted_graph = as_weighted, weighting = weight_w)
+                
                 subgraphs.append(G)
                 #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph.edges() if u<v]))
             ##--------------##
@@ -240,6 +249,7 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         else:
             which_edges_idx = np.arange(num_possible)[which_edges]
         edges_to_add = [possible_edges[x] for x in which_edges_idx]
+        print(f'Adding {len(edges_to_add)} edges between community {p_graph} and community {c_graph}')
         
         full_graph = add_edges_to_subgraph(full_graph, 
                                            nodes_to_add = None, 

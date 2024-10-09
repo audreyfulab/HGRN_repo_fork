@@ -98,8 +98,8 @@ def simulate_graph(args):
         np.mean([i[1] for i in h2_graph.in_degree()]), 
         np.mean([i[1] for i in h2_graph.out_degree()])))
     print('-'*60)
-    nodes_by_layer.append(h1_graph.number_of_nodes())
-    edges_by_layer.append(h1_graph.number_of_edges())
+    nodes_by_layer.append(h2_graph.number_of_nodes())
+    edges_by_layer.append(h2_graph.number_of_edges())
     if args.layers == 2:
         #draw top layer
         midfig = plot_diGraph(h2_graph, return_fig=True, draw_edge_weights = True)
@@ -137,7 +137,7 @@ def simulate_graph(args):
         
         
         nodes_by_layer.append(h3_graph.number_of_nodes())
-        edges_by_layer.append(h3_graph.number_of_nodes())
+        edges_by_layer.append(h3_graph.number_of_edges())
 
     h1_undi = h1_graph.to_undirected()
     h2_undi = h2_graph.to_undirected()

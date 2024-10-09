@@ -195,7 +195,7 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
                        fs=14, save = False, path = '', cm = 'plasma', **kwargs):
     layers = len(labels)
     if layers > 1:
-        layer_nms = ['Middle Layer','Top Layer']
+        layer_nms = ['Top Layer','Middle Layer']
     else:
         layer_nms = 'Top Layer'
     #convert torch items     
@@ -343,6 +343,8 @@ def plot_(X, cl, size = 10, cm = 'plasma'):
     ax1[1].set_ylabel('Dimension 2')
     ax1[1].set_title('PCA')
     #adding traced_labels
+    
+    return fig, (ax1, ax2)
 
 
 

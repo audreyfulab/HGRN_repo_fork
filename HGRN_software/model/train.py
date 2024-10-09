@@ -180,7 +180,11 @@ def evaluate(model, X, A, k, true_labels):
         S_all, S_temp, S_out = S_trace_eval
         S_relab = [i.detach().numpy() for i in S_temp]
     else:
-        S_relab = S_pred[::-1]
+        if any([True if max(i) > len(np.unique(i)) else False for i in S_pred]):
+            gp = [torch.unique(i, sorted=True, return_inverse=True) for i in S_pred]
+            
+        S_relab = [i[1] for i in gp]
+        
     perf_layers = get_layered_performance(k, S_relab, true_labels)
         
     return perf_layers, (X_pred, A_pred, S_relab)
