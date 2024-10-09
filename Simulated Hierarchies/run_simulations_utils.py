@@ -184,7 +184,7 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
     
     
     
-def handle_output(args, output, A, comm_sizes):
+def handle_output(args, output, A, comm_sizes, method):
     
     nodes = A.shape[0]
     #preallocate 
@@ -234,7 +234,11 @@ def handle_output(args, output, A, comm_sizes):
     max_mod = 1 - (2/upper_limit)
                 
     #output assigned labels for all layers
-    S_sub, S_layer, S_all = trace_comms(output[6], comm_sizes)
+    if method == 'bottom_up':
+        S_sub, S_layer, S_all = trace_comms(output[6], comm_sizes)
+    else:
+        S_layer = output[6]
+        S_sub, S_all = [],[]
     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
     
     
@@ -504,16 +508,16 @@ def generate_output_table(truth, louv_pred, kmeans_pred, hcd_preds, verbose = Tr
         homo_l2t, comp_l2t, nmi_l2t, ari_l2t = (None,None,None)
 
 
-    homo_m2m, comp_m2m, nmi_m2m, ari_m2m = node_clust_eval(true_labels=truth[::-1][0], 
-                                                           pred_labels = hcd_preds[0], 
-                                                           verbose=False)
-
-    homo_m2t, comp_m2t, nmi_m2t, ari_m2t = node_clust_eval(true_labels=truth[::-1][1], 
-                                                           pred_labels = hcd_preds[0], 
-                                                           verbose=False)
-
-    homo_t2t, comp_t2t, nmi_t2t, ari_t2t = node_clust_eval(true_labels=truth[::-1][1], 
+    homo_m2m, comp_m2m, nmi_m2m, ari_m2m = node_clust_eval(true_labels=truth[1], 
                                                            pred_labels = hcd_preds[1], 
+                                                           verbose=False)
+
+    homo_m2t, comp_m2t, nmi_m2t, ari_m2t = node_clust_eval(true_labels=truth[0], 
+                                                           pred_labels = hcd_preds[1], 
+                                                           verbose=False)
+
+    homo_t2t, comp_t2t, nmi_t2t, ari_t2t = node_clust_eval(true_labels=truth[0], 
+                                                           pred_labels = hcd_preds[0], 
                                                            verbose=False)
     
     data = {'Homogeneity': [homo_l2m, homo_l2t, homo_k2m, homo_k2t, homo_m2m, homo_m2t, homo_t2t],
@@ -573,25 +577,28 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
                                               predicted,
                                               verbose = verbose)
     
+    #unpack results
+    all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist = output
+    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes = all_out[bp]
+     
+    if args.use_method == 'bottom_up':
+        P_pred_bp = P_all
+    else:
+        P_pred_bp = [output[0][bp][4][0], torch.cat(output[0][bp][4][1])][::-1]
     
-    A_pred_bp = output[0][bp][1]
-    X_pred_bp = output[0][bp][0]
-    embed_pred_bp = output[0][bp][2][0] 
-    P_pred_bp = output[0][bp][4]
-    Comm1_proj_bp = output[0][bp][2][1]
         
     if args.save_results:
-        best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.return_result}.csv'))
+        best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.which_net}.csv'))
 
 
 
     post_hoc_embedding(graph=adjacency-torch.eye(data.shape[0]), 
-                            embed_X = embed_pred_bp,
+                            embed_X = X_all[0],
                             data = data, 
                             probabilities = P_pred_bp,
                             size = 150.0,
                             labels = predicted,
-                            truth = truth[::-1],
+                            truth = truth,
                             fs=10,
                             node_size = 25, 
                             cm = 'plasma',
@@ -602,9 +609,9 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
 
     plot_clust_heatmaps(A = adjacency, 
-                        A_pred = A_pred_bp-torch.eye(data.shape[0]), 
+                        A_pred = A_hat-torch.eye(data.shape[0]), 
                         X = data,
-                        X_pred = X_pred_bp,
+                        X_pred = X_hat,
                         true_labels = truth, 
                         pred_labels = predicted, 
                         layers = k_layers+1, 
@@ -617,12 +624,12 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     TSNE_data=TSNE(n_components=3, 
                    learning_rate='auto',
                    init='random', 
-                   perplexity=3).fit_transform(embed_pred_bp.detach().numpy())
+                   perplexity=3).fit_transform(X_all[0].detach().numpy())
     #pca
-    PCs = PCA(n_components=3).fit_transform(embed_pred_bp.detach().numpy())
+    PCs = PCA(n_components=3).fit_transform(X_all[0].detach().numpy())
 
 
-    fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
+    fig, ax1 = plt.subplots(1,2, figsize = (12,10))
     #tsne plot
     ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = truth[0], cmap = 'plasma')
     ax1[0].set_xlabel('Dimension 1')
@@ -636,28 +643,28 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     ax1[1].set_ylabel('Dimension 2')
     ax1[1].set_title(' PCA Embedding Bottleneck (true labels)')
 
-    if not args.add_output_layers:
-        x1 = torch.mm(embed_pred_bp, Comm1_proj_bp.transpose(0,1))
+    # if not args.add_output_layers:
+    #     x1 = torch.mm(embed_pred_bp, Comm1_proj_bp.transpose(0,1))
 
-        TSNE_data2=TSNE(n_components=3, 
-                        learning_rate='auto',
-                        init='random', 
-                        perplexity=3).fit_transform(x1.detach().numpy())
-        #pca
-        PCs2 = PCA(n_components=3).fit_transform(x1.detach().numpy())
+    #     TSNE_data2=TSNE(n_components=3, 
+    #                     learning_rate='auto',
+    #                     init='random', 
+    #                     perplexity=3).fit_transform(x1.detach().numpy())
+    #     #pca
+    #     PCs2 = PCA(n_components=3).fit_transform(x1.detach().numpy())
 
-        #tsne plot
-        ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = truth[0], cmap = 'plasma')
-        ax2[0].set_xlabel('Dimension 1')
-        ax2[0].set_ylabel('Dimension 2')
-        ax2[0].set_title(' t-SNE Embedding Comm1-projection (true_labels)')
-        #adding node labels
+    #     #tsne plot
+    #     ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = truth[0], cmap = 'plasma')
+    #     ax2[0].set_xlabel('Dimension 1')
+    #     ax2[0].set_ylabel('Dimension 2')
+    #     ax2[0].set_title(' t-SNE Embedding Comm1-projection (true_labels)')
+    #     #adding node labels
         
-        #PCA plot
-        ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = truth[0], cmap = 'plasma')
-        ax2[1].set_xlabel('Dimension 1')
-        ax2[1].set_ylabel('Dimension 2')
-        ax2[1].set_title(' PCA Embedding Comm1-projection (true_labels)')
+    #     #PCA plot
+    #     ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = truth[0], cmap = 'plasma')
+    #     ax2[1].set_xlabel('Dimension 1')
+    #     ax2[1].set_ylabel('Dimension 2')
+    #     ax2[1].set_title(' PCA Embedding Comm1-projection (true_labels)')
 
     if args.save_results == True:
         fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')
