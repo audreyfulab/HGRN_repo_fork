@@ -22,9 +22,9 @@ import pandas as pd
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
 #sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/simulation_software/')
-from Simulate import simulate_graph
-from simulation_utilities import compute_graph_STATs
+sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
+from simulation_software.Simulate import simulate_graph
+from simulation_software.simulation_utilities import compute_graph_STATs
 #import os
 #os.chdir('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/')
 import warnings
@@ -37,16 +37,17 @@ from tqdm import tqdm
 import time
 import os
 #set seed
-rd.seed(373)
+rd.seed(358)
 
 
 # simulation default arguments
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
-parser.add_argument('--connect_prob', dest='connect_prob', default='use_baseline', type=str)
+parser.add_argument('--connect_prob_middle', dest='connect_prob_middle', default='use_baseline', type=str)
+parser.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default='use_baseline', type=str)
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
-parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
+parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=[0.5, 0.2], type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
 parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20,20), type=tuple)
 parser.add_argument('--node_degree_middle', dest='node_degree_middle', default=3, type=int)
@@ -62,9 +63,12 @@ parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = 
 args = parser.parse_args()
 
 
+
+
 # args.connect = 'full'
 # args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.002
+args.connect_prob_middle = [0.1, 0.1] #first value is for within community, second value is for between community
+args.connect_prob_bottom = [0.005, 0.005]
 args.common_dist = False
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
@@ -87,17 +91,23 @@ if not os.path.exists(mainpath):
 
 
 structpath = ['small_world/','scale_free/','random_graph/']
+#structpath = ['random_graph/']
+#structpath = ['scale_free/']
 connectpath = ['disconnected/', 'fully_connected/']
 layerpath = ['3_layer/']
 #noisepath = ['SD01/','SD05/']
 
 
 struct_nm = ['smw_','sfr_','rdg_']
+#struct_nm = ['rdg_']
+#struct_nm = ['sfr_']
 connect_nm =['disc_', 'full_']
 layer_nm = ['3_layer_']
 #noise_nm = ['SD01','SD05']
 
 struct = ['small world','scale free','random graph']
+#struct = ['scale free']
+#struct = ['random graph']
 connect = ['disc', 'full']
 layers = [3]
 #noise = [0.1, 0.5]
@@ -120,7 +130,7 @@ info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers'
 
 for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hierarchies…", ascii=False, ncols=75):
     
-    
+    #if idx == 4:
     args.subgraph_type = value[2][0]
     
     args.connect = value[2][1]
@@ -153,7 +163,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
                                                                  font_size = 9,
                                                                  add_labels=True)
     
-
+    
         
     print('*'*25+'top layer stats'+'*'*25)
     print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
@@ -179,12 +189,12 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
                     mod[1], node_deg[1], deg_within[1], deg_between[1]]
     else:
         row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
-                    tuple(nodes),tuple(edges), args.subgraph_prob, args.sample_size,
+                    tuple(nodes),tuple(edges), args.connect_prob, args.sample_size,
                     mod[0], node_deg[0], deg_within[0], deg_between[0], 
                     'NA', 'NA', 'NA', 'NA']
         
     print(pd.DataFrame(row_info))
-
+    
     print('done')
     print('saving hierarchy statistics...')
     info_table.loc[idx] = row_info

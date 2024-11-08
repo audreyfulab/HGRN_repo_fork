@@ -16,15 +16,15 @@ import matplotlib.pyplot as plt
 import sys
 import pandas as pd
 #sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
-sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
+#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
+#sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
 #sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
-# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
-# sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
-# sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
-# sys.path.append('C:/Users/Bruin/Documents/GitHub/HGRN_repo/HGRN_software/')
-from Simulate import simulate_graph
-from simulation_utilities import compute_graph_STATs
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
+#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
+sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
+sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
+from simulation_software.Simulate import simulate_graph
+from simulation_software.simulation_utilities import compute_graph_STATs
 #import os
 #os.chdir('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/')
 import warnings
@@ -35,31 +35,38 @@ import random as rd
 from itertools import product
 from tqdm import tqdm
 import time
+import os
 #set seed
-rd.seed(123)
+rd.seed(978)
 
 
 # simulation default arguments
 parser.add_argument('--connect', dest='connect', default='disc', type=str)
-parser.add_argument('--connect_prob', dest='connect_prob', default=0.05, type=float)
+parser.add_argument('--connect_prob_middle', dest='connect_prob_middle', default='use_baseline', type=str)
+parser.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default='use_baseline', type=str)
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
-parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=10, type=int)
+parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
-parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.05, type=float)
+parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.5, type=float)
 parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5, 8), type=tuple)
 parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20, 30), type=tuple)
-parser.add_argument('--node_degree', dest='node_degree', default=3, type=int)
-parser.add_argument('--sample_size',dest='sample_size',default = 500, type=int)
-parser.add_argument('--layers',dest='layers',default = 2, type=int)
-parser.add_argument('--SD',dest='SD',default = 0.1, type=float)
-parser.add_argument('--seed_number',dest='seed_number',default = 555, type=int)
-parser.add_argument('--force_connect',dest='force_connect',default = True, type=bool)
+parser.add_argument('--node_degree_middle', dest='node_degree_middle', default=3, type=int)
+parser.add_argument('--node_degree_bottom', dest='node_degree_bottom', default=5, type=int)
+parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
+parser.add_argument('--layers',dest='layers', default = 2, type=int)
+parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
+parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
+parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
+parser.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
+parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.2), type=tuple)
+parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
 args = parser.parse_args()
 
 
 # args.connect = 'full'
-args.toplayer_connect_prob = 0.3
-args.connect_prob = 0.01
+args.connect_prob_middle = [0.1, 0.05] #first value is for within community, second value is for between community
+args.connect_prob_bottom = [0.005, 0.0025]
+args.common_dist = False
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
 # args.nodes_per_super2=(5,5)
@@ -69,8 +76,11 @@ args.connect_prob = 0.01
 # args.SD = 0.1
 #args.node_degree = 5
 
-#mainpath = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/'
-mainpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
+path = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+location = 'complex_networks/'
+mainpath = os.path.join(path, location)
+if not os.path.exists(mainpath):
+    os.makedirs(mainpath)
 
 structpath = ['small_world/','scale_free/','random_graph/']
 connectpath = ['disconnected/', 'fully_connected/']
@@ -115,7 +125,7 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])
     print('saving hierarchy to {} '.format(args.savepath))
-    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs = simulate_graph(args)
+    pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, ori = simulate_graph(args)
     print('done')
     print('-'*60)
     print('computing statistics....')

@@ -25,11 +25,28 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.utils import to_dense_adj, subgraph
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from scipy.cluster.hierarchy import dendrogram
+from sklearn.model_selection import train_test_split
 from colorama import Fore, Style
 from functools import partial
 import os
+
+
+
+#function which splits training and testing data
+def train_test(dataset, prop_train):
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train, test = torch.utils.data.random_split(dataset, [train_size, test_size])
+    return train, test, train_size, test_size
+
+
+
+
+
+
+
 
 def load_simulated_data(args):
     
@@ -120,6 +137,83 @@ def load_simulated_data(args):
 
 
 
+def format_regulon_data(args, data, nodes):
+    
+    #filter out Zero columns
+    X = torch.Tensor(data)
+    
+    nonzero_cols = [idx for idx, i in enumerate(range(0, X.shape[1])) if X[:, i].sum() != 0]
+    nonzero_rows = [idx for idx, i in enumerate(range(0, X.shape[0])) if X[i, :].sum() != 0]
+    X_temp = X[:, nonzero_cols]
+    X_final = X_temp[nonzero_rows, :]
+    
+    
+    in_graph, in_adj = get_input_graph(X = X_final, 
+                                       method = 'Correlation', 
+                                       r_cutoff = args.correlation_cutoff)
+    
+    A = torch.Tensor(in_adj)+torch.eye(X_final.shape[0])
+    
+    
+    
+    #A_temp = A[:, nonzero_rows]
+    #A_final = A_temp[nonzero_rows, :]
+    
+    return X_final, A
+
+
+def load_application_data(args):
+    
+    if args.read_from == 'local':
+        readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+    elif args.read_from == 'cluster':
+        readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
+        
+    data = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DMEM_organoid.csv'))
+    temp_X = np.array(data)
+    nodes, samples = data.shape
+    gene_labels = data['Unnamed: 0'].tolist() 
+    
+    
+    if args.dataset == 'regulon.EM':
+        EM_index = [idx for idx, i in enumerate(data.columns) if "EM" in i]
+        regulon_data = data.to_numpy()[:, EM_index].astype('float64')
+        
+    if args.dataset == 'regulon.DM':
+        DM_index = [idx for idx, i in enumerate(data.columns) if "DM" in i]
+        regulon_data = data.to_numpy()[:, DM_index].astype('float64')
+        
+    nonzero_rows = [idx for idx, i in enumerate(range(0, regulon_data.shape[0])) if regulon_data[i, :].sum() != 0]
+    
+    if args.split_data:
+        x_train, x_test = train_test_split(regulon_data, 
+                                           train_size=args.train_test_size[0],
+                                           test_size=args.train_test_size[1],
+                                           shuffle=True)
+        
+        X_train, A_train = format_regulon_data(args, x_train, x_train.shape[0]) 
+        X_test, A_test = format_regulon_data(args, x_test, x_test.shape[0])
+        
+        test = [X_test, A_test, []]
+    else:
+        
+        X_train, A_train = format_regulon_data(args, data = regulon_data, nodes = nodes)
+        test = None
+                
+    train = [X_train, A_train, []]
+    
+    gene_labels_final = np.array(gene_labels)[nonzero_rows]
+   
+    
+    return train, test, gene_labels_final
+
+
+
+
+
+
+
+
 def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, device, **kwargs):
     
     #run simulations
@@ -163,18 +257,16 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
      
     #nodes and attributes
     nodes, attrib = pe.shape
-    X = torch.Tensor(pe_sorted).requires_grad_()
+    X = torch.Tensor(pe_sorted)
     #generate input graphs
     if args.use_true_graph:
-        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes)).requires_grad_()
+        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
     else:    
         in_graph, in_adj = get_input_graph(X = pe_sorted, 
                                            method = 'Correlation', 
                                            r_cutoff = args.correlation_cutoff)
-        if args.correlation_cutoff == 1:
-            A = torch.Tensor(in_adj).requires_grad_()
-        else:
-            A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
+
+        A = torch.Tensor(in_adj)+torch.eye(nodes)
             
     return X, A, target_labels, comm_sizes
     
@@ -184,7 +276,7 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
     
     
     
-def handle_output(args, output, A, comm_sizes, method):
+def handle_output(args, output, A, comm_sizes, method, labels = None):
     
     nodes = A.shape[0]
     #preallocate 
@@ -196,36 +288,45 @@ def handle_output(args, output, A, comm_sizes, method):
     
     
     #record best losses and best performances
-    total_loss = np.array(output[-5])
+    if args.split_data:
+        total_loss = np.array([i['Total Loss'] for i in output[-2]])
+    else:
+        total_loss = np.array([i['Total Loss'] for i in output[-3]])
     best_loss_idx = total_loss.tolist().index(min(total_loss))
-                
-    if args.return_result == 'best_perf_top':
-        perf_mid = []
-        temp_top = [i[0] for i in output[-1]]
-        perf_top = np.array(temp_top)
-        best_perf_idx = perf_top[:,2].tolist().index(max(perf_top[:,2]))
-        print('Best Performance Top Layer: Epoch = {}, \nHomogeneity = {},\nCompleteness = {}, \nNMI = {}'.format(
-            best_perf_idx,      
-            perf_top[best_perf_idx, 0],
-            perf_top[best_perf_idx, 1],
-            perf_top[best_perf_idx, 2]
-            ))
+    best_perf_idx = None
+    if args.return_result != 'best_loss':       
+        if args.return_result == 'best_perf_top':
+            perf_mid = []
+            temp_top = [i[0] for i in output[-1]]
+            perf_top = np.array(temp_top)
+            best_perf_idx = perf_top[:,2].tolist().index(max(perf_top[:,2]))
+            print('Best Performance Top Layer: Epoch = {}, \nHomogeneity = {},\nCompleteness = {}, \nNMI = {}'.format(
+                best_perf_idx,      
+                perf_top[best_perf_idx, 0],
+                perf_top[best_perf_idx, 1],
+                perf_top[best_perf_idx, 2]
+                ))
+        elif args.return_result == 'best_perf_mid':
+            perf_top = []
+            temp_mid = [i[1] for i in output[-1]]
+            perf_mid = np.array(temp_mid)
+            best_perf_idx = perf_mid[:,2].tolist().index(max(perf_mid[:,2]))
+            print('Best Performance Middle Layer: Epoch = {}, \nHomogeneity = {},\nCompleteness = {}, \nNMI = {}'.format(
+                best_loss_idx,
+                perf_mid[best_perf_idx, 0],
+                perf_mid[best_perf_idx, 1],
+                perf_mid[best_perf_idx, 2]
+                ))
+        else:
+            raise ValueError
     else:
         perf_top = []
-        temp_mid = [i[1] for i in output[-1]]
-        perf_mid = np.array(temp_mid)
-        best_perf_idx = perf_mid[:,2].tolist().index(max(perf_mid[:,2]))
-        print('Best Performance Middle Layer: Epoch = {}, \nHomogeneity = {},\nCompleteness = {}, \nNMI = {}'.format(
-            best_loss_idx,
-            perf_mid[best_perf_idx, 0],
-            perf_mid[best_perf_idx, 1],
-            perf_mid[best_perf_idx, 2]
-            ))
+        perf_mid = []
     
     #update lists
-    comm_loss.append(np.round(output[-4][best_loss_idx], 4))
-    recon_A.append(np.round(output[-3][best_loss_idx], 4))
-    recon_X.append(np.round(output[-2][best_loss_idx], 4))
+    comm_loss.append(np.round(output[-2][best_loss_idx]['Clustering'], 4))
+    recon_A.append(np.round(output[-2][best_loss_idx]['A Reconstruction'], 4))
+    recon_X.append(np.round(output[-2][best_loss_idx]['X Reconstruction'], 4))
         
                 
     #compute the upper limit of communities, the beth hessian, and max modularity
@@ -241,13 +342,20 @@ def handle_output(args, output, A, comm_sizes, method):
         S_sub, S_all = [],[]
     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
     
-    
-    if len(comm_sizes) == 2:
-        metrics.append({'Top': tuple(np.round(output[-1][best_perf_idx][0], 4))})
+    if args.return_result == 'best_loss':
+        metric_index = best_loss_idx
+    else: 
+        metric_index = best_perf_idx
         
+    if labels:
+        if len(comm_sizes) == 1:
+            metrics.append({'Top': tuple(np.round(output[-1][metric_index][0], 4))})
+            
+        else:
+            metrics.append({'Top': tuple(np.round(output[-1][metric_index][0], 4)),
+                            'Middle': tuple(np.round(output[-1][metric_index][-1], 4))})
     else:
-        metrics.append({'Top': tuple(np.round(output[-1][best_perf_idx][0], 4)),
-                        'Middle': tuple(np.round(output[-1][best_perf_idx][-1], 4))})
+        metrics.append({'Top': '', 'Middle': ''})
     
     return (beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, (best_perf_idx, best_loss_idx), metrics, predicted_comms, (S_sub, S_layer, S_all))
     
@@ -344,6 +452,89 @@ def run_kmeans(args, X, labels, layers, sizes):
         
         
     return [mid_labels, top_labels]
+
+
+
+
+def plot_dendrogram(model, **kwargs):
+    # Create linkage matrix and then plot the dendrogram
+    cluster_colors = plt.cm.get_cmap('tab10', model.n_clusters_)
+    # create the counts of samples under each node
+    counts = np.zeros(model.children_.shape[0])
+    n_samples = len(model.labels_)
+    for i, merge in enumerate(model.children_):
+        current_count = 0
+        for child_idx in merge:
+            if child_idx < n_samples:
+                current_count += 1  # leaf node
+            else:
+                current_count += counts[child_idx - n_samples]
+        counts[i] = current_count
+
+    linkage_matrix = np.column_stack(
+        [model.children_, model.distances_, counts]
+    ).astype(float)
+
+    # Plot the corresponding dendrogram
+    dendrogram(linkage_matrix, 
+               color_threshold=0,
+               #link_color_func=lambda k: cluster_colors(model.labels_[k % len(model.labels_)]),
+               **kwargs)
+    
+    
+    
+    
+
+def run_trad_hc(args, X, labels, layers, sizes):
+    """
+    
+    """
+    #make heatmap for louvain results and get metrics
+    fig, (ax1, ax2) = plt.subplots(2, 2, figsize = (14, 10))
+    
+    
+    if layers == 2:
+        model_top = AgglomerativeClustering(n_clusters=sizes[0], metric='euclidean', linkage='ward', compute_distances=True)
+        result_top = model_top.fit(X)
+        top_labels = result_top.labels_
+        
+        sbn.heatmap(pd.DataFrame(np.array([top_labels,  
+                                           labels[0].tolist()]).T,
+                                 columns = ['Traditional HC Top', 'Truth_Top']),
+                    ax = ax1[0])
+        
+        ax2[0].set_xlabel = 'Dendrogram Top'
+        # plot the top three levels of the dendrogram
+        plot_dendrogram(model_top, truncate_mode=None, p=3, ax = ax2[0], no_labels=True)
+        
+    else:
+        model_top = AgglomerativeClustering(n_clusters = sizes[0], metric='euclidean', linkage='ward', compute_distances=True) 
+        model_mid = AgglomerativeClustering(n_clusters = sizes[1], metric='euclidean', linkage='ward', compute_distances=True)
+        result_top = model_top.fit(X) 
+        result_mid = model_mid.fit(X)
+        top_labels = result_top.labels_
+        mid_labels = result_mid.labels_
+        
+        sbn.heatmap(pd.DataFrame(np.array([top_labels,  
+                                           labels[0].tolist()]).T,
+                                 columns = ['Traditional HC Top','Truth Top']),
+                    ax = ax1[0])
+        
+        sbn.heatmap(pd.DataFrame(np.array([mid_labels, 
+                                           labels[1].tolist()]).T,
+                                 columns = ['Traditional HC Middle', 'Truth Middle']),
+                    ax = ax1[1])
+        
+        ax2[0].set_xlabel = 'Dendrogram Top'
+        ax2[1].set_xlable = 'Dendrogram Middle'
+        # plot the top three levels of the dendrogram
+        plot_dendrogram(model_top, truncate_mode=None, p=3, ax = ax2[0], no_labels=True)
+        
+    if args.save_results:
+        fig.savefig(args.sp+'Classical_hierarchical_result.pdf')
+        fig.savefig(args.sp+'Classical_hierarchical_result.png', dpi = 500)
+        
+    return [mid_labels, top_labels]
     
     
     
@@ -356,12 +547,12 @@ def read_benchmark_CORA(args, PATH, use_split = True, percent_train = 0.8, perce
     elif args.read_from == 'cluster':
         readpath = '/mnt/ceph/jarredk//HGRN_repo/Simulated_Hierarchies/DATA/'
     
-    dataset = Planetoid(root=os.path.join(readpath+PATH, name='Cora'))
+    dataset = Planetoid(root=os.path.join(readpath+PATH), name = 'Cora')
     data = dataset[0]
     
     if use_split:
         
-        data = split_data(data, percent_train, percent_test)
+        data = split_benchmark_data(data, percent_train, percent_test)
         
         # Get train, validation, and test splits
         train_data = format_split_data(data, data.train_mask)
@@ -389,21 +580,21 @@ def read_benchmark_CORA(args, PATH, use_split = True, percent_train = 0.8, perce
     
     
     
-    
-def split_data(data, train_size: float = 0.8, val_size: float = 0.1):
+def split_benchmark_data(data, train_size: float = 0.8, test_size: float = 0.1):
     num_nodes = data.num_nodes
     indices = torch.randperm(num_nodes)
-
+    test_size = test_size/2
+    
     train_end = int(train_size * num_nodes)
-    val_end = train_end + int(val_size * num_nodes)
+    test_end = train_end + int(test_size * num_nodes)
 
     train_mask = torch.zeros(num_nodes, dtype=torch.bool)
     val_mask = torch.zeros(num_nodes, dtype=torch.bool)
     test_mask = torch.zeros(num_nodes, dtype=torch.bool)
 
     train_mask[indices[:train_end]] = True
-    val_mask[indices[train_end:val_end]] = True
-    test_mask[indices[val_end:]] = True
+    test_mask[indices[train_end:test_end]] = True
+    val_mask[indices[test_end:]] = True
 
     data.train_mask = train_mask
     data.val_mask = val_mask
@@ -440,28 +631,28 @@ def format_data(args, data):
     sort_indices = np.argsort(label_array)
     labels = [label_array[sort_indices].tolist()]
     feature_matrix = data['x'].detach().numpy()[sort_indices,:]
-    X = torch.Tensor(feature_matrix).requires_grad_()
+    X = torch.Tensor(feature_matrix)
     #in_adj = resort_graph(to_dense_adj(data['edge_index'])[0], sort_indices)
     in_adj = resort_graph(data['adjacency_matrix'], sort_indices)
     nodes = in_adj.shape[0]
     
     if args.use_true_graph:
-        A = in_adj.requires_grad_()+torch.eye(nodes)
+        A = in_adj+torch.eye(nodes)
     else:    
         in_graph, in_adj = get_input_graph(X = feature_matrix, 
                                            method = 'Correlation', 
                                            r_cutoff = args.correlation_cutoff)
         if args.correlation_cutoff == 1:
-            A = torch.Tensor(in_adj).requires_grad_()
+            A = torch.Tensor(in_adj)
         else:
-            A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
+            A = torch.Tensor(in_adj)+torch.eye(nodes)
             
     if args.use_true_communities == True:
         comm_sizes = [len(np.unique(labels))]
     else:
         comm_sizes = args.community_sizes
     
-    return X, A, labels, comm_sizes
+    return X, A, labels
     
     
 
@@ -473,7 +664,7 @@ def format_data(args, data):
 
 
  
-def generate_output_table(truth, louv_pred, kmeans_pred, hcd_preds, verbose = True):
+def generate_output_table(truth, louv_pred, kmeans_pred, thc_pred, hcd_preds, verbose = True):
     
     
     
@@ -492,43 +683,57 @@ def generate_output_table(truth, louv_pred, kmeans_pred, hcd_preds, verbose = Tr
         homo_k2m, comp_k2m, nmi_k2m, ari_k2m = (None,None,None,None)
         homo_k2t, comp_k2t, nmi_k2t, ari_k2t = (None,None,None,None)
     
-    
+    if thc_pred:
+        if len(truth) > 1:
+            homo_hc2m, comp_hc2m, nmi_hc2m, ari_hc2m = node_clust_eval(truth[1], 
+                                                                   thc_pred[0],
+                                                                   verbose = False)
+        else:
+            homo_hc2m, comp_hc2m, nmi_hc2m, ari_hc2m = (None,None,None,None)
+            
+        homo_hc2t, comp_hc2t, nmi_hc2t, ari_hc2t =node_clust_eval(truth[0], 
+                                                              thc_pred[1],
+                                                              verbose = False)
+    else:
+        homo_hc2m, comp_hc2m, nmi_hc2m, ari_hc2m = (None,None,None,None)
+        homo_hc2t, comp_hc2t, nmi_hc2t, ari_hc2t = (None,None,None,None)
 
     if louv_pred:
         if len(truth) > 1:
             homo_l2m, comp_l2m, nmi_l2m, ari_l2m = node_clust_eval(truth[1], louv_pred,
                                                                    verbose = False)
         else:
-            homo_l2m, comp_l2m, nmi_l2m, ari_l2m = (None,None,None)
+            homo_l2m, comp_l2m, nmi_l2m, ari_l2m = (None,None,None,None)
             
         homo_l2t, comp_l2t, nmi_l2t, ari_l2t =node_clust_eval(truth[0], louv_pred,
                                                               verbose = False)
     else:
-        homo_l2m, comp_l2m, nmi_l2m, ari_l2m = (None,None,None)
-        homo_l2t, comp_l2t, nmi_l2t, ari_l2t = (None,None,None)
+        homo_l2m, comp_l2m, nmi_l2m, ari_l2m = (None,None,None,None)
+        homo_l2t, comp_l2t, nmi_l2t, ari_l2t = (None,None,None,None)
 
 
     homo_m2m, comp_m2m, nmi_m2m, ari_m2m = node_clust_eval(true_labels=truth[1], 
                                                            pred_labels = hcd_preds[1], 
                                                            verbose=False)
 
-    homo_m2t, comp_m2t, nmi_m2t, ari_m2t = node_clust_eval(true_labels=truth[0], 
-                                                           pred_labels = hcd_preds[1], 
-                                                           verbose=False)
+    # homo_m2t, comp_m2t, nmi_m2t, ari_m2t = node_clust_eval(true_labels=truth[0], 
+    #                                                        pred_labels = hcd_preds[1], 
+    #                                                        verbose=False)
 
     homo_t2t, comp_t2t, nmi_t2t, ari_t2t = node_clust_eval(true_labels=truth[0], 
                                                            pred_labels = hcd_preds[0], 
                                                            verbose=False)
     
-    data = {'Homogeneity': [homo_l2m, homo_l2t, homo_k2m, homo_k2t, homo_m2m, homo_m2t, homo_t2t],
-            'Completeness': [comp_l2m, comp_l2t, comp_k2m, comp_k2t, comp_m2m, comp_m2t, comp_t2t],
-            'NMI': [nmi_l2m, nmi_l2t, nmi_k2m, nmi_k2t, nmi_m2m, nmi_m2t, nmi_t2t],
-            'ARI': [ari_l2m, ari_l2t, ari_k2m, ari_k2t, ari_m2m, ari_m2t, ari_t2t]}
+    data = {'Homogeneity': [homo_l2m, homo_l2t, homo_k2m, homo_k2t, homo_hc2m, homo_hc2t, homo_m2m, homo_t2t],
+            'Completeness': [comp_l2m, comp_l2t, comp_k2m, comp_k2t, comp_hc2m, comp_hc2t, comp_m2m, comp_t2t],
+            'NMI': [nmi_l2m, nmi_l2t, nmi_k2m, nmi_k2t, nmi_hc2m, nmi_hc2t, nmi_m2m, nmi_t2t],
+            'ARI': [ari_l2m, ari_l2t, ari_k2m, ari_k2t, ari_hc2m, ari_hc2t, ari_m2m, ari_t2t]}
     df = pd.DataFrame(data)
     df.index.name = 'Comparison'
     df.index = ['Louvain vs Middle Truth', 'Louvain vs Top Truth',
                 'KMeans vs Middle Truth', 'KMeans vs Top Truth',
-                'HCD (middle) vs Middle Truth','HCD (middle) vs Top Truth',
+                'Ward Linkage vs Middle Truth', 'Ward Linkage vs Top Truth', 
+                'HCD (middle) vs Middle Truth', #'HCD (middle) vs Top Truth',
                 'HCD (top) vs Top Truth']
     
     df2 = df.copy()
@@ -569,31 +774,30 @@ def generate_output_table(truth, louv_pred, kmeans_pred, hcd_preds, verbose = Tr
 
 
 def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
-             kmeans_pred, predicted, verbose = True):
+             kmeans_pred, thc_pred, predicted, verbose = True):
     
-    best_iter_metrics = generate_output_table(truth, 
-                                              louv_pred,
-                                              kmeans_pred,
-                                              predicted,
-                                              verbose = verbose)
+    
+    if truth:
+        best_iter_metrics = generate_output_table(truth, 
+                                                  louv_pred,
+                                                  kmeans_pred,
+                                                  thc_pred,
+                                                  predicted,
+                                                  verbose = verbose)
+        if args.save_results:
+            best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.which_net}.csv'))
     
     #unpack results
-    all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, mod_loss_hist, loss_history, clust_loss_hist, A_loss_hist, X_loss_hist, perf_hist = output
+    all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, train_loss_history, test_loss_history, perf_hist = output
     X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes = all_out[bp]
      
     if args.use_method == 'bottom_up':
         P_pred_bp = P_all
     else:
         P_pred_bp = [output[0][bp][4][0], torch.cat(output[0][bp][4][1])][::-1]
-    
-        
-    if args.save_results:
-        best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.which_net}.csv'))
-
-
 
     post_hoc_embedding(graph=adjacency-torch.eye(data.shape[0]), 
-                            embed_X = X_all[0],
+                            embed_X = X_all_final[0],
                             data = data, 
                             probabilities = P_pred_bp,
                             size = 150.0,
@@ -609,9 +813,9 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
 
     plot_clust_heatmaps(A = adjacency, 
-                        A_pred = A_hat-torch.eye(data.shape[0]), 
+                        A_pred = A_final-torch.eye(data.shape[0]), 
                         X = data,
-                        X_pred = X_hat,
+                        X_pred = X_final,
                         true_labels = truth, 
                         pred_labels = predicted, 
                         layers = k_layers+1, 
@@ -624,24 +828,25 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     TSNE_data=TSNE(n_components=3, 
                    learning_rate='auto',
                    init='random', 
-                   perplexity=3).fit_transform(X_all[0].detach().numpy())
+                   perplexity=3).fit_transform(X_all_final[0].detach().numpy())
     #pca
-    PCs = PCA(n_components=3).fit_transform(X_all[0].detach().numpy())
+    PCs = PCA(n_components=3).fit_transform(X_all_final[0].detach().numpy())
 
 
-    fig, ax1 = plt.subplots(1,2, figsize = (12,10))
-    #tsne plot
-    ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = truth[0], cmap = 'plasma')
-    ax1[0].set_xlabel('Dimension 1')
-    ax1[0].set_ylabel('Dimension 2')
-    ax1[0].set_title(' t-SNE Embedding Bottleneck (true labels)')
-    #adding node labels
-        
-    #PCA plot
-    ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = truth[0], cmap = 'plasma')
-    ax1[1].set_xlabel('Dimension 1')
-    ax1[1].set_ylabel('Dimension 2')
-    ax1[1].set_title(' PCA Embedding Bottleneck (true labels)')
+    if not isinstance(truth, type(None)):
+        fig, ax1 = plt.subplots(1,2, figsize = (12,10))
+        #tsne plot
+        ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = truth[0], cmap = 'plasma')
+        ax1[0].set_xlabel('Dimension 1')
+        ax1[0].set_ylabel('Dimension 2')
+        ax1[0].set_title(' t-SNE Embedding Bottleneck (true labels)')
+        #adding node labels
+            
+        #PCA plot
+        ax1[1].scatter(PCs[:,0], PCs[:,1], s = 25, c = truth[0], cmap = 'plasma')
+        ax1[1].set_xlabel('Dimension 1')
+        ax1[1].set_ylabel('Dimension 2')
+        ax1[1].set_title(' PCA Embedding Bottleneck (true labels)')
 
     # if not args.add_output_layers:
     #     x1 = torch.mm(embed_pred_bp, Comm1_proj_bp.transpose(0,1))
@@ -666,8 +871,8 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     #     ax2[1].set_ylabel('Dimension 2')
     #     ax2[1].set_title(' PCA Embedding Comm1-projection (true_labels)')
 
-    if args.save_results == True:
-        fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')
+        if args.save_results == True:
+            fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')
 
 
 
