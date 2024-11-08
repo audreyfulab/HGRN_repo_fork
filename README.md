@@ -1,2 +1,2 @@
 # HGRN_repo
-Code developement repo for Hierarchical Gene Regulatory Network: A deep learning algorithm for predicting a hierarchical gene regulatory network from gene expression data
+Code developement repo for Hierarchical Community Detection (HCD): A graph-based deep learning algorithm for detecting community structure in gene regulatory networks from gene expression data.
