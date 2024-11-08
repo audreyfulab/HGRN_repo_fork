@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flask App with Network Background</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <style>
+    /* Full-screen particles background */
+    #particles-js {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #2E2E2E; /* Dark Gray */
+      z-index: -1;
+    }
+
+    /* Cyberpunk 80's style logo */
+    .logo {
+      font-family: 'Arial', sans-serif;
+      font-size: 72px;
+      font-weight: bold;
+      color: #ff69b4; /* Pink fill */
+      text-shadow: 
+        0 0 10px #87cefa,  /* Light blue glow */
+        0 0 20px #87cefa, 
+        0 0 30px #87cefa,
+        0 0 40px #87cefa,
+        0 0 50px #87cefa;
+      border: 2px solid #87cefa; /* Light blue border */
+      padding: 20px;
+      display: inline-block;
+      margin-top: 20px;
+    }
+
+    /* Centering the logo */
+    .logo-container {
+      text-align: center;
+      margin-top: 30px;
+      z-index: 1;
+    }
+
+    /* Styling the main container */
+    .main-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding-top: 15%;
+      color: #F0F0F0; /* Light text for contrast */
+    }
+
+    /* Styling the file upload container */
+    .upload-container {
+      background: rgba(255, 182, 193, 0.1); /* Light opaque pink */
+      border: 2px dashed #87CEFA; /* Light blue */
+      padding: 40px;
+      text-align: center;
+      margin-top: 30px;
+      border-radius: 10px;
+      transition: background 0.3s ease;
+    }
+    .upload-container:hover {
+      background: rgba(255, 182, 193, 0.2);
+    }
+
+    /* Styling the buttons */
+    .btn-custom {
+      margin: 15px;
+      padding: 10px 20px;
+      font-weight: bold;
+      color: #FFFFFF;
+      background-color: #3A8FB7; /* Slightly darker blue */
+      border: none;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+    }
+    .btn-custom:hover {
+      background-color: #266D8B;
+    }
+
+    /* Styling the tabs */
+    .nav-tabs .nav-link {
+      color: #A0A0A0;
+      border: none;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    .nav-tabs .nav-link.active {
+      color: #FFFFFF;
+      background-color: transparent;
+      border-bottom: 2px solid #87CEFA;
+    }
+
+    /* Style for drag and drop */
+    .dragging {
+      background: rgba(255, 182, 193, 0.3) !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Particles background container -->
+  <div id="particles-js"></div>
+
+  <!-- Logo container -->
+  <div class="logo-container">
+    <span class="logo">HCD</span>
+  </div>
+
+  <!-- Main content -->
+  <div class="container main-content">
+    <ul class="nav nav-tabs justify-content-center" id="mainTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">Upload Data</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="simulate-tab" data-bs-toggle="tab" data-bs-target="#simulate" type="button" role="tab">Simulate Data</button>
+      </li>
+    </ul>
+    <div class="tab-content mt-4">
+      <!-- Upload Data Tab -->
+      <div class="tab-pane fade show active" id="upload" role="tabpanel">
+        <div class="upload-container" id="drop-zone">
+          <p>Drag & drop your CSV or JSON file here, or click to upload</p>
+          <input type="file" id="fileInput" accept=".csv, .json" style="display: none;">
+        </div>
+        <button class="btn btn-custom" id="fitHCD">Fit HCD</button>
+        <button class="btn btn-custom" id="runHCD">Run HCD</button>
+      </div>
+      <!-- Simulate Data Tab -->
+      <div class="tab-pane fade" id="simulate" role="tabpanel">
+        <p style="margin-top: 20px;">Options for simulating data will appear here...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+  <script>
+    // Initialize particles.js without interactivity
+    particlesJS("particles-js", {
+      "particles": {
+        "number": { "value": 60, "density": { "enable": true, "value_area": 800 }},
+        "color": { "value": "#ffb6c1" }, /* Light opaque pink */
+        "shape": { "type": "circle" },
+        "opacity": { "value": 0.5, "random": true },
+        "size": { "value": 6, "random": true },
+        "line_linked": {
+          "enable": true,
+          "distance": 130,
+          "color": "#87CEFA", /* Light blue */
+          "opacity": 0.3,
+          "width": 1
+        },
+        "move": { "enable": true, "speed": 1.5, "direction": "none", "random": true, "straight": false, "out_mode": "out", "bounce": false }
+      },
+      "interactivity": {
+        "detect_on": "canvas",
+        "events": { "onhover": { "enable": false }, "onclick": { "enable": false }, "resize": true },
+        "modes": {}
+      },
+      "retina_detect": true
+    });
+
+    // Drag and Drop Upload Handling
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragging');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragging');
+      const files = e.dataTransfer.files;
+      handleFileUpload(files[0]);
+    });
+    fileInput.addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
+
+    function handleFileUpload(file) {
+      if (file && (file.type === 'application/json' || file.type === 'text/csv')) {
+        console.log(`Uploaded file: ${file.name}`);
+        // Implement the file upload handling here
+      } else {
+        alert('Please upload a valid .csv or .json file.');
+      }
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

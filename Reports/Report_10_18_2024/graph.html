@@ -1,0 +1,3399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Plot with D3.js</title>
+    <style>
+        .chord path {
+            fill-opacity: 0.67;
+            stroke: lightgray;
+            stroke-width: 0.5px;
+        }
+        .group text {
+            font: 12px sans-serif;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            padding: 10px;
+            font: 16px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .highlighted {
+            fill: red;
+            stroke: red;
+        }
+        .topic-label {
+            fill: blue;
+        }
+        .legend {
+            font: 12px sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <svg width="1200" height="1200"></svg>
+    <button id="download">Download as SVG</button>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script type="application/json" id="data">
+        {
+            "directed": false,
+            "multigraph": false,
+            "graph": {},
+            "nodes": [
+                {
+                    "name": "AI987944(+)",
+                    "top_label": 1,
+                    "middle_label": 19,
+                    "id": "AI987944(+)"
+                },
+                {
+                    "name": "Ar(+)",
+                    "top_label": 1,
+                    "middle_label": 59,
+                    "id": "Ar(+)"
+                },
+                {
+                    "name": "Atf2(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Atf2(+)"
+                },
+                {
+                    "name": "Atf3(+)",
+                    "top_label": 0,
+                    "middle_label": 59,
+                    "id": "Atf3(+)"
+                },
+                {
+                    "name": "Atf4(+)",
+                    "top_label": 1,
+                    "middle_label": 59,
+                    "id": "Atf4(+)"
+                },
+                {
+                    "name": "Atf5(+)",
+                    "top_label": 1,
+                    "middle_label": 4,
+                    "id": "Atf5(+)"
+                },
+                {
+                    "name": "Bach1(+)",
+                    "top_label": 4,
+                    "middle_label": 49,
+                    "id": "Bach1(+)"
+                },
+                {
+                    "name": "Bcl3(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Bcl3(+)"
+                },
+                {
+                    "name": "Bcl6(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Bcl6(+)"
+                },
+                {
+                    "name": "Bclaf1(+)",
+                    "top_label": 2,
+                    "middle_label": 49,
+                    "id": "Bclaf1(+)"
+                },
+                {
+                    "name": "Bhlhe40(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Bhlhe40(+)"
+                },
+                {
+                    "name": "Bhlhe41(+)",
+                    "top_label": 2,
+                    "middle_label": 3,
+                    "id": "Bhlhe41(+)"
+                },
+                {
+                    "name": "Bmyc(+)",
+                    "top_label": 0,
+                    "middle_label": 30,
+                    "id": "Bmyc(+)"
+                },
+                {
+                    "name": "Bptf(+)",
+                    "top_label": 2,
+                    "middle_label": 19,
+                    "id": "Bptf(+)"
+                },
+                {
+                    "name": "Brca1(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Brca1(+)"
+                },
+                {
+                    "name": "Brf1(+)",
+                    "top_label": 2,
+                    "middle_label": 59,
+                    "id": "Brf1(+)"
+                },
+                {
+                    "name": "Brf2(+)",
+                    "top_label": 3,
+                    "middle_label": 59,
+                    "id": "Brf2(+)"
+                },
+                {
+                    "name": "Cdx2(+)",
+                    "top_label": 2,
+                    "middle_label": 49,
+                    "id": "Cdx2(+)"
+                },
+                {
+                    "name": "Cebpa(+)",
+                    "top_label": 4,
+                    "middle_label": 27,
+                    "id": "Cebpa(+)"
+                },
+                {
+                    "name": "Cebpb(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Cebpb(+)"
+                },
+                {
+                    "name": "Cebpd(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Cebpd(+)"
+                },
+                {
+                    "name": "Cebpg(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Cebpg(+)"
+                },
+                {
+                    "name": "Chd2(+)",
+                    "top_label": 0,
+                    "middle_label": 27,
+                    "id": "Chd2(+)"
+                },
+                {
+                    "name": "Cnot3(+)",
+                    "top_label": 0,
+                    "middle_label": 27,
+                    "id": "Cnot3(+)"
+                },
+                {
+                    "name": "Creb3(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Creb3(+)"
+                },
+                {
+                    "name": "Creb3l1(+)",
+                    "top_label": 0,
+                    "middle_label": 59,
+                    "id": "Creb3l1(+)"
+                },
+                {
+                    "name": "Creb3l2(+)",
+                    "top_label": 0,
+                    "middle_label": 49,
+                    "id": "Creb3l2(+)"
+                },
+                {
+                    "name": "Creb5(+)",
+                    "top_label": 1,
+                    "middle_label": 59,
+                    "id": "Creb5(+)"
+                },
+                {
+                    "name": "Crem(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Crem(+)"
+                },
+                {
+                    "name": "Ctcf(+)",
+                    "top_label": 3,
+                    "middle_label": 49,
+                    "id": "Ctcf(+)"
+                },
+                {
+                    "name": "Dbp(+)",
+                    "top_label": 3,
+                    "middle_label": 59,
+                    "id": "Dbp(+)"
+                },
+                {
+                    "name": "Ddit3(+)",
+                    "top_label": 3,
+                    "middle_label": 27,
+                    "id": "Ddit3(+)"
+                },
+                {
+                    "name": "Dnmt1(+)",
+                    "top_label": 2,
+                    "middle_label": 49,
+                    "id": "Dnmt1(+)"
+                },
+                {
+                    "name": "E2f1(+)",
+                    "top_label": 3,
+                    "middle_label": 49,
+                    "id": "E2f1(+)"
+                },
+                {
+                    "name": "E2f2(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "E2f2(+)"
+                },
+                {
+                    "name": "E2f3(+)",
+                    "top_label": 0,
+                    "middle_label": 27,
+                    "id": "E2f3(+)"
+                },
+                {
+                    "name": "E2f4(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "E2f4(+)"
+                },
+                {
+                    "name": "E2f6(+)",
+                    "top_label": 4,
+                    "middle_label": 4,
+                    "id": "E2f6(+)"
+                },
+                {
+                    "name": "E2f7(+)",
+                    "top_label": 3,
+                    "middle_label": 59,
+                    "id": "E2f7(+)"
+                },
+                {
+                    "name": "E2f8(+)",
+                    "top_label": 3,
+                    "middle_label": 42,
+                    "id": "E2f8(+)"
+                },
+                {
+                    "name": "Egr1(+)",
+                    "top_label": 0,
+                    "middle_label": 42,
+                    "id": "Egr1(+)"
+                },
+                {
+                    "name": "Egr2(+)",
+                    "top_label": 4,
+                    "middle_label": 61,
+                    "id": "Egr2(+)"
+                },
+                {
+                    "name": "Egr3(+)",
+                    "top_label": 4,
+                    "middle_label": 61,
+                    "id": "Egr3(+)"
+                },
+                {
+                    "name": "Ehf(+)",
+                    "top_label": 4,
+                    "middle_label": 15,
+                    "id": "Ehf(+)"
+                },
+                {
+                    "name": "Elf1(+)",
+                    "top_label": 0,
+                    "middle_label": 15,
+                    "id": "Elf1(+)"
+                },
+                {
+                    "name": "Elf4(+)",
+                    "top_label": 0,
+                    "middle_label": 54,
+                    "id": "Elf4(+)"
+                },
+                {
+                    "name": "Elk1(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Elk1(+)"
+                },
+                {
+                    "name": "Elk3(+)",
+                    "top_label": 1,
+                    "middle_label": 19,
+                    "id": "Elk3(+)"
+                },
+                {
+                    "name": "Elk4(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Elk4(+)"
+                },
+                {
+                    "name": "En1(+)",
+                    "top_label": 3,
+                    "middle_label": 15,
+                    "id": "En1(+)"
+                },
+                {
+                    "name": "Ep300(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Ep300(+)"
+                },
+                {
+                    "name": "Esrra(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Esrra(+)"
+                },
+                {
+                    "name": "Ets1(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Ets1(+)"
+                },
+                {
+                    "name": "Etv4(+)",
+                    "top_label": 1,
+                    "middle_label": 4,
+                    "id": "Etv4(+)"
+                },
+                {
+                    "name": "Etv5(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Etv5(+)"
+                },
+                {
+                    "name": "Ezh2(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Ezh2(+)"
+                },
+                {
+                    "name": "Fos(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Fos(+)"
+                },
+                {
+                    "name": "Fosb(+)",
+                    "top_label": 3,
+                    "middle_label": 54,
+                    "id": "Fosb(+)"
+                },
+                {
+                    "name": "Fosl1(+)",
+                    "top_label": 1,
+                    "middle_label": 46,
+                    "id": "Fosl1(+)"
+                },
+                {
+                    "name": "Fosl2(+)",
+                    "top_label": 3,
+                    "middle_label": 15,
+                    "id": "Fosl2(+)"
+                },
+                {
+                    "name": "Foxa1(+)",
+                    "top_label": 0,
+                    "middle_label": 41,
+                    "id": "Foxa1(+)"
+                },
+                {
+                    "name": "Foxa2(+)",
+                    "top_label": 4,
+                    "middle_label": 54,
+                    "id": "Foxa2(+)"
+                },
+                {
+                    "name": "Foxa3(+)",
+                    "top_label": 0,
+                    "middle_label": 15,
+                    "id": "Foxa3(+)"
+                },
+                {
+                    "name": "Foxf2(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Foxf2(+)"
+                },
+                {
+                    "name": "Foxg1(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Foxg1(+)"
+                },
+                {
+                    "name": "Foxj2(+)",
+                    "top_label": 0,
+                    "middle_label": 54,
+                    "id": "Foxj2(+)"
+                },
+                {
+                    "name": "Foxk1(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Foxk1(+)"
+                },
+                {
+                    "name": "Foxm1(+)",
+                    "top_label": 3,
+                    "middle_label": 15,
+                    "id": "Foxm1(+)"
+                },
+                {
+                    "name": "Foxn3(+)",
+                    "top_label": 3,
+                    "middle_label": 41,
+                    "id": "Foxn3(+)"
+                },
+                {
+                    "name": "Foxo1(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Foxo1(+)"
+                },
+                {
+                    "name": "Foxo3(+)",
+                    "top_label": 0,
+                    "middle_label": 46,
+                    "id": "Foxo3(+)"
+                },
+                {
+                    "name": "Foxo4(+)",
+                    "top_label": 3,
+                    "middle_label": 21,
+                    "id": "Foxo4(+)"
+                },
+                {
+                    "name": "Foxp4(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Foxp4(+)"
+                },
+                {
+                    "name": "Gabpa(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Gabpa(+)"
+                },
+                {
+                    "name": "Gata6(+)",
+                    "top_label": 2,
+                    "middle_label": 55,
+                    "id": "Gata6(+)"
+                },
+                {
+                    "name": "Gm17655(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Gm17655(+)"
+                },
+                {
+                    "name": "Gtf2f1(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Gtf2f1(+)"
+                },
+                {
+                    "name": "Gtf3c2(+)",
+                    "top_label": 2,
+                    "middle_label": 15,
+                    "id": "Gtf3c2(+)"
+                },
+                {
+                    "name": "Hcfc1(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Hcfc1(+)"
+                },
+                {
+                    "name": "Hdac2(+)",
+                    "top_label": 0,
+                    "middle_label": 41,
+                    "id": "Hdac2(+)"
+                },
+                {
+                    "name": "Hmbox1(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Hmbox1(+)"
+                },
+                {
+                    "name": "Hmga2(+)",
+                    "top_label": 1,
+                    "middle_label": 42,
+                    "id": "Hmga2(+)"
+                },
+                {
+                    "name": "Hnf1b(+)",
+                    "top_label": 0,
+                    "middle_label": 55,
+                    "id": "Hnf1b(+)"
+                },
+                {
+                    "name": "Hnf4a(+)",
+                    "top_label": 0,
+                    "middle_label": 54,
+                    "id": "Hnf4a(+)"
+                },
+                {
+                    "name": "Hnf4g(+)",
+                    "top_label": 0,
+                    "middle_label": 15,
+                    "id": "Hnf4g(+)"
+                },
+                {
+                    "name": "Hsf1(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Hsf1(+)"
+                },
+                {
+                    "name": "Ikzf2(+)",
+                    "top_label": 2,
+                    "middle_label": 42,
+                    "id": "Ikzf2(+)"
+                },
+                {
+                    "name": "Irf1(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Irf1(+)"
+                },
+                {
+                    "name": "Irf2(+)",
+                    "top_label": 3,
+                    "middle_label": 4,
+                    "id": "Irf2(+)"
+                },
+                {
+                    "name": "Irf7(+)",
+                    "top_label": 3,
+                    "middle_label": 15,
+                    "id": "Irf7(+)"
+                },
+                {
+                    "name": "Irf9(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Irf9(+)"
+                },
+                {
+                    "name": "Jdp2(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Jdp2(+)"
+                },
+                {
+                    "name": "Jun(+)",
+                    "top_label": 4,
+                    "middle_label": 54,
+                    "id": "Jun(+)"
+                },
+                {
+                    "name": "Junb(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Junb(+)"
+                },
+                {
+                    "name": "Jund(+)",
+                    "top_label": 0,
+                    "middle_label": 54,
+                    "id": "Jund(+)"
+                },
+                {
+                    "name": "Kdm4c(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Kdm4c(+)"
+                },
+                {
+                    "name": "Kdm5a(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Kdm5a(+)"
+                },
+                {
+                    "name": "Kdm5b(+)",
+                    "top_label": 0,
+                    "middle_label": 46,
+                    "id": "Kdm5b(+)"
+                },
+                {
+                    "name": "Klf10(+)",
+                    "top_label": 4,
+                    "middle_label": 54,
+                    "id": "Klf10(+)"
+                },
+                {
+                    "name": "Klf11(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Klf11(+)"
+                },
+                {
+                    "name": "Klf15(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Klf15(+)"
+                },
+                {
+                    "name": "Klf16(+)",
+                    "top_label": 2,
+                    "middle_label": 46,
+                    "id": "Klf16(+)"
+                },
+                {
+                    "name": "Klf3(+)",
+                    "top_label": 0,
+                    "middle_label": 62,
+                    "id": "Klf3(+)"
+                },
+                {
+                    "name": "Klf4(+)",
+                    "top_label": 1,
+                    "middle_label": 62,
+                    "id": "Klf4(+)"
+                },
+                {
+                    "name": "Klf5(+)",
+                    "top_label": 3,
+                    "middle_label": 54,
+                    "id": "Klf5(+)"
+                },
+                {
+                    "name": "Lhx6(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Lhx6(+)"
+                },
+                {
+                    "name": "Maf(+)",
+                    "top_label": 1,
+                    "middle_label": 42,
+                    "id": "Maf(+)"
+                },
+                {
+                    "name": "Mafb(+)",
+                    "top_label": 1,
+                    "middle_label": 42,
+                    "id": "Mafb(+)"
+                },
+                {
+                    "name": "Maff(+)",
+                    "top_label": 1,
+                    "middle_label": 15,
+                    "id": "Maff(+)"
+                },
+                {
+                    "name": "Mafg(+)",
+                    "top_label": 1,
+                    "middle_label": 54,
+                    "id": "Mafg(+)"
+                },
+                {
+                    "name": "Mafk(+)",
+                    "top_label": 4,
+                    "middle_label": 42,
+                    "id": "Mafk(+)"
+                },
+                {
+                    "name": "Max(+)",
+                    "top_label": 0,
+                    "middle_label": 55,
+                    "id": "Max(+)"
+                },
+                {
+                    "name": "Maz(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Maz(+)"
+                },
+                {
+                    "name": "Mecom(+)",
+                    "top_label": 2,
+                    "middle_label": 54,
+                    "id": "Mecom(+)"
+                },
+                {
+                    "name": "Mef2d(+)",
+                    "top_label": 2,
+                    "middle_label": 46,
+                    "id": "Mef2d(+)"
+                },
+                {
+                    "name": "Meis1(+)",
+                    "top_label": 2,
+                    "middle_label": 42,
+                    "id": "Meis1(+)"
+                },
+                {
+                    "name": "Meis2(+)",
+                    "top_label": 2,
+                    "middle_label": 46,
+                    "id": "Meis2(+)"
+                },
+                {
+                    "name": "Meis3(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Meis3(+)"
+                },
+                {
+                    "name": "Mga(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Mga(+)"
+                },
+                {
+                    "name": "Mitf(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Mitf(+)"
+                },
+                {
+                    "name": "Mlx(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Mlx(+)"
+                },
+                {
+                    "name": "Mlxipl(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Mlxipl(+)"
+                },
+                {
+                    "name": "Msx1(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Msx1(+)"
+                },
+                {
+                    "name": "Mta3(+)",
+                    "top_label": 1,
+                    "middle_label": 12,
+                    "id": "Mta3(+)"
+                },
+                {
+                    "name": "Mxd4(+)",
+                    "top_label": 3,
+                    "middle_label": 51,
+                    "id": "Mxd4(+)"
+                },
+                {
+                    "name": "Mxi1(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Mxi1(+)"
+                },
+                {
+                    "name": "Mybl1(+)",
+                    "top_label": 0,
+                    "middle_label": 4,
+                    "id": "Mybl1(+)"
+                },
+                {
+                    "name": "Myc(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Myc(+)"
+                },
+                {
+                    "name": "Mzf1(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Mzf1(+)"
+                },
+                {
+                    "name": "Nelfe(+)",
+                    "top_label": 0,
+                    "middle_label": 27,
+                    "id": "Nelfe(+)"
+                },
+                {
+                    "name": "Nfat5(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Nfat5(+)"
+                },
+                {
+                    "name": "Nfatc1(+)",
+                    "top_label": 2,
+                    "middle_label": 4,
+                    "id": "Nfatc1(+)"
+                },
+                {
+                    "name": "Nfe2l2(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Nfe2l2(+)"
+                },
+                {
+                    "name": "Nfe2l3(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Nfe2l3(+)"
+                },
+                {
+                    "name": "Nfib(+)",
+                    "top_label": 4,
+                    "middle_label": 27,
+                    "id": "Nfib(+)"
+                },
+                {
+                    "name": "Nfic(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Nfic(+)"
+                },
+                {
+                    "name": "Nfil3(+)",
+                    "top_label": 4,
+                    "middle_label": 20,
+                    "id": "Nfil3(+)"
+                },
+                {
+                    "name": "Nfkb1(+)",
+                    "top_label": 1,
+                    "middle_label": 52,
+                    "id": "Nfkb1(+)"
+                },
+                {
+                    "name": "Nfkb2(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Nfkb2(+)"
+                },
+                {
+                    "name": "Nfyc(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Nfyc(+)"
+                },
+                {
+                    "name": "Npdc1(+)",
+                    "top_label": 4,
+                    "middle_label": 4,
+                    "id": "Npdc1(+)"
+                },
+                {
+                    "name": "Nr1d1(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Nr1d1(+)"
+                },
+                {
+                    "name": "Nr1h4(+)",
+                    "top_label": 4,
+                    "middle_label": 27,
+                    "id": "Nr1h4(+)"
+                },
+                {
+                    "name": "Nr2c2(+)",
+                    "top_label": 3,
+                    "middle_label": 20,
+                    "id": "Nr2c2(+)"
+                },
+                {
+                    "name": "Nr2f1(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Nr2f1(+)"
+                },
+                {
+                    "name": "Nr2f6(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Nr2f6(+)"
+                },
+                {
+                    "name": "Nr3c1(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Nr3c1(+)"
+                },
+                {
+                    "name": "Nr6a1(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Nr6a1(+)"
+                },
+                {
+                    "name": "Pbx4(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Pbx4(+)"
+                },
+                {
+                    "name": "Pole3(+)",
+                    "top_label": 3,
+                    "middle_label": 27,
+                    "id": "Pole3(+)"
+                },
+                {
+                    "name": "Pole4(+)",
+                    "top_label": 3,
+                    "middle_label": 27,
+                    "id": "Pole4(+)"
+                },
+                {
+                    "name": "Pou2f1(+)",
+                    "top_label": 3,
+                    "middle_label": 20,
+                    "id": "Pou2f1(+)"
+                },
+                {
+                    "name": "Ppara(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Ppara(+)"
+                },
+                {
+                    "name": "Ppard(+)",
+                    "top_label": 2,
+                    "middle_label": 34,
+                    "id": "Ppard(+)"
+                },
+                {
+                    "name": "Pparg(+)",
+                    "top_label": 0,
+                    "middle_label": 27,
+                    "id": "Pparg(+)"
+                },
+                {
+                    "name": "Rad21(+)",
+                    "top_label": 3,
+                    "middle_label": 20,
+                    "id": "Rad21(+)"
+                },
+                {
+                    "name": "Rara(+)",
+                    "top_label": 2,
+                    "middle_label": 67,
+                    "id": "Rara(+)"
+                },
+                {
+                    "name": "Rarb(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Rarb(+)"
+                },
+                {
+                    "name": "Rarg(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Rarg(+)"
+                },
+                {
+                    "name": "Rb1(+)",
+                    "top_label": 0,
+                    "middle_label": 17,
+                    "id": "Rb1(+)"
+                },
+                {
+                    "name": "Rbbp5(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Rbbp5(+)"
+                },
+                {
+                    "name": "Rcor1(+)",
+                    "top_label": 2,
+                    "middle_label": 4,
+                    "id": "Rcor1(+)"
+                },
+                {
+                    "name": "Rel(+)",
+                    "top_label": 1,
+                    "middle_label": 24,
+                    "id": "Rel(+)"
+                },
+                {
+                    "name": "Rela(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Rela(+)"
+                },
+                {
+                    "name": "Relb(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Relb(+)"
+                },
+                {
+                    "name": "Rest(+)",
+                    "top_label": 4,
+                    "middle_label": 20,
+                    "id": "Rest(+)"
+                },
+                {
+                    "name": "Rfx1(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Rfx1(+)"
+                },
+                {
+                    "name": "Rfx2(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Rfx2(+)"
+                },
+                {
+                    "name": "Rfx3(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Rfx3(+)"
+                },
+                {
+                    "name": "Rfx7(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Rfx7(+)"
+                },
+                {
+                    "name": "Rora(+)",
+                    "top_label": 1,
+                    "middle_label": 24,
+                    "id": "Rora(+)"
+                },
+                {
+                    "name": "Rorc(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Rorc(+)"
+                },
+                {
+                    "name": "Rxra(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Rxra(+)"
+                },
+                {
+                    "name": "Rxrb(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Rxrb(+)"
+                },
+                {
+                    "name": "Sap30(+)",
+                    "top_label": 4,
+                    "middle_label": 27,
+                    "id": "Sap30(+)"
+                },
+                {
+                    "name": "Sin3a(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Sin3a(+)"
+                },
+                {
+                    "name": "Sirt6(+)",
+                    "top_label": 1,
+                    "middle_label": 27,
+                    "id": "Sirt6(+)"
+                },
+                {
+                    "name": "Six5(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Six5(+)"
+                },
+                {
+                    "name": "Smad1(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Smad1(+)"
+                },
+                {
+                    "name": "Smarca4(+)",
+                    "top_label": 2,
+                    "middle_label": 51,
+                    "id": "Smarca4(+)"
+                },
+                {
+                    "name": "Smarcc1(+)",
+                    "top_label": 2,
+                    "middle_label": 12,
+                    "id": "Smarcc1(+)"
+                },
+                {
+                    "name": "Smarcc2(+)",
+                    "top_label": 2,
+                    "middle_label": 27,
+                    "id": "Smarcc2(+)"
+                },
+                {
+                    "name": "Sox11(+)",
+                    "top_label": 1,
+                    "middle_label": 4,
+                    "id": "Sox11(+)"
+                },
+                {
+                    "name": "Sox12(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Sox12(+)"
+                },
+                {
+                    "name": "Sox4(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Sox4(+)"
+                },
+                {
+                    "name": "Sox9(+)",
+                    "top_label": 4,
+                    "middle_label": 20,
+                    "id": "Sox9(+)"
+                },
+                {
+                    "name": "Sp1(+)",
+                    "top_label": 3,
+                    "middle_label": 20,
+                    "id": "Sp1(+)"
+                },
+                {
+                    "name": "Sp2(+)",
+                    "top_label": 2,
+                    "middle_label": 4,
+                    "id": "Sp2(+)"
+                },
+                {
+                    "name": "Sp4(+)",
+                    "top_label": 1,
+                    "middle_label": 48,
+                    "id": "Sp4(+)"
+                },
+                {
+                    "name": "Srebf1(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Srebf1(+)"
+                },
+                {
+                    "name": "Srebf2(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Srebf2(+)"
+                },
+                {
+                    "name": "Srf(+)",
+                    "top_label": 0,
+                    "middle_label": 48,
+                    "id": "Srf(+)"
+                },
+                {
+                    "name": "Stat1(+)",
+                    "top_label": 1,
+                    "middle_label": 59,
+                    "id": "Stat1(+)"
+                },
+                {
+                    "name": "Stat2(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Stat2(+)"
+                },
+                {
+                    "name": "Taf1(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Taf1(+)"
+                },
+                {
+                    "name": "Taf7(+)",
+                    "top_label": 4,
+                    "middle_label": 20,
+                    "id": "Taf7(+)"
+                },
+                {
+                    "name": "Tbp(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Tbp(+)"
+                },
+                {
+                    "name": "Tcf4(+)",
+                    "top_label": 0,
+                    "middle_label": 22,
+                    "id": "Tcf4(+)"
+                },
+                {
+                    "name": "Tcf7(+)",
+                    "top_label": 1,
+                    "middle_label": 49,
+                    "id": "Tcf7(+)"
+                },
+                {
+                    "name": "Tcf7l2(+)",
+                    "top_label": 4,
+                    "middle_label": 22,
+                    "id": "Tcf7l2(+)"
+                },
+                {
+                    "name": "Tead1(+)",
+                    "top_label": 2,
+                    "middle_label": 21,
+                    "id": "Tead1(+)"
+                },
+                {
+                    "name": "Tead2(+)",
+                    "top_label": 1,
+                    "middle_label": 22,
+                    "id": "Tead2(+)"
+                },
+                {
+                    "name": "Tead3(+)",
+                    "top_label": 1,
+                    "middle_label": 21,
+                    "id": "Tead3(+)"
+                },
+                {
+                    "name": "Tead4(+)",
+                    "top_label": 2,
+                    "middle_label": 21,
+                    "id": "Tead4(+)"
+                },
+                {
+                    "name": "Tef(+)",
+                    "top_label": 0,
+                    "middle_label": 22,
+                    "id": "Tef(+)"
+                },
+                {
+                    "name": "Tfap4(+)",
+                    "top_label": 2,
+                    "middle_label": 22,
+                    "id": "Tfap4(+)"
+                },
+                {
+                    "name": "Tfcp2l1(+)",
+                    "top_label": 4,
+                    "middle_label": 22,
+                    "id": "Tfcp2l1(+)"
+                },
+                {
+                    "name": "Tfdp1(+)",
+                    "top_label": 3,
+                    "middle_label": 49,
+                    "id": "Tfdp1(+)"
+                },
+                {
+                    "name": "Tfdp2(+)",
+                    "top_label": 0,
+                    "middle_label": 22,
+                    "id": "Tfdp2(+)"
+                },
+                {
+                    "name": "Tfe3(+)",
+                    "top_label": 1,
+                    "middle_label": 21,
+                    "id": "Tfe3(+)"
+                },
+                {
+                    "name": "Tgif1(+)",
+                    "top_label": 1,
+                    "middle_label": 57,
+                    "id": "Tgif1(+)"
+                },
+                {
+                    "name": "Thap11(+)",
+                    "top_label": 1,
+                    "middle_label": 22,
+                    "id": "Thap11(+)"
+                },
+                {
+                    "name": "Trp53(+)",
+                    "top_label": 3,
+                    "middle_label": 22,
+                    "id": "Trp53(+)"
+                },
+                {
+                    "name": "Ubtf(+)",
+                    "top_label": 2,
+                    "middle_label": 22,
+                    "id": "Ubtf(+)"
+                },
+                {
+                    "name": "Usf1(+)",
+                    "top_label": 1,
+                    "middle_label": 57,
+                    "id": "Usf1(+)"
+                },
+                {
+                    "name": "Wrnip1(+)",
+                    "top_label": 2,
+                    "middle_label": 57,
+                    "id": "Wrnip1(+)"
+                },
+                {
+                    "name": "Xbp1(+)",
+                    "top_label": 4,
+                    "middle_label": 22,
+                    "id": "Xbp1(+)"
+                },
+                {
+                    "name": "Xrcc4(+)",
+                    "top_label": 1,
+                    "middle_label": 21,
+                    "id": "Xrcc4(+)"
+                },
+                {
+                    "name": "Ybx1(+)",
+                    "top_label": 1,
+                    "middle_label": 21,
+                    "id": "Ybx1(+)"
+                },
+                {
+                    "name": "Yy1(+)",
+                    "top_label": 0,
+                    "middle_label": 21,
+                    "id": "Yy1(+)"
+                },
+                {
+                    "name": "Zbtb14(+)",
+                    "top_label": 2,
+                    "middle_label": 57,
+                    "id": "Zbtb14(+)"
+                },
+                {
+                    "name": "Zbtb7a(+)",
+                    "top_label": 0,
+                    "middle_label": 41,
+                    "id": "Zbtb7a(+)"
+                },
+                {
+                    "name": "Zbtb7b(+)",
+                    "top_label": 2,
+                    "middle_label": 39,
+                    "id": "Zbtb7b(+)"
+                },
+                {
+                    "name": "Zeb1(+)",
+                    "top_label": 2,
+                    "middle_label": 70,
+                    "id": "Zeb1(+)"
+                },
+                {
+                    "name": "Zfp110(+)",
+                    "top_label": 2,
+                    "middle_label": 70,
+                    "id": "Zfp110(+)"
+                },
+                {
+                    "name": "Zfp119b(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp119b(+)"
+                },
+                {
+                    "name": "Zfp160(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Zfp160(+)"
+                },
+                {
+                    "name": "Zfp281(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Zfp281(+)"
+                },
+                {
+                    "name": "Zfp362(+)",
+                    "top_label": 1,
+                    "middle_label": 29,
+                    "id": "Zfp362(+)"
+                },
+                {
+                    "name": "Zfp369(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp369(+)"
+                },
+                {
+                    "name": "Zfp568(+)",
+                    "top_label": 1,
+                    "middle_label": 20,
+                    "id": "Zfp568(+)"
+                },
+                {
+                    "name": "Zfp595(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp595(+)"
+                },
+                {
+                    "name": "Zfp64(+)",
+                    "top_label": 1,
+                    "middle_label": 22,
+                    "id": "Zfp64(+)"
+                },
+                {
+                    "name": "Zfp664(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp664(+)"
+                },
+                {
+                    "name": "Zfp729b(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Zfp729b(+)"
+                },
+                {
+                    "name": "Zfp866(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Zfp866(+)"
+                },
+                {
+                    "name": "Zfp931(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp931(+)"
+                },
+                {
+                    "name": "Zfp950(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Zfp950(+)"
+                },
+                {
+                    "name": "Zfp951(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp951(+)"
+                },
+                {
+                    "name": "Zfp975(+)",
+                    "top_label": 2,
+                    "middle_label": 20,
+                    "id": "Zfp975(+)"
+                },
+                {
+                    "name": "Zfx(+)",
+                    "top_label": 1,
+                    "middle_label": 29,
+                    "id": "Zfx(+)"
+                },
+                {
+                    "name": "Zmiz1(+)",
+                    "top_label": 0,
+                    "middle_label": 20,
+                    "id": "Zmiz1(+)"
+                },
+                {
+                    "name": "Zscan20(+)",
+                    "top_label": 2,
+                    "middle_label": 29,
+                    "id": "Zscan20(+)"
+                }
+            ],
+            "links": [
+                {
+                    "weight": 0.10859982669353485,
+                    "source": "Atf3(+)",
+                    "target": "Foxo4(+)"
+                },
+                {
+                    "weight": 0.286726176738739,
+                    "source": "Atf5(+)",
+                    "target": "Elk3(+)"
+                },
+                {
+                    "weight": 0.1000005453824997,
+                    "source": "Atf5(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Atf5(+)",
+                    "target": "Ybx1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Bclaf1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Bhlhe40(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Cebpg(+)"
+                },
+                {
+                    "weight": 0.10000131279230118,
+                    "source": "Bach1(+)",
+                    "target": "Crem(+)"
+                },
+                {
+                    "weight": 0.1000000387430191,
+                    "source": "Bach1(+)",
+                    "target": "Ddit3(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Egr2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Fosl1(+)"
+                },
+                {
+                    "weight": 0.1013369932770729,
+                    "source": "Bach1(+)",
+                    "target": "Foxa1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Foxa2(+)"
+                },
+                {
+                    "weight": 0.10000046342611313,
+                    "source": "Bach1(+)",
+                    "target": "Foxa3(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Foxo4(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Hdac2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Hnf4a(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Irf1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Klf15(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Mafg(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Mafk(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Mxd4(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Myc(+)"
+                },
+                {
+                    "weight": 0.10000000894069672,
+                    "source": "Bach1(+)",
+                    "target": "Nfil3(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Nfkb1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Nfkb2(+)"
+                },
+                {
+                    "weight": 0.10000000894069672,
+                    "source": "Bach1(+)",
+                    "target": "Nr1h4(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Relb(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Rfx2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Srebf2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Srf(+)"
+                },
+                {
+                    "weight": 0.1000005230307579,
+                    "source": "Bach1(+)",
+                    "target": "Tcf7l2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Tef(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Tfdp1(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Tfdp2(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.10000000149011612,
+                    "source": "Bach1(+)",
+                    "target": "Thap11(+)"
+                },
+                {
+                    "weight": 0.11656395345926285,
+                    "source": "Bclaf1(+)",
+                    "target": "Nr1d1(+)"
+                },
+                {
+                    "weight": 0.11632734537124634,
+                    "source": "Bclaf1(+)",
+                    "target": "Nr3c1(+)"
+                },
+                {
+                    "weight": 0.18952475488185883,
+                    "source": "Bclaf1(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.1841404139995575,
+                    "source": "Bhlhe40(+)",
+                    "target": "Jdp2(+)"
+                },
+                {
+                    "weight": 0.1038656011223793,
+                    "source": "Bmyc(+)",
+                    "target": "Esrra(+)"
+                },
+                {
+                    "weight": 0.12055818736553192,
+                    "source": "Bptf(+)",
+                    "target": "Rfx3(+)"
+                },
+                {
+                    "weight": 0.12561772763729095,
+                    "source": "Bptf(+)",
+                    "target": "Six5(+)"
+                },
+                {
+                    "weight": 0.20887041091918945,
+                    "source": "Brca1(+)",
+                    "target": "E2f7(+)"
+                },
+                {
+                    "weight": 0.15644490718841553,
+                    "source": "Brf2(+)",
+                    "target": "Creb3(+)"
+                },
+                {
+                    "weight": 0.1287834346294403,
+                    "source": "Brf2(+)",
+                    "target": "E2f1(+)"
+                },
+                {
+                    "weight": 0.28883877396583557,
+                    "source": "Brf2(+)",
+                    "target": "Foxj2(+)"
+                },
+                {
+                    "weight": 0.4058803617954254,
+                    "source": "Brf2(+)",
+                    "target": "Kdm5b(+)"
+                },
+                {
+                    "weight": 0.19148631393909454,
+                    "source": "Cdx2(+)",
+                    "target": "Fos(+)"
+                },
+                {
+                    "weight": 0.1823275089263916,
+                    "source": "Cdx2(+)",
+                    "target": "Fosl1(+)"
+                },
+                {
+                    "weight": 0.17082354426383972,
+                    "source": "Cdx2(+)",
+                    "target": "Nfkb2(+)"
+                },
+                {
+                    "weight": 0.24259796738624573,
+                    "source": "Cdx2(+)",
+                    "target": "Pole4(+)"
+                },
+                {
+                    "weight": 0.20580454170703888,
+                    "source": "Cdx2(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.12850932776927948,
+                    "source": "Cdx2(+)",
+                    "target": "Ybx1(+)"
+                },
+                {
+                    "weight": 0.11092217266559601,
+                    "source": "Cebpa(+)",
+                    "target": "Egr3(+)"
+                },
+                {
+                    "weight": 0.10093424469232559,
+                    "source": "Cebpb(+)",
+                    "target": "Fosl1(+)"
+                },
+                {
+                    "weight": 0.13629642128944397,
+                    "source": "Cebpg(+)",
+                    "target": "Smad1(+)"
+                },
+                {
+                    "weight": 0.19238288700580597,
+                    "source": "Chd2(+)",
+                    "target": "E2f6(+)"
+                },
+                {
+                    "weight": 0.15119582414627075,
+                    "source": "Creb3l1(+)",
+                    "target": "Nfe2l3(+)"
+                },
+                {
+                    "weight": 0.25357040762901306,
+                    "source": "Creb5(+)",
+                    "target": "Usf1(+)"
+                },
+                {
+                    "weight": 0.1424015462398529,
+                    "source": "Crem(+)",
+                    "target": "Egr1(+)"
+                },
+                {
+                    "weight": 0.2728503942489624,
+                    "source": "Crem(+)",
+                    "target": "Etv4(+)"
+                },
+                {
+                    "weight": 0.2967023253440857,
+                    "source": "Crem(+)",
+                    "target": "Fosb(+)"
+                },
+                {
+                    "weight": 0.10895383358001709,
+                    "source": "Crem(+)",
+                    "target": "Fosl2(+)"
+                },
+                {
+                    "weight": 0.1111169308423996,
+                    "source": "Crem(+)",
+                    "target": "Foxa1(+)"
+                },
+                {
+                    "weight": 0.10953576862812042,
+                    "source": "Crem(+)",
+                    "target": "Foxg1(+)"
+                },
+                {
+                    "weight": 0.13066427409648895,
+                    "source": "Crem(+)",
+                    "target": "Foxn3(+)"
+                },
+                {
+                    "weight": 0.2973915934562683,
+                    "source": "Crem(+)",
+                    "target": "Jund(+)"
+                },
+                {
+                    "weight": 0.2700797915458679,
+                    "source": "Crem(+)",
+                    "target": "Klf11(+)"
+                },
+                {
+                    "weight": 0.13246020674705505,
+                    "source": "Crem(+)",
+                    "target": "Maf(+)"
+                },
+                {
+                    "weight": 0.13028192520141602,
+                    "source": "Crem(+)",
+                    "target": "Mafb(+)"
+                },
+                {
+                    "weight": 0.15297308564186096,
+                    "source": "Crem(+)",
+                    "target": "Maff(+)"
+                },
+                {
+                    "weight": 0.10912885516881943,
+                    "source": "Crem(+)",
+                    "target": "Mafg(+)"
+                },
+                {
+                    "weight": 0.1332680881023407,
+                    "source": "Crem(+)",
+                    "target": "Mlx(+)"
+                },
+                {
+                    "weight": 0.10460104793310165,
+                    "source": "Crem(+)",
+                    "target": "Pole3(+)"
+                },
+                {
+                    "weight": 0.11231239885091782,
+                    "source": "Crem(+)",
+                    "target": "Relb(+)"
+                },
+                {
+                    "weight": 0.14850930869579315,
+                    "source": "Crem(+)",
+                    "target": "Rfx2(+)"
+                },
+                {
+                    "weight": 0.265714555978775,
+                    "source": "Crem(+)",
+                    "target": "Rfx7(+)"
+                },
+                {
+                    "weight": 0.24493226408958435,
+                    "source": "Crem(+)",
+                    "target": "Sox4(+)"
+                },
+                {
+                    "weight": 0.2968215346336365,
+                    "source": "Crem(+)",
+                    "target": "Taf7(+)"
+                },
+                {
+                    "weight": 0.1173601970076561,
+                    "source": "Crem(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.16459187865257263,
+                    "source": "Crem(+)",
+                    "target": "Thap11(+)"
+                },
+                {
+                    "weight": 0.1193927675485611,
+                    "source": "Crem(+)",
+                    "target": "Yy1(+)"
+                },
+                {
+                    "weight": 0.15126952528953552,
+                    "source": "Crem(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.14575831592082977,
+                    "source": "Ctcf(+)",
+                    "target": "E2f1(+)"
+                },
+                {
+                    "weight": 0.14828675985336304,
+                    "source": "Ctcf(+)",
+                    "target": "E2f7(+)"
+                },
+                {
+                    "weight": 0.10326702892780304,
+                    "source": "Ctcf(+)",
+                    "target": "Ezh2(+)"
+                },
+                {
+                    "weight": 0.10000115633010864,
+                    "source": "Ctcf(+)",
+                    "target": "Kdm5a(+)"
+                },
+                {
+                    "weight": 0.18190236389636993,
+                    "source": "Ctcf(+)",
+                    "target": "Mafb(+)"
+                },
+                {
+                    "weight": 0.22841143608093262,
+                    "source": "Ctcf(+)",
+                    "target": "Mxd4(+)"
+                },
+                {
+                    "weight": 0.10163722187280655,
+                    "source": "Ctcf(+)",
+                    "target": "Mybl1(+)"
+                },
+                {
+                    "weight": 0.16483113169670105,
+                    "source": "Ctcf(+)",
+                    "target": "Nr2c2(+)"
+                },
+                {
+                    "weight": 0.1018417701125145,
+                    "source": "Ctcf(+)",
+                    "target": "Rfx7(+)"
+                },
+                {
+                    "weight": 0.17295359075069427,
+                    "source": "Ctcf(+)",
+                    "target": "Rora(+)"
+                },
+                {
+                    "weight": 0.2537264823913574,
+                    "source": "Ctcf(+)",
+                    "target": "Sap30(+)"
+                },
+                {
+                    "weight": 0.19993653893470764,
+                    "source": "Ctcf(+)",
+                    "target": "Sp1(+)"
+                },
+                {
+                    "weight": 0.11419262737035751,
+                    "source": "Ctcf(+)",
+                    "target": "Sp4(+)"
+                },
+                {
+                    "weight": 0.1002960056066513,
+                    "source": "Ctcf(+)",
+                    "target": "Srf(+)"
+                },
+                {
+                    "weight": 0.1404295116662979,
+                    "source": "Ctcf(+)",
+                    "target": "Taf1(+)"
+                },
+                {
+                    "weight": 0.1966540366411209,
+                    "source": "Ctcf(+)",
+                    "target": "Ubtf(+)"
+                },
+                {
+                    "weight": 0.10828278213739395,
+                    "source": "Dbp(+)",
+                    "target": "E2f1(+)"
+                },
+                {
+                    "weight": 0.21172285079956055,
+                    "source": "Dbp(+)",
+                    "target": "E2f4(+)"
+                },
+                {
+                    "weight": 0.17196783423423767,
+                    "source": "Dbp(+)",
+                    "target": "Egr1(+)"
+                },
+                {
+                    "weight": 0.10065118968486786,
+                    "source": "Dbp(+)",
+                    "target": "Egr2(+)"
+                },
+                {
+                    "weight": 0.13645091652870178,
+                    "source": "Dbp(+)",
+                    "target": "Egr3(+)"
+                },
+                {
+                    "weight": 0.16553156077861786,
+                    "source": "Dbp(+)",
+                    "target": "Elk4(+)"
+                },
+                {
+                    "weight": 0.22353601455688477,
+                    "source": "Dbp(+)",
+                    "target": "En1(+)"
+                },
+                {
+                    "weight": 0.19985921680927277,
+                    "source": "Dbp(+)",
+                    "target": "Esrra(+)"
+                },
+                {
+                    "weight": 0.18203887343406677,
+                    "source": "Dbp(+)",
+                    "target": "Fos(+)"
+                },
+                {
+                    "weight": 0.1830637902021408,
+                    "source": "Dbp(+)",
+                    "target": "Fosl1(+)"
+                },
+                {
+                    "weight": 0.10001689195632935,
+                    "source": "Dbp(+)",
+                    "target": "Fosl2(+)"
+                },
+                {
+                    "weight": 0.2095886468887329,
+                    "source": "Dbp(+)",
+                    "target": "Hdac2(+)"
+                },
+                {
+                    "weight": 0.22135956585407257,
+                    "source": "Dbp(+)",
+                    "target": "Hnf4g(+)"
+                },
+                {
+                    "weight": 0.13039398193359375,
+                    "source": "Dbp(+)",
+                    "target": "Irf2(+)"
+                },
+                {
+                    "weight": 0.1693982630968094,
+                    "source": "Dbp(+)",
+                    "target": "Irf7(+)"
+                },
+                {
+                    "weight": 0.16136103868484497,
+                    "source": "Dbp(+)",
+                    "target": "Jdp2(+)"
+                },
+                {
+                    "weight": 0.24240224063396454,
+                    "source": "Dbp(+)",
+                    "target": "Jund(+)"
+                },
+                {
+                    "weight": 0.3821764290332794,
+                    "source": "Dbp(+)",
+                    "target": "Kdm5b(+)"
+                },
+                {
+                    "weight": 0.13712003827095032,
+                    "source": "Dbp(+)",
+                    "target": "Maff(+)"
+                },
+                {
+                    "weight": 0.2092009037733078,
+                    "source": "Dbp(+)",
+                    "target": "Mxd4(+)"
+                },
+                {
+                    "weight": 0.2262917011976242,
+                    "source": "Dbp(+)",
+                    "target": "Nfib(+)"
+                },
+                {
+                    "weight": 0.10000113397836685,
+                    "source": "Dbp(+)",
+                    "target": "Npdc1(+)"
+                },
+                {
+                    "weight": 0.22586949169635773,
+                    "source": "Dbp(+)",
+                    "target": "Nr1h4(+)"
+                },
+                {
+                    "weight": 0.22106127440929413,
+                    "source": "Dbp(+)",
+                    "target": "Pole4(+)"
+                },
+                {
+                    "weight": 0.21773838996887207,
+                    "source": "Dbp(+)",
+                    "target": "Pparg(+)"
+                },
+                {
+                    "weight": 0.2005266696214676,
+                    "source": "Dbp(+)",
+                    "target": "Rel(+)"
+                },
+                {
+                    "weight": 0.112152099609375,
+                    "source": "Dbp(+)",
+                    "target": "Rela(+)"
+                },
+                {
+                    "weight": 0.11996831744909286,
+                    "source": "Dbp(+)",
+                    "target": "Rfx2(+)"
+                },
+                {
+                    "weight": 0.10390076786279678,
+                    "source": "Dbp(+)",
+                    "target": "Rfx7(+)"
+                },
+                {
+                    "weight": 0.1029505729675293,
+                    "source": "Dbp(+)",
+                    "target": "Sap30(+)"
+                },
+                {
+                    "weight": 0.1014517992734909,
+                    "source": "Dbp(+)",
+                    "target": "Sp1(+)"
+                },
+                {
+                    "weight": 0.13559195399284363,
+                    "source": "Dbp(+)",
+                    "target": "Zfx(+)"
+                },
+                {
+                    "weight": 0.11523135006427765,
+                    "source": "Ddit3(+)",
+                    "target": "Elf1(+)"
+                },
+                {
+                    "weight": 0.16659533977508545,
+                    "source": "Ddit3(+)",
+                    "target": "Fos(+)"
+                },
+                {
+                    "weight": 0.10654325783252716,
+                    "source": "Ddit3(+)",
+                    "target": "Fosl1(+)"
+                },
+                {
+                    "weight": 0.10864134877920151,
+                    "source": "Ddit3(+)",
+                    "target": "Fosl2(+)"
+                },
+                {
+                    "weight": 0.10603886842727661,
+                    "source": "Ddit3(+)",
+                    "target": "Foxo3(+)"
+                },
+                {
+                    "weight": 0.27490708231925964,
+                    "source": "E2f1(+)",
+                    "target": "Taf1(+)"
+                },
+                {
+                    "weight": 0.20002225041389465,
+                    "source": "Egr1(+)",
+                    "target": "Mybl1(+)"
+                },
+                {
+                    "weight": 0.12944741547107697,
+                    "source": "Egr1(+)",
+                    "target": "Sox9(+)"
+                },
+                {
+                    "weight": 0.1505589783191681,
+                    "source": "Egr2(+)",
+                    "target": "Mafk(+)"
+                },
+                {
+                    "weight": 0.10062936693429947,
+                    "source": "Egr2(+)",
+                    "target": "Stat2(+)"
+                },
+                {
+                    "weight": 0.10072837024927139,
+                    "source": "Egr2(+)",
+                    "target": "Tcf7l2(+)"
+                },
+                {
+                    "weight": 0.15170496702194214,
+                    "source": "Elk4(+)",
+                    "target": "Smarcc2(+)"
+                },
+                {
+                    "weight": 0.12418419122695923,
+                    "source": "Elk4(+)",
+                    "target": "Srebf1(+)"
+                },
+                {
+                    "weight": 0.15902723371982574,
+                    "source": "En1(+)",
+                    "target": "Jun(+)"
+                },
+                {
+                    "weight": 0.10047721862792969,
+                    "source": "En1(+)",
+                    "target": "Jund(+)"
+                },
+                {
+                    "weight": 0.1385214477777481,
+                    "source": "En1(+)",
+                    "target": "Sap30(+)"
+                },
+                {
+                    "weight": 0.10923156887292862,
+                    "source": "En1(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.35345762968063354,
+                    "source": "Ets1(+)",
+                    "target": "Etv4(+)"
+                },
+                {
+                    "weight": 0.29570311307907104,
+                    "source": "Ets1(+)",
+                    "target": "Irf9(+)"
+                },
+                {
+                    "weight": 0.20021481812000275,
+                    "source": "Ets1(+)",
+                    "target": "Maf(+)"
+                },
+                {
+                    "weight": 0.2923075556755066,
+                    "source": "Ets1(+)",
+                    "target": "Mafb(+)"
+                },
+                {
+                    "weight": 0.20037385821342468,
+                    "source": "Ets1(+)",
+                    "target": "Mafg(+)"
+                },
+                {
+                    "weight": 0.20047321915626526,
+                    "source": "Ets1(+)",
+                    "target": "Myc(+)"
+                },
+                {
+                    "weight": 0.29348915815353394,
+                    "source": "Ets1(+)",
+                    "target": "Nfil3(+)"
+                },
+                {
+                    "weight": 0.28981977701187134,
+                    "source": "Ets1(+)",
+                    "target": "Rela(+)"
+                },
+                {
+                    "weight": 0.29429489374160767,
+                    "source": "Ets1(+)",
+                    "target": "Sp4(+)"
+                },
+                {
+                    "weight": 0.2975088059902191,
+                    "source": "Ets1(+)",
+                    "target": "Tead1(+)"
+                },
+                {
+                    "weight": 0.28002306818962097,
+                    "source": "Ets1(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.27976658940315247,
+                    "source": "Ets1(+)",
+                    "target": "Tgif1(+)"
+                },
+                {
+                    "weight": 0.19933514297008514,
+                    "source": "Ets1(+)",
+                    "target": "Thap11(+)"
+                },
+                {
+                    "weight": 0.49987512826919556,
+                    "source": "Ets1(+)",
+                    "target": "Trp53(+)"
+                },
+                {
+                    "weight": 0.3994223177433014,
+                    "source": "Ets1(+)",
+                    "target": "Usf1(+)"
+                },
+                {
+                    "weight": 0.2515794634819031,
+                    "source": "Ets1(+)",
+                    "target": "Zbtb7a(+)"
+                },
+                {
+                    "weight": 0.2872348427772522,
+                    "source": "Etv4(+)",
+                    "target": "Foxg1(+)"
+                },
+                {
+                    "weight": 0.2834125757217407,
+                    "source": "Etv4(+)",
+                    "target": "Foxk1(+)"
+                },
+                {
+                    "weight": 0.29760056734085083,
+                    "source": "Etv4(+)",
+                    "target": "Hnf4g(+)"
+                },
+                {
+                    "weight": 0.2633725702762604,
+                    "source": "Etv4(+)",
+                    "target": "Pole4(+)"
+                },
+                {
+                    "weight": 0.2927020490169525,
+                    "source": "Etv4(+)",
+                    "target": "Rb1(+)"
+                },
+                {
+                    "weight": 0.1167391687631607,
+                    "source": "Ezh2(+)",
+                    "target": "Xbp1(+)"
+                },
+                {
+                    "weight": 0.40497684478759766,
+                    "source": "Fosl2(+)",
+                    "target": "Gabpa(+)"
+                },
+                {
+                    "weight": 0.20490190386772156,
+                    "source": "Fosl2(+)",
+                    "target": "Smad1(+)"
+                },
+                {
+                    "weight": 0.17433568835258484,
+                    "source": "Fosl2(+)",
+                    "target": "Sox9(+)"
+                },
+                {
+                    "weight": 0.14652177691459656,
+                    "source": "Fosl2(+)",
+                    "target": "Taf1(+)"
+                },
+                {
+                    "weight": 0.10348238050937653,
+                    "source": "Foxo3(+)",
+                    "target": "Hdac2(+)"
+                },
+                {
+                    "weight": 0.28102198243141174,
+                    "source": "Gabpa(+)",
+                    "target": "Mafk(+)"
+                },
+                {
+                    "weight": 0.10221793502569199,
+                    "source": "Gabpa(+)",
+                    "target": "Smad1(+)"
+                },
+                {
+                    "weight": 0.1000005379319191,
+                    "source": "Gata6(+)",
+                    "target": "Nr3c1(+)"
+                },
+                {
+                    "weight": 0.10001154243946075,
+                    "source": "Gata6(+)",
+                    "target": "Srebf1(+)"
+                },
+                {
+                    "weight": 0.10003334283828735,
+                    "source": "Hnf4a(+)",
+                    "target": "Xbp1(+)"
+                },
+                {
+                    "weight": 0.19533611834049225,
+                    "source": "Hnf4g(+)",
+                    "target": "Taf7(+)"
+                },
+                {
+                    "weight": 0.19536694884300232,
+                    "source": "Hnf4g(+)",
+                    "target": "Tcf4(+)"
+                },
+                {
+                    "weight": 0.1961621344089508,
+                    "source": "Hnf4g(+)",
+                    "target": "Tcf7(+)"
+                },
+                {
+                    "weight": 0.1780402511358261,
+                    "source": "Hnf4g(+)",
+                    "target": "Tcf7l2(+)"
+                },
+                {
+                    "weight": 0.1878472864627838,
+                    "source": "Hnf4g(+)",
+                    "target": "Tead2(+)"
+                },
+                {
+                    "weight": 0.19504794478416443,
+                    "source": "Hnf4g(+)",
+                    "target": "Tef(+)"
+                },
+                {
+                    "weight": 0.1959570199251175,
+                    "source": "Hnf4g(+)",
+                    "target": "Tfdp1(+)"
+                },
+                {
+                    "weight": 0.19615641236305237,
+                    "source": "Hnf4g(+)",
+                    "target": "Tfdp2(+)"
+                },
+                {
+                    "weight": 0.1959625482559204,
+                    "source": "Hnf4g(+)",
+                    "target": "Trp53(+)"
+                },
+                {
+                    "weight": 0.1961374580860138,
+                    "source": "Hnf4g(+)",
+                    "target": "Xbp1(+)"
+                },
+                {
+                    "weight": 0.19395390152931213,
+                    "source": "Hnf4g(+)",
+                    "target": "Xrcc4(+)"
+                },
+                {
+                    "weight": 0.19034744799137115,
+                    "source": "Hnf4g(+)",
+                    "target": "Ybx1(+)"
+                },
+                {
+                    "weight": 0.19198712706565857,
+                    "source": "Hnf4g(+)",
+                    "target": "Yy1(+)"
+                },
+                {
+                    "weight": 0.18812862038612366,
+                    "source": "Hnf4g(+)",
+                    "target": "Zbtb7a(+)"
+                },
+                {
+                    "weight": 0.18967965245246887,
+                    "source": "Hnf4g(+)",
+                    "target": "Zbtb7b(+)"
+                },
+                {
+                    "weight": 0.17135834693908691,
+                    "source": "Hnf4g(+)",
+                    "target": "Zfp362(+)"
+                },
+                {
+                    "weight": 0.21343311667442322,
+                    "source": "Hnf4g(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.1940256506204605,
+                    "source": "Ikzf2(+)",
+                    "target": "Mitf(+)"
+                },
+                {
+                    "weight": 0.20001907646656036,
+                    "source": "Ikzf2(+)",
+                    "target": "Nfic(+)"
+                },
+                {
+                    "weight": 0.1895715296268463,
+                    "source": "Ikzf2(+)",
+                    "target": "Nr6a1(+)"
+                },
+                {
+                    "weight": 0.5680545568466187,
+                    "source": "Ikzf2(+)",
+                    "target": "Six5(+)"
+                },
+                {
+                    "weight": 0.19218716025352478,
+                    "source": "Ikzf2(+)",
+                    "target": "Tfap4(+)"
+                },
+                {
+                    "weight": 0.19653557240962982,
+                    "source": "Ikzf2(+)",
+                    "target": "Zfp951(+)"
+                },
+                {
+                    "weight": 0.19314691424369812,
+                    "source": "Irf1(+)",
+                    "target": "Irf7(+)"
+                },
+                {
+                    "weight": 0.19387182593345642,
+                    "source": "Irf1(+)",
+                    "target": "Irf9(+)"
+                },
+                {
+                    "weight": 0.19487035274505615,
+                    "source": "Irf1(+)",
+                    "target": "Jun(+)"
+                },
+                {
+                    "weight": 0.19450853765010834,
+                    "source": "Irf1(+)",
+                    "target": "Junb(+)"
+                },
+                {
+                    "weight": 0.19673803448677063,
+                    "source": "Irf1(+)",
+                    "target": "Jund(+)"
+                },
+                {
+                    "weight": 0.19576510787010193,
+                    "source": "Irf1(+)",
+                    "target": "Kdm5b(+)"
+                },
+                {
+                    "weight": 0.1920807957649231,
+                    "source": "Irf1(+)",
+                    "target": "Klf10(+)"
+                },
+                {
+                    "weight": 0.19518332183361053,
+                    "source": "Irf1(+)",
+                    "target": "Klf11(+)"
+                },
+                {
+                    "weight": 0.19028599560260773,
+                    "source": "Irf1(+)",
+                    "target": "Klf15(+)"
+                },
+                {
+                    "weight": 0.1878891885280609,
+                    "source": "Irf1(+)",
+                    "target": "Klf3(+)"
+                },
+                {
+                    "weight": 0.1915670931339264,
+                    "source": "Irf1(+)",
+                    "target": "Klf4(+)"
+                },
+                {
+                    "weight": 0.2964284420013428,
+                    "source": "Irf1(+)",
+                    "target": "Klf5(+)"
+                },
+                {
+                    "weight": 0.19841982424259186,
+                    "source": "Irf1(+)",
+                    "target": "Lhx6(+)"
+                },
+                {
+                    "weight": 0.193685382604599,
+                    "source": "Irf1(+)",
+                    "target": "Maf(+)"
+                },
+                {
+                    "weight": 0.1970759630203247,
+                    "source": "Irf1(+)",
+                    "target": "Maff(+)"
+                },
+                {
+                    "weight": 0.11105985939502716,
+                    "source": "Irf9(+)",
+                    "target": "Jun(+)"
+                },
+                {
+                    "weight": 0.11050392687320709,
+                    "source": "Irf9(+)",
+                    "target": "Junb(+)"
+                },
+                {
+                    "weight": 0.10570120811462402,
+                    "source": "Irf9(+)",
+                    "target": "Rel(+)"
+                },
+                {
+                    "weight": 0.15558043122291565,
+                    "source": "Irf9(+)",
+                    "target": "Stat2(+)"
+                },
+                {
+                    "weight": 0.10209336131811142,
+                    "source": "Jdp2(+)",
+                    "target": "Rela(+)"
+                },
+                {
+                    "weight": 0.10765260457992554,
+                    "source": "Jun(+)",
+                    "target": "Mlx(+)"
+                },
+                {
+                    "weight": 0.11746995151042938,
+                    "source": "Jund(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.2395041435956955,
+                    "source": "Kdm4c(+)",
+                    "target": "Srf(+)"
+                },
+                {
+                    "weight": 0.11242616176605225,
+                    "source": "Kdm5b(+)",
+                    "target": "Srebf2(+)"
+                },
+                {
+                    "weight": 0.48203086853027344,
+                    "source": "Klf10(+)",
+                    "target": "Taf7(+)"
+                },
+                {
+                    "weight": 0.1961149275302887,
+                    "source": "Klf10(+)",
+                    "target": "Tcf7l2(+)"
+                },
+                {
+                    "weight": 0.3956196904182434,
+                    "source": "Klf10(+)",
+                    "target": "Tead1(+)"
+                },
+                {
+                    "weight": 0.2909573018550873,
+                    "source": "Klf10(+)",
+                    "target": "Tef(+)"
+                },
+                {
+                    "weight": 0.18666201829910278,
+                    "source": "Klf10(+)",
+                    "target": "Tfcp2l1(+)"
+                },
+                {
+                    "weight": 0.37234392762184143,
+                    "source": "Klf10(+)",
+                    "target": "Tfdp1(+)"
+                },
+                {
+                    "weight": 0.39570072293281555,
+                    "source": "Klf10(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.2982178330421448,
+                    "source": "Klf10(+)",
+                    "target": "Tgif1(+)"
+                },
+                {
+                    "weight": 0.31970104575157166,
+                    "source": "Klf10(+)",
+                    "target": "Thap11(+)"
+                },
+                {
+                    "weight": 0.3278422951698303,
+                    "source": "Klf10(+)",
+                    "target": "Trp53(+)"
+                },
+                {
+                    "weight": 0.39041227102279663,
+                    "source": "Klf10(+)",
+                    "target": "Usf1(+)"
+                },
+                {
+                    "weight": 0.2837682068347931,
+                    "source": "Klf10(+)",
+                    "target": "Xbp1(+)"
+                },
+                {
+                    "weight": 0.19568784534931183,
+                    "source": "Klf10(+)",
+                    "target": "Yy1(+)"
+                },
+                {
+                    "weight": 0.20536640286445618,
+                    "source": "Klf10(+)",
+                    "target": "Zbtb7a(+)"
+                },
+                {
+                    "weight": 0.23765437304973602,
+                    "source": "Klf10(+)",
+                    "target": "Zbtb7b(+)"
+                },
+                {
+                    "weight": 0.30200690031051636,
+                    "source": "Klf10(+)",
+                    "target": "Zfp568(+)"
+                },
+                {
+                    "weight": 0.29913026094436646,
+                    "source": "Klf10(+)",
+                    "target": "Zfx(+)"
+                },
+                {
+                    "weight": 0.3034132122993469,
+                    "source": "Klf10(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.3909047245979309,
+                    "source": "Klf11(+)",
+                    "target": "Klf15(+)"
+                },
+                {
+                    "weight": 0.2755102217197418,
+                    "source": "Klf11(+)",
+                    "target": "Klf3(+)"
+                },
+                {
+                    "weight": 0.3438311517238617,
+                    "source": "Klf11(+)",
+                    "target": "Klf4(+)"
+                },
+                {
+                    "weight": 0.38047292828559875,
+                    "source": "Klf11(+)",
+                    "target": "Klf5(+)"
+                },
+                {
+                    "weight": 0.3816501498222351,
+                    "source": "Klf11(+)",
+                    "target": "Lhx6(+)"
+                },
+                {
+                    "weight": 0.47735586762428284,
+                    "source": "Klf11(+)",
+                    "target": "Maf(+)"
+                },
+                {
+                    "weight": 0.38590389490127563,
+                    "source": "Klf11(+)",
+                    "target": "Maff(+)"
+                },
+                {
+                    "weight": 0.269104540348053,
+                    "source": "Klf11(+)",
+                    "target": "Mafg(+)"
+                },
+                {
+                    "weight": 0.24457159638404846,
+                    "source": "Klf11(+)",
+                    "target": "Mafk(+)"
+                },
+                {
+                    "weight": 0.38684502243995667,
+                    "source": "Klf11(+)",
+                    "target": "Mxd4(+)"
+                },
+                {
+                    "weight": 0.38291114568710327,
+                    "source": "Klf11(+)",
+                    "target": "Mybl1(+)"
+                },
+                {
+                    "weight": 0.3955126404762268,
+                    "source": "Klf11(+)",
+                    "target": "Myc(+)"
+                },
+                {
+                    "weight": 0.29711392521858215,
+                    "source": "Klf11(+)",
+                    "target": "Nfil3(+)"
+                },
+                {
+                    "weight": 0.37536072731018066,
+                    "source": "Klf11(+)",
+                    "target": "Nfkb1(+)"
+                },
+                {
+                    "weight": 0.1898873746395111,
+                    "source": "Klf11(+)",
+                    "target": "Nfkb2(+)"
+                },
+                {
+                    "weight": 0.3783714175224304,
+                    "source": "Klf11(+)",
+                    "target": "Nr3c1(+)"
+                },
+                {
+                    "weight": 0.28395506739616394,
+                    "source": "Klf11(+)",
+                    "target": "Rel(+)"
+                },
+                {
+                    "weight": 0.38861602544784546,
+                    "source": "Klf11(+)",
+                    "target": "Rela(+)"
+                },
+                {
+                    "weight": 0.36380642652511597,
+                    "source": "Klf11(+)",
+                    "target": "Relb(+)"
+                },
+                {
+                    "weight": 0.1977948695421219,
+                    "source": "Klf11(+)",
+                    "target": "Rfx2(+)"
+                },
+                {
+                    "weight": 0.46783798933029175,
+                    "source": "Klf11(+)",
+                    "target": "Rxra(+)"
+                },
+                {
+                    "weight": 0.3869014382362366,
+                    "source": "Klf11(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.3922902047634125,
+                    "source": "Klf11(+)",
+                    "target": "Sox4(+)"
+                },
+                {
+                    "weight": 0.27310699224472046,
+                    "source": "Klf11(+)",
+                    "target": "Sox9(+)"
+                },
+                {
+                    "weight": 0.29573705792427063,
+                    "source": "Klf11(+)",
+                    "target": "Sp1(+)"
+                },
+                {
+                    "weight": 0.39922696352005005,
+                    "source": "Klf11(+)",
+                    "target": "Sp4(+)"
+                },
+                {
+                    "weight": 0.2857562005519867,
+                    "source": "Klf11(+)",
+                    "target": "Srf(+)"
+                },
+                {
+                    "weight": 0.20234322547912598,
+                    "source": "Klf11(+)",
+                    "target": "Taf7(+)"
+                },
+                {
+                    "weight": 0.22998103499412537,
+                    "source": "Klf11(+)",
+                    "target": "Tcf7(+)"
+                },
+                {
+                    "weight": 0.29766637086868286,
+                    "source": "Klf11(+)",
+                    "target": "Tcf7l2(+)"
+                },
+                {
+                    "weight": 0.2941000163555145,
+                    "source": "Klf11(+)",
+                    "target": "Tead2(+)"
+                },
+                {
+                    "weight": 0.29905813932418823,
+                    "source": "Klf11(+)",
+                    "target": "Tef(+)"
+                },
+                {
+                    "weight": 0.2592918276786804,
+                    "source": "Klf11(+)",
+                    "target": "Tfcp2l1(+)"
+                },
+                {
+                    "weight": 0.19975149631500244,
+                    "source": "Klf11(+)",
+                    "target": "Tfe3(+)"
+                },
+                {
+                    "weight": 0.29673758149147034,
+                    "source": "Klf11(+)",
+                    "target": "Thap11(+)"
+                },
+                {
+                    "weight": 0.2738777697086334,
+                    "source": "Klf11(+)",
+                    "target": "Trp53(+)"
+                },
+                {
+                    "weight": 0.38126376271247864,
+                    "source": "Klf11(+)",
+                    "target": "Xbp1(+)"
+                },
+                {
+                    "weight": 0.3067839741706848,
+                    "source": "Klf11(+)",
+                    "target": "Yy1(+)"
+                },
+                {
+                    "weight": 0.3177264928817749,
+                    "source": "Klf11(+)",
+                    "target": "Zbtb7a(+)"
+                },
+                {
+                    "weight": 0.2600196599960327,
+                    "source": "Klf11(+)",
+                    "target": "Zfp568(+)"
+                },
+                {
+                    "weight": 0.29003065824508667,
+                    "source": "Klf11(+)",
+                    "target": "Zfx(+)"
+                },
+                {
+                    "weight": 0.3373680114746094,
+                    "source": "Klf11(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.3905058801174164,
+                    "source": "Klf15(+)",
+                    "target": "Klf3(+)"
+                },
+                {
+                    "weight": 0.27350905537605286,
+                    "source": "Klf15(+)",
+                    "target": "Klf4(+)"
+                },
+                {
+                    "weight": 0.26152482628822327,
+                    "source": "Klf15(+)",
+                    "target": "Klf5(+)"
+                },
+                {
+                    "weight": 0.2799466848373413,
+                    "source": "Klf15(+)",
+                    "target": "Lhx6(+)"
+                },
+                {
+                    "weight": 0.29680222272872925,
+                    "source": "Klf15(+)",
+                    "target": "Maf(+)"
+                },
+                {
+                    "weight": 0.48076778650283813,
+                    "source": "Klf15(+)",
+                    "target": "Maff(+)"
+                },
+                {
+                    "weight": 0.2999553084373474,
+                    "source": "Klf15(+)",
+                    "target": "Mafg(+)"
+                },
+                {
+                    "weight": 0.2886354327201843,
+                    "source": "Klf15(+)",
+                    "target": "Mafk(+)"
+                },
+                {
+                    "weight": 0.3050466477870941,
+                    "source": "Klf15(+)",
+                    "target": "Mlx(+)"
+                },
+                {
+                    "weight": 0.19931788742542267,
+                    "source": "Klf15(+)",
+                    "target": "Mxd4(+)"
+                },
+                {
+                    "weight": 0.27935490012168884,
+                    "source": "Klf15(+)",
+                    "target": "Myc(+)"
+                },
+                {
+                    "weight": 0.20968587696552277,
+                    "source": "Klf15(+)",
+                    "target": "Nfe2l2(+)"
+                },
+                {
+                    "weight": 0.3808056712150574,
+                    "source": "Klf15(+)",
+                    "target": "Nfe2l3(+)"
+                },
+                {
+                    "weight": 0.10442905128002167,
+                    "source": "Klf3(+)",
+                    "target": "Nfil3(+)"
+                },
+                {
+                    "weight": 0.13355553150177002,
+                    "source": "Klf3(+)",
+                    "target": "Nr3c1(+)"
+                },
+                {
+                    "weight": 0.1319788247346878,
+                    "source": "Klf3(+)",
+                    "target": "Stat1(+)"
+                },
+                {
+                    "weight": 0.10635332018136978,
+                    "source": "Klf3(+)",
+                    "target": "Tcf4(+)"
+                },
+                {
+                    "weight": 0.24989137053489685,
+                    "source": "Klf5(+)",
+                    "target": "Stat2(+)"
+                },
+                {
+                    "weight": 0.23995816707611084,
+                    "source": "Klf5(+)",
+                    "target": "Tcf4(+)"
+                },
+                {
+                    "weight": 0.12479837238788605,
+                    "source": "Klf5(+)",
+                    "target": "Tcf7(+)"
+                },
+                {
+                    "weight": 0.10061820596456528,
+                    "source": "Maff(+)",
+                    "target": "Nr3c1(+)"
+                },
+                {
+                    "weight": 0.160239115357399,
+                    "source": "Maff(+)",
+                    "target": "Stat2(+)"
+                },
+                {
+                    "weight": 0.10000018030405045,
+                    "source": "Mafg(+)",
+                    "target": "Relb(+)"
+                },
+                {
+                    "weight": 0.10013636201620102,
+                    "source": "Mafg(+)",
+                    "target": "Rest(+)"
+                },
+                {
+                    "weight": 0.10019415616989136,
+                    "source": "Mafk(+)",
+                    "target": "Max(+)"
+                },
+                {
+                    "weight": 0.12444380670785904,
+                    "source": "Mafk(+)",
+                    "target": "Myc(+)"
+                },
+                {
+                    "weight": 0.13191400468349457,
+                    "source": "Max(+)",
+                    "target": "Tead3(+)"
+                },
+                {
+                    "weight": 0.10141469538211823,
+                    "source": "Msx1(+)",
+                    "target": "Zfp369(+)"
+                },
+                {
+                    "weight": 0.20797371864318848,
+                    "source": "Nr2f1(+)",
+                    "target": "Zfp281(+)"
+                },
+                {
+                    "weight": 0.20233933627605438,
+                    "source": "Nr3c1(+)",
+                    "target": "Ppard(+)"
+                },
+                {
+                    "weight": 0.1708076298236847,
+                    "source": "Nr3c1(+)",
+                    "target": "Smarca4(+)"
+                },
+                {
+                    "weight": 0.23253266513347626,
+                    "source": "Nr3c1(+)",
+                    "target": "Zfp369(+)"
+                },
+                {
+                    "weight": 0.20667950809001923,
+                    "source": "Nr3c1(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.1889500617980957,
+                    "source": "Nr6a1(+)",
+                    "target": "Srf(+)"
+                },
+                {
+                    "weight": 0.42189455032348633,
+                    "source": "Nr6a1(+)",
+                    "target": "Tfdp2(+)"
+                },
+                {
+                    "weight": 0.29454943537712097,
+                    "source": "Pole3(+)",
+                    "target": "Zmiz1(+)"
+                },
+                {
+                    "weight": 0.14246739447116852,
+                    "source": "Pole4(+)",
+                    "target": "Sox11(+)"
+                },
+                {
+                    "weight": 0.40437331795692444,
+                    "source": "Pole4(+)",
+                    "target": "Trp53(+)"
+                },
+                {
+                    "weight": 0.20348158478736877,
+                    "source": "Pole4(+)",
+                    "target": "Yy1(+)"
+                },
+                {
+                    "weight": 0.17721283435821533,
+                    "source": "Ppard(+)",
+                    "target": "Srebf1(+)"
+                },
+                {
+                    "weight": 0.22181279957294464,
+                    "source": "Rad21(+)",
+                    "target": "Sp1(+)"
+                },
+                {
+                    "weight": 0.11373845487833023,
+                    "source": "Smarca4(+)",
+                    "target": "Zbtb7a(+)"
+                },
+                {
+                    "weight": 0.12442083656787872,
+                    "source": "Sox4(+)",
+                    "target": "Tfdp1(+)"
+                },
+                {
+                    "weight": 0.11969958245754242,
+                    "source": "Stat1(+)",
+                    "target": "Taf7(+)"
+                },
+                {
+                    "weight": 0.19206412136554718,
+                    "source": "Zfp119b(+)",
+                    "target": "Zfp664(+)"
+                }
+            ]
+        }
+    </script>
+    <script>
+        const data = JSON.parse(document.getElementById('data').textContent);
+
+        const width = 1200;
+        const height = 1200;
+        const outerRadius = Math.min(width, height) / 2 - 100;
+        const innerRadius = outerRadius - 30;
+
+        const svg = d3.select("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const chartGroup = svg.append("g")
+            .attr("transform", `translate(${width / 2},${height / 2})`);
+
+        const chord = d3.chord()
+            .padAngle(0.05)
+            .sortSubgroups(d3.descending);
+
+        const arc = d3.arc()
+            .innerRadius(innerRadius)
+            .outerRadius(outerRadius);
+
+        const ribbon = d3.ribbon()
+            .radius(innerRadius);
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        // Sort nodes by top_label
+        data.nodes.sort((a, b) => a.top_label - b.top_label);
+
+        // Create a new mapping from node id to its sorted index
+        const sortedIndex = new Map(data.nodes.map((d, i) => [d.id, i]));
+
+        // Create a matrix for the chord plot
+        const matrix = createMatrix(data);
+
+        const chords = chord(matrix);
+
+        const group = chartGroup.append("g")
+            .selectAll("g")
+            .data(chords.groups)
+            .enter().append("g")
+            .attr("class", "group");
+
+        const colorMap = {
+            0: "rgb(0, 199, 255)",    
+            1: "rgb(140, 185, 0)",    
+            2: "rgb(216, 125, 217)",    
+            3: "rgb(255, 112, 69)",  
+            4: "rgb(35, 150, 111)"   
+        };
+        
+        // Apply the colors to the arcs (nodes)
+        group.append("path")
+            .style("fill", d => colorMap[data.nodes[d.index].top_label]) // Use the color map for RGB values
+            .style("stroke", d => d3.rgb(colorMap[data.nodes[d.index].top_label]).darker())
+            .attr("d", arc)
+            .on("mouseover", handleMouseOverGroup)
+            .on("mouseout", handleMouseOutGroup);
+        
+        // Apply the colors to the text labels
+        group.append("text")
+            .each(d => {
+                d.angle = (d.startAngle + d.endAngle) / 2;
+                d.name = data.nodes[d.index].id;
+                d.top_label = data.nodes[d.index].top_label;
+            })
+            .attr("dy", ".35em")
+            .attr("transform", d => `
+                rotate(${d.angle * 180 / Math.PI - 90})
+                translate(${outerRadius + 10})
+                ${d.angle > Math.PI ? "rotate(180)" : ""}
+            `)
+            .style("text-anchor", d => d.angle > Math.PI ? "end" : null)
+            .attr("class", d => data.nodes[d.index].type === "topic" ? "topic-label" : "")
+            .style("fill", d => colorMap[d.top_label])  // Use the color map for RGB values
+            .text(d => d.name)
+            .on("mouseover", handleMouseOverGroup)
+            .on("mouseout", handleMouseOutGroup);
+
+        const ribbons = chartGroup.append("g")
+            .attr("class", "chord")
+            .selectAll("path")
+            .data(chords)
+            .enter().append("path")
+            .attr("d", ribbon)
+            .style("fill", d => colorMap[data.nodes[d.source.index].top_label]) // Use source node's top_label for coloring
+            .style("stroke", d => d3.rgb(colorMap[data.nodes[d.source.index].top_label]).darker())
+            .on("mouseover", handleMouseOverRibbon)
+            .on("mouseout", handleMouseOutRibbon);
+
+        function handleMouseOverGroup(event, d) {
+            // Highlight group and connected ribbons
+            d3.selectAll(".chord path")
+                .classed("highlighted", chord => chord.source.index === d.index || chord.target.index === d.index);
+            d3.selectAll(".group path")
+                .classed("highlighted", group => group.index === d.index);
+            d3.selectAll(".group text")
+                .classed("highlighted", group => group.index === d.index);
+
+            // Highlight connected nodes
+            const connectedNodes = new Set();
+            let connectedNodesList = [];
+            d3.selectAll(".chord path").each(chord => {
+                if (chord.source.index === d.index || chord.target.index === d.index) {
+                    connectedNodes.add(chord.source.index);
+                    connectedNodes.add(chord.target.index);
+                    if (chord.source.index !== d.index) connectedNodesList.push(data.nodes[chord.source.index].id);
+                    if (chord.target.index !== d.index) connectedNodesList.push(data.nodes[chord.target.index].id);
+                }
+            });
+            d3.selectAll(".group path")
+                .classed("highlighted", group => connectedNodes.has(group.index));
+            d3.selectAll(".group text")
+                .classed("highlighted", group => connectedNodes.has(group.index));
+
+            // Highlight connected ribbons
+            d3.selectAll(".chord path")
+                .each(function(chord) {
+                    if (connectedNodes.has(chord.source.index) || connectedNodes.has(chord.target.index)) {
+                        d3.select(this).classed("highlighted", true);
+                    }
+                });
+
+            // Show tooltip
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html(`<strong>${data.nodes[d.index].id}</strong><br>Connected to:<br>${connectedNodesList.join(", ")}`)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function handleMouseOutGroup(event, d) {
+            // Remove highlight
+            d3.selectAll(".chord path").classed("highlighted", false);
+            d3.selectAll(".group path").classed("highlighted", false);
+            d3.selectAll(".group text").classed("highlighted", false);
+
+            // Hide tooltip
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        }
+
+        function handleMouseOverRibbon(event, d) {
+            // Highlight ribbon and connected groups
+            d3.select(this).classed("highlighted", true);
+            d3.selectAll(".group path")
+                .classed("highlighted", group => group.index === d.source.index || group.index === d.target.index);
+            d3.selectAll(".group text")
+                .classed("highlighted", group => group.index === d.source.index || group.index === d.target.index);
+
+            // Show tooltip
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html(`Source: ${data.nodes[d.source.index].id}<br>Target: ${data.nodes[d.target.index].id}`)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function handleMouseOutRibbon(event, d) {
+            // Remove highlight
+            d3.select(this).classed("highlighted", false);
+            d3.selectAll(".group path").classed("highlighted", false);
+            d3.selectAll(".group text").classed("highlighted", false);
+            d3.selectAll(".chord path").classed("highlighted", false);
+
+            // Hide tooltip
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        }
+
+        function createMatrix(data) {
+            const index = new Map(data.nodes.map((d, i) => [d.id, i]));
+            const matrix = Array.from(index, () => new Array(index.size).fill(0));
+            data.links.forEach(d => {
+                matrix[index.get(d.source)][index.get(d.target)] += 1;
+                matrix[index.get(d.target)][index.get(d.source)] += 1;  // Ensure the matrix is symmetric
+            });
+            return matrix;
+        }
+        // Function to download the SVG
+        function downloadSVG() {
+            const svg = document.querySelector("svg");
+            const serializer = new XMLSerializer();
+            const source = serializer.serializeToString(svg);
+
+            // Create a Blob from the SVG
+            const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+
+            // Create a link element
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "chord_plot.svg";
+
+            // Append link to the body
+            document.body.appendChild(link);
+
+            // Trigger click event on the link to download
+            link.click();
+
+            // Remove the link after download
+            document.body.removeChild(link);
+        }
+
+        // Add event listener to the download button
+        document.getElementById("download").addEventListener("click", downloadSVG);
+    </script>
+</body>
+</html>
