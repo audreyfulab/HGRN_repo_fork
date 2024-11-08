@@ -16,7 +16,7 @@ from simulation_software.HGRN_hierarchicalgraph import hierachical_graph
 from simulation_software.HGRN_hierarchicalgraph import generate_pseudo_expression, generate_pseudo_expression_weighted
 from simulation_software.HGRN_hierarchicalgraph import same_cluster
 from simulation_software.simulation_utilities import plot_diGraph
-from model.utilities import pickle_data
+from model.utilities import pickle_data, sort_labels
 from random import randint as rd   
 from random import seed
 import pdb
@@ -40,8 +40,10 @@ def simulate_graph(args):
         h1_graph = nx.DiGraph([(u,v) for (u,v) in h1_graph.edges() if u!=v])
 
         #draw directed graph
-        topfig = plot_diGraph(h1_graph, return_fig=True)
+        fig, ax = plt.subplots(figsize = (14,10))
+        topfig = plot_diGraph(fig, ax, h1_graph, return_fig=True)
         topfig.savefig(args.savepath+'top_layer_graph.pdf')
+        topfig.savefig(args.savepath+'top_layer_graph.png', dpi = 500)
         
         #sort toplayer
         ts_h1_graph = list(nx.topological_sort(h1_graph))
@@ -55,10 +57,12 @@ def simulate_graph(args):
         h1_graph = nx.from_numpy_array(h1_graph)
         
         #draw top graph
+        #draw directed graph
         fig, ax = plt.subplots(figsize = (14,10))
-        nx.draw_networkx(h1_graph, ax = ax, 
-                         node_size = 500, 
-                         with_labels = True)
+        topfig = plot_diGraph(fig, ax, h1_graph, return_fig=True)
+        topfig.savefig(args.savepath+'top_layer_graph.pdf')
+        topfig.savefig(args.savepath+'top_layer_graph.png', dpi = 500)
+        
         #sort toplayer
         ts_h1_graph = list(h1_graph.nodes())
         adj_h1_graph = nx.adjacency_matrix(h1_graph, ts_h1_graph).todense()
@@ -77,8 +81,9 @@ def simulate_graph(args):
     h2_graph, subgraphs2 = hierachical_graph(top_graph=h1_graph, 
                                  subgraph_node_number=args.nodes_per_super2, 
                                  subgraph_type =args.subgraph_type, 
-                                 sub_graph_prob=args.subgraph_prob, 
-                                 connection_prob=args.connect_prob, 
+                                 sub_graph_prob=args.subgraph_prob[0], 
+                                 connection_prob_within=args.connect_prob_middle[0],
+                                 connection_prob_between = args.connect_prob_middle[1],
                                  degree=args.node_degree_middle,
                                  weight_w = args.within_edgeweights,
                                  weight_b = args.between_edgeweights,
@@ -102,18 +107,23 @@ def simulate_graph(args):
     edges_by_layer.append(h2_graph.number_of_edges())
     if args.layers == 2:
         #draw top layer
-        midfig = plot_diGraph(h2_graph, return_fig=True, draw_edge_weights = True)
+        fig, ax = plt.subplots(figsize = (14,10))
+        midfig = plot_diGraph(fig, ax, h2_graph, return_fig=True, draw_edge_weights = True)
         midfig.savefig(args.savepath+'bottom_layer_graph.pdf')
+        midfig.savefig(args.savepath+'bottom_layer_graph.png', dpi = 500)
     else:
         #draw top layer
-        midfig = plot_diGraph(h2_graph, return_fig=True, draw_edge_weights = False)
+        fig, ax = plt.subplots(figsize = (14,10))
+        midfig = plot_diGraph(fig, ax, h2_graph, return_fig=True, draw_edge_weights = False)
         midfig.savefig(args.savepath+'middle_layer_graph.pdf')
+        midfig.savefig(args.savepath+'middle_layer_graph.png', dpi = 500)
         
         h3_graph, subgraphs3 = hierachical_graph(top_graph=h2_graph, 
                                      subgraph_node_number=args.nodes_per_super3, 
                                      subgraph_type =args.subgraph_type, 
-                                     sub_graph_prob=args.subgraph_prob, 
-                                     connection_prob=args.connect_prob, 
+                                     sub_graph_prob=args.subgraph_prob[1], 
+                                     connection_prob_within=args.connect_prob_bottom[0],
+                                     connection_prob_between = args.connect_prob_bottom[1],
                                      degree=args.node_degree_bottom,
                                      weight_w = args.within_edgeweights,
                                      weight_b = args.between_edgeweights,
@@ -124,9 +134,10 @@ def simulate_graph(args):
         ts_h3_graph = list(nx.topological_sort(h3_graph))
         adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
         #draw middle layer
-        botfig = plot_diGraph(h3_graph, return_fig=True)
+        fig, ax = plt.subplots(figsize = (14,10))
+        botfig = plot_diGraph(fig, ax, h3_graph, return_fig=True)
         botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
-    
+        botfig.savefig(args.savepath+'bottom_layer_graph.png', dpi = 500)
         #print toplayer attributes
         print('-'*60)
         print("Number of edges: {} \nNumber of nodes: {} \nIn degree: {} \nOut degree: {}".format(
@@ -173,7 +184,7 @@ def simulate_graph(args):
                                                    free_mean=0,
                                                    std=args.SD,
                                                    common_distribution=args.common_dist)
-        
+    
     print('data dimension = {}'.format(pe.shape))
     #pdb.set_trace()
     #save as .npz
@@ -208,7 +219,6 @@ def simulate_graph(args):
         adj_all = [h1_undi_adj, h2_undi_adj, h3_undi_adj]
         nx_all = [ts_h1_graph, ts_h2_graph, ts_full]
         
-    #EL = nx.to_pandas_edgelist(nx.DiGraph(adj_full)).head()
     gene_list, sample_list = ts_full, range(args.sample_size)
     gexp = pd.DataFrame(data=np.transpose(pe), index=sample_list, columns=gene_list)
     print(gexp.shape)
@@ -216,6 +226,17 @@ def simulate_graph(args):
     gexp_numpy = gexp.to_numpy()
     np.save(args.savepath+'_gexp.npy', gexp_numpy)
     gexp.head()
+    
+    
+    sort = sort_labels(ts_full)
+    
+    fig, ax = plt.subplots(1,2, figsize = (16, 10))
+    
+    sbn.heatmap(np.corrcoef(pe[sort[0], :]), ax = ax[0])
+    sbn.heatmap(h3_undi_adj, ax = ax[1])
+    
+    fig.savefig(args.savepath+'heatmaps.pdf')
+    fig.savefig(args.savepath+'heatmaps.png', dpi = 500)
     
     
     return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes

@@ -71,8 +71,8 @@ def WCSS(X, Plist, method):
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
     D = X.T - torch.mm(M, P.T)
-    MSW = torch.trace(torch.mm(D.T, D))/N
-    
+    #MSW = torch.trace(torch.mm(D.T, D))/N
+    MSW = torch.sum(torch.sqrt(torch.diag(torch.mm(D.T, D))))
     return MSW, M
 
 
@@ -605,35 +605,59 @@ def merge(list1, list2):
 
 # a simple function to plot the loss curves during training
 #----------------------------------------------------------------
-def plot_loss(epoch, loss_history, recon_A_loss_hist, recon_X_loss_hist, mod_loss_hist,
-              clust_loss_hist, path='path/to/file', save = True):
+def plot_loss(epoch, layers, train_loss_history, test_loss_history, path='path/to/file', save = True):
     
-    layers = len(mod_loss_hist[0])
+    
+    
+    total_train = [i['Total Loss'] for i in train_loss_history]
+    total_test =[i['Total Loss'] for i in test_loss_history]
+    
+    recon_A_train = [i['A Reconstruction'] for i in train_loss_history]
+    recon_A_test = [i['A Reconstruction'] for i in test_loss_history]
+    
+    recon_X_train = [i['X Reconstruction'] for i in train_loss_history]
+    recon_X_test = [i['X Reconstruction'] for i in test_loss_history]
+    
+    mod_train = [i['Modularity'] for i in train_loss_history]
+    mod_test = [i['Modularity'] for i in test_loss_history]
+    
+    clust_train = [i['Clustering'] for i in train_loss_history]
+    clust_test = [i['Clustering'] for i in test_loss_history]
+    
+    
     fig, (ax1, ax2, ax3) = plt.subplots(3,2, figsize=(12,10))
     #total loss
-    ax1[0].plot(range(0, epoch+1), loss_history, label = 'Total Loss')
+    ln1, = ax1[0].plot(range(0, epoch+1), total_train, label = 'Train')
+    ln2, = ax1[0].plot(range(0, epoch+1), total_test, linestyle = 'dashed', label = 'Test')
     ax1[0].set_xlabel('Training Epochs')
     ax1[0].set_ylabel('Total Loss')
     #reconstruction of graph adjacency
-    ax1[1].plot(range(0, epoch+1), recon_A_loss_hist, label = 'Graph Reconstruction Loss')
+    ln3, = ax1[1].plot(range(0, epoch+1), recon_A_train, label = 'Train')
+    ln4, = ax1[1].plot(range(0, epoch+1), recon_A_test, linestyle = 'dashed',  label = 'Test')
     ax1[1].set_xlabel('Training Epochs')
     ax1[1].set_ylabel('Graph Reconstruction Loss')
     #reconstruction of node attributes
-    ax2[0].plot(range(0, epoch+1), recon_X_loss_hist, label = 'Attribute Reconstruction Loss')
+    ln5, = ax2[0].plot(range(0, epoch+1), recon_X_train, label = 'Train')
+    ln6, = ax2[0].plot(range(0, epoch+1), recon_X_test, linestyle = 'dashed', label = 'Test')
     ax2[0].set_xlabel('Training Epochs')
     ax2[0].set_ylabel('Attribute Reconstruction Loss')
     #community loss using modularity
-    ax2[1].plot(range(0, epoch+1), np.array(mod_loss_hist))
+    lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train middle'])
+    lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test middle'], linestyle = 'dashed')
     ax2[1].set_xlabel('Training Epochs')
     ax2[1].set_ylabel('Modularity')
     #community loss using kmeans
-    ax3[0].plot(range(0, epoch+1), np.array(clust_loss_hist))
+    lines3a, lines3b = ax3[0].plot(range(0, epoch+1), np.array(clust_train), label = ['train top', 'train middle'])
+    lines4a, lines4b = ax3[0].plot(range(0, epoch+1), np.array(clust_test), label = ['test top', 'test middle'], linestyle ='dashed')
     ax3[0].set_xlabel('Training Epochs')
     ax3[0].set_ylabel('Clustering Loss')
+    ax3[1].axis('off')
     
-
-    ax2[1].legend(labels = [i for i in ['middle','top'][:layers]], loc = 'lower right')
-    ax3[0].legend(labels = [i for i in ['middle','top'][:layers]], loc = 'lower right')
+    ax1[0].legend(handles = [ln1, ln2], loc = 'lower right')
+    ax1[1].legend(handles = [ln3, ln4], loc = 'lower right')
+    ax2[0].legend(handles = [ln5, ln6], loc = 'lower right')
+    
+    ax3[1].legend(handles = [lines3a, lines4a, lines3b, lines4b], bbox_to_anchor=(0.5, 0.5), loc = 'lower right')
     
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
@@ -741,20 +765,26 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
     
     
     fig2, ax2 = plt.subplots(1,2, figsize=(12,10)) 
-    if layers == 3:
+        
+    if true_labels:
         first_layer = pd.DataFrame(np.vstack((pred_labels[0], true_labels[0])).T,
                                    columns = ['Predicted_Top','Truth_Top'])
-        second_layer = pd.DataFrame(np.vstack((pred_labels[1], true_labels[1])).T,
-                                        columns = ['Predicted_Middle','Truth_Middle'])
-        sbn.heatmap(first_layer, ax = ax2[0])
-        sbn.heatmap(second_layer, ax = ax2[1])
-            
-            
-    else:
-        first_layer = pd.DataFrame(np.vstack((pred_labels[0], true_labels[0])).T,
-                                       columns = ['Predicted_Top','Truth_Top'])
-        sbn.heatmap(first_layer, ax = ax2[0])
         
+        if layers == 3:
+            second_layer = pd.DataFrame(np.vstack((pred_labels[1], true_labels[1])).T,
+                                            columns = ['Predicted_Middle','Truth_Middle'])
+    else:
+        first_layer = pd.DataFrame(np.array(pred_labels[0]).T, columns=['Predicted_Top'])
+        
+        if layers == 3:
+            second_layer = pd.DataFrame(np.array(pred_labels[1]).T, columns=['Predicted_Middle'])
+    
+    sbn.heatmap(first_layer, ax = ax2[0])
+    ax2[0].set_title(f'Predictions (Top) at epoch {epoch}')
+    
+    if layers == 3:
+        sbn.heatmap(second_layer, ax = ax2[1])
+        ax2[1].set_title(f'Predictions (Middle) at epoch {epoch}')
         
     if save_plot == True:
         fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)

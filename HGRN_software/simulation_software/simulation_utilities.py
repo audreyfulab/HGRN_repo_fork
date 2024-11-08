@@ -76,9 +76,9 @@ def compute_graph_STATs(A_all, comm_assign, layers, sp, **kwargs):
 
 
 # wrapper around draw_networx for diGraphs
-def plot_diGraph(G, layer = 0, color_labels = None, 
+def plot_diGraph(fig, ax, G, layer = 0, color_labels = None, 
                  draw_edge_weights = True, return_fig = False):
-    fig, ax = plt.subplots(figsize = (14,10))
+    
     pos = nx.circular_layout(G)
     if len(G.nodes) >= 10 and len(G.nodes) <= 100:
         ns = 500
@@ -195,7 +195,7 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
                        fs=14, save = False, path = '', cm = 'plasma', **kwargs):
     layers = len(labels)
     if layers > 1:
-        layer_nms = ['Top Layer','Middle Layer']
+        layer_nms = ['Middle Layer','Top Layer']
     else:
         layer_nms = 'Top Layer'
     #convert torch items     
@@ -204,7 +204,11 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
         X = data.detach().numpy()
         IX = embed_X.detach().numpy()
         probs = [i.detach().numpy() for i in probabilities]
+    if any([isinstance(i, torch.Tensor) for i in labels]):
         labels = [i.detach().numpy() for i in labels]
+    
+        
+    
         
     num_nodes = X.shape[0]
     #plot node traced_labels
@@ -259,24 +263,25 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
         #adding traced_labels
             
         
-        #TSNE and PCA plots using true cluster labels
-        #tsne truth
-        ax2[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = size, c = truth[i], cmap = cm)
-        ax2[0].set_xlabel('Dimension 1')
-        ax2[0].set_ylabel('Dimension 2')
-        ax2[0].set_title(layer_nms[i]+' t-SNE Data (Truth)')
-
-            
-        #pca truth
-        ax2[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth[i], cmap = cm)
-        ax2[1].set_xlabel('Dimension 1')
-        ax2[1].set_ylabel('Dimension 2')
-        ax2[1].set_title(layer_nms[i]+' PCA Data (Truth)')
-        if num_nodes < 100:
-            [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
-            [ax1[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
-            [ax2[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
-            [ax2[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
+        if not isinstance(truth, type(None)):
+            #TSNE and PCA plots using true cluster labels
+            #tsne truth
+            ax2[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = size, c = truth[i], cmap = cm)
+            ax2[0].set_xlabel('Dimension 1')
+            ax2[0].set_ylabel('Dimension 2')
+            ax2[0].set_title(layer_nms[i]+' t-SNE Data (Truth)')
+    
+                
+            #pca truth
+            ax2[1].scatter(PCs[:,0], PCs[:,1], s = size, c = truth[i], cmap = cm)
+            ax2[1].set_xlabel('Dimension 1')
+            ax2[1].set_ylabel('Dimension 2')
+            ax2[1].set_title(layer_nms[i]+' PCA Data (Truth)')
+        # if num_nodes < 100:
+        #     [ax1[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
+        #     [ax1[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
+        #     [ax2[0].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(TSNE_data[:,0], TSNE_data[:,1], nl)]
+        #     [ax2[1].text(i, j, f'{k}', fontsize=fs, ha='right') for (i, j, k) in zip(PCs[:,0], PCs[:,1], nl)]
         
         sbn.heatmap(probs[i], ax = ax4[i])
         ax4[i].set_title(layer_nms[i]+' Probabilities')
@@ -286,7 +291,7 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
         ax3d = plt.axes(projection='3d')
         ax3d.scatter3D(PCs[:,0], PCs[:,1], PCs[:,2], 
                       c=labels[i], cmap='plasma')
-        ax3d.set_title('PCA')
+        ax3d.set_title('PCA (predicted) '+layer_nms[i])
         ax3d.set_xlabel('Dimension 1')
         ax3d.set_ylabel('Dimension 2')
         ax3d.set_zlabel('Dimension 3')
@@ -298,7 +303,7 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
         ax3d = plt.axes(projection='3d')
         ax3d.scatter3D(TSNE_data[:,0], TSNE_data[:,1], TSNE_data[:,2], 
                       c=labels[i], cmap='plasma')
-        ax3d.set_title('TSNE')
+        ax3d.set_title('TSNE (predicted) '+layer_nms[i])
         ax3d.set_xlabel('Dimension 1')
         ax3d.set_ylabel('Dimension 2')
         ax3d.set_zlabel('Dimension 3')

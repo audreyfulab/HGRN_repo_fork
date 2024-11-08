@@ -48,15 +48,19 @@ def add_edges_to_fullgraph(G, nodes_to_add, edges_to_add):
 
 def make_dag(graph):
     # Step 1: Replace bidirectional edges with a single directed edge
-    for u, v in list(graph.edges()):
-        if graph.has_edge(v, u):
-            # Remove one of the two edges to break the bidirectionality
+    edges = list(graph.edges)
+    for u, v in edges:
+        if graph.has_edge(v,u) and graph.has_edge(u,v):
+            # Remove both edges to eliminate bidirectionality
+            graph.remove_edge(u, v)
             graph.remove_edge(v, u)
+            # Add a single directed edge (choose one direction, e.g., u -> v)
+            graph.add_edge(u, v)
 
     # Step 2: Remove cycles by flipping edges
+    print('\n resolving cycles...')
     while not nx.is_directed_acyclic_graph(graph):
         # Find a cycle
-        print('\n resolving cycles...')
         try:
             cycle = nx.find_cycle(graph, orientation='original')
         except nx.NetworkXNoCycle:
@@ -66,7 +70,7 @@ def make_dag(graph):
         u, v, _ = cycle[0]
         graph.remove_edge(u, v)
         graph.add_edge(v, u)
-
+    
     return graph
 
 
@@ -75,9 +79,9 @@ def make_dag(graph):
 
 
 def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighted = True, 
-                      degree=3, connection_prob=0.05, sub_graph_prob=0.01, weight_b = (0.1, 0.3),
-                      weight_w = (0.4, 0.8), mixed = None, force_connections = False, 
-                      seed = None):
+                      degree=3, connection_prob_within=0.05, connection_prob_between = 0.01,
+                      sub_graph_prob=0.01, weight_b = (0.1, 0.3), weight_w = (0.4, 0.8), mixed = None, 
+                      force_connections = False, seed = None):
     '''
     Input:
         top_graph: the base graph
@@ -171,10 +175,16 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                 #                                         p = sub_graph_prob,
                 #                                         make_directed=True)
                 
+                # subgraph = nx.gnm_random_graph(n = rd(subgraph_node_number[0], 
+                #                                         subgraph_node_number[1]), 
+                #                                m = rd(subgraph_node_number[0], 
+                #                                         subgraph_node_number[1]),
+                #                                directed = True)
+                
                 subgraph = nx.gnp_random_graph(n = rd(subgraph_node_number[0], 
                                                         subgraph_node_number[1]), 
-                                               p = sub_graph_prob,
-                                               directed = True)
+                                                p = sub_graph_prob,
+                                                directed = True)
                 
                 if not nx.is_directed_acyclic_graph(subgraph):
                     G = make_dag(subgraph)
@@ -228,19 +238,36 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         # for subgraph_edge in subgraphs[index].edges:
         #     full_graph.add_edge(str(topgraph_node) + '_' + str(subgraph_edge[0]), 
         #                         str(topgraph_node) + '_' + str(subgraph_edge[1]))
-            
+    print(f'{top_graph.edges}')
     # add connections between sub-graphs
     for p_graph, c_graph in top_graph.edges:
+        
+        p_graph_name = str(p_graph).split('_')
+        c_graph_name = str(c_graph).split('_')
+        
+        if len(p_graph_name) == 2:
+            p_community, p_node_name = p_graph_name
+            c_community, c_node_name = c_graph_name
+        else:
+            p_community = p_graph
+            c_community = c_graph
+        
         # get node lists in graph p and c, where edge p->c exists in top-graph
         p_list, c_list = full_graph_node_list[p_graph], full_graph_node_list[c_graph]
         # all possible connections between communities
         possible_edges = [(i, j) for i in p_list for j in c_list]
+        np.random.shuffle(possible_edges)
         num_possible = len(possible_edges)
         # unless specified, probability will be 1/(total cross connections i.e equal probability)
-        if connection_prob == 'use_baseline':
-                 c_prob = (num_possible/len(top_graph.edges))/num_possible
-        else:
-            c_prob = connection_prob
+        # if connection_prob == 'use_baseline':
+        #          c_prob = (num_possible/len(top_graph.edges))/num_possible
+        # else:
+        #     c_prob = connection_prob
+        if p_community == c_community:
+            c_prob = connection_prob_within
+        else: c_prob = connection_prob_between
+            
+        
         which_edges=[i<=c_prob for i in np.random.uniform(size = num_possible).tolist()]
         
         if sum(which_edges) == 0 and force_connections:
@@ -249,7 +276,7 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         else:
             which_edges_idx = np.arange(num_possible)[which_edges]
         edges_to_add = [possible_edges[x] for x in which_edges_idx]
-        print(f'Adding {len(edges_to_add)} edges between community {p_graph} and community {c_graph}')
+        print(f'Adding {len(edges_to_add)} edges between community {p_graph} and community {c_graph}: \n {edges_to_add}')
         
         full_graph = add_edges_to_subgraph(full_graph, 
                                            nodes_to_add = None, 

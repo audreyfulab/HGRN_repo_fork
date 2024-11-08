@@ -18,6 +18,7 @@ from model.model_layer import AE_layer
 import torch_geometric.utils as pyg_utils
 from torch_geometric.nn import GraphNorm
 from torchinfo import summary
+#from src.torch_kmeans.clustering.soft_kmeans import SoftKMeans
 #from torchsummary import summary
 from torch_kmeans import SoftKMeans
 
@@ -35,6 +36,14 @@ def select_subgraph(A, labels, k):
     # Select the rows corresponding to community 1
     subgraph = torch.index_select(A_rows, dim = 1, index = indices)
     return subgraph
+
+
+
+# def handle_partition(x, model):
+    
+    
+    
+    
 
 
 class GATE(nn.Module):
@@ -143,12 +152,12 @@ class CommunityDetectionLayers(nn.Module):
         
         for idx, comms in enumerate(comm_sizes):
             #add output layers to dictionary
-            module_dict.update({f'Comm_{layer_operator}_'+str(comms): CDL2(in_features = in_attrib, 
-                                                                           out_comms = comms,
-                                                                           norm = normalize,
-                                                                           dropout = dropout,
-                                                                           operator = layer_operator,
-                                                                           **kwargs)})
+            module_dict.update({f'Comm_{layer_operator}_'+str(idx): CDL2(in_features = in_attrib, 
+                                                                         out_comms = comms,
+                                                                         norm = normalize,
+                                                                         dropout = dropout,
+                                                                         operator = layer_operator,
+                                                                         **kwargs)})
 
         
         #build model by pytorch sequential
@@ -244,7 +253,7 @@ class HCD(nn.Module):
                 
         #Top down method 
         elif self.method == 'top_down':
-            self.comm_sizes.reverse()  
+            self.comm_sizes = comm_sizes[::-1]
             
             if self.use_output_layers:
                 self.fully_connected_layers = AddLearningLayers(in_nodes=nodes, 
@@ -257,7 +266,8 @@ class HCD(nn.Module):
                 comm_in_dim = self.ae_hidden_dims[-1]
                 
             if self.use_kmeans_top:
-                self.TopCommModule = SoftKMeans(n_clusters=self.comm_sizes[0], max_iter = 500, num_init=10)
+                self.TopCommModule = SoftKMeans(n_clusters=self.comm_sizes[0], max_iter=1000, num_init=10,
+                                                init_method='k-means++', verbose=False)
             
             else:
                 self.TopCommModule = CommunityDetectionLayers(in_nodes = nodes, 
@@ -267,20 +277,20 @@ class HCD(nn.Module):
                                                               layer_operator = self.comm_operator,
                                                               dropout = self.dropout_rate,
                                                               **kwargs)
-                        
-            if self.use_kmeans_middle:
-                self.MiddleModules = [SoftKMeans(n_clusters=size, 
-                                                 max_iter = 500, 
-                                                 num_init=10) for size in self.comm_sizes[1]]
-            else:
-                #separate layers for each partition in top
-                self.MiddleModules = [CommunityDetectionLayers(in_nodes = nodes, 
-                                                               in_attrib = comm_in_dim, 
-                                                               normalize = self.normalize_outputs, 
-                                                               comm_sizes = [self.comm_sizes[1]],
-                                                               layer_operator = self.comm_operator,
-                                                               dropout = self.dropout_rate,
-                                                               **kwargs) for i in range(0, self.comm_sizes[0])]
+            if len(self.comm_sizes) > 1:
+                if self.use_kmeans_middle:
+                    self.MiddleModules = [SoftKMeans(n_clusters=self.comm_sizes[1], 
+                                                     max_iter=1000, 
+                                                     num_init=10) for i in enumerate(range(0, self.comm_sizes[0]))]
+                else:
+                    #separate layers for each partition in top
+                    self.MiddleModules = [CommunityDetectionLayers(in_nodes = nodes, 
+                                                                   in_attrib = comm_in_dim, 
+                                                                   normalize = self.normalize_outputs, 
+                                                                   comm_sizes = [self.comm_sizes[1]],
+                                                                   layer_operator = self.comm_operator,
+                                                                   dropout = self.dropout_rate,
+                                                                   **kwargs) for i in range(0, self.comm_sizes[0])]
             
             
             
@@ -343,6 +353,8 @@ class HCD(nn.Module):
                         X_top, A_top, X_all, A_all, P_all, S = self.TopCommModule(W, A)
                     else:
                         X_top, A_top, X_all, A_all, P_all, S = self.TopCommModule(Z, A)
+                        
+                    P = P_all[0]
                  
                 
                 #Select data based on top partition
@@ -355,33 +367,34 @@ class HCD(nn.Module):
                 subsets_A = [select_subgraph(A, S[0], k) for k in torch.unique(S[0])]
                 
                 
-                if self.use_kmeans_middle:
+                if len(self.comm_sizes) > 1:
+                    if self.use_kmeans_middle:
+                        
+                        # apply k softkmeans layers
+                        results = [self.MiddleModules[i](x = sub_Z.unsqueeze(0), k = min(sub_Z.shape[0], self.comm_sizes[1])) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
+                        
+                        #store results
+                        X_all = []
+                        A_all = []
+                        P_all = [P, [i.soft_assignment.squeeze(0) for i in results]]
+                        S_temp = [i.labels.squeeze(0)+index*j for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
+                        S_final = torch.cat(S_temp)
+                        S_all = [S[0], S_final]
+                        
+                        
+                    else:
+                        
+                        # apply k linear predictors
+                        results = [self.MiddleModules[i](sub_Z, sub_A) for idx, (i, sub_Z, sub_A) in enumerate(zip(torch.unique(S[0]), subsets_Z, subsets_A))]
+                        #results = [self.MiddleModules[i](sub_Z.unsqueeze(0)) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
                     
-                    # apply k softkmeans layers
-                    results = [self.MiddleModules[i](sub_Z.unsqueeze(0)) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
-                    
-                    #store results
-                    X_all = []
-                    A_all = []
-                    P_all = [i.soft_assignment.squeeze(0) for i in results]
-                    S_temp = [i.lables.squeeze(0)+index*j for index, (i,j) in enumerate(zip(results, torch.tensor(self.comm_sizes[-1])[torch.unique(S[0])]))]
-                    S_final = torch.cat(S_temp)
-                    S_all = [S[0], S_final]
-                    
-                    
-                else:
-                    
-                    # apply k linear predictors
-                    results = [self.MiddleModules[i](sub_Z, sub_A) for idx, (i, sub_Z, sub_A) in enumerate(zip(torch.unique(S[0]), subsets_Z, subsets_A))]
-                    #results = [self.MiddleModules[i](sub_Z.unsqueeze(0)) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
-                
-                    #store results
-                    X_all = [i[0] for i in results]
-                    A_all = [i[1] for i in results]
-                    P_all = [P, [i[4][0] for i in results]]
-                    S_temp = [i[5][0]+index*j for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])]))]
-                    S_final = torch.cat(S_temp)
-                    S_all = [S[0], S_final]
+                        #store results
+                        X_all = [i[0] for i in results]
+                        A_all = [i[1] for i in results]
+                        P_all = [P, [i[4][0] for i in results]]
+                        S_temp = [i[5][0]+index*j for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])]))]
+                        S_final = torch.cat(S_temp)
+                        S_all = [S[0], S_final]
                 
         A_all_final = [A]+[A_all]+[subsets_A]
         X_all_final = [Z]+[X_all]+[subsets_X]
@@ -400,17 +413,23 @@ class HCD(nn.Module):
             print('------------Fully-Connected-Layers--------------')
             summary(self.fully_connected_layers)
         print('----------Community-Detection-Module------------')
+        
         print(f'METHOD: {self.method}')
-        print(f'KMEANS -- TOP: {self.use_kmeans_top} MIDDLE: {self.use_kmeans_middle}')
+        if self.use_kmeans_top:
+            print(f'KMEANS -- TOP: {self.use_kmeans_top}') 
+        if self.use_kmeans_middle:
+            print('MIDDLE: {self.use_kmeans_middle}')
         if self.method == 'bottom_up':
             summary(self.commModule)
         else:
-            print('TOP LAYER: \n')
-            summary(self.TopCommModule)
-            print('MIDDLE LAYERS: \n')
-            for i in range(self.comm_sizes[0]):
-                print(f'COMMUNITY {i} MODEL: \n')
-                summary(self.MiddleModules[i])
+            if not self.use_kmeans_top:
+                print('TOP LAYER: \n')
+                summary(self.TopCommModule)
+            if not self.use_kmeans_middle:
+                print('MIDDLE LAYERS: \n')
+                for i in range(self.comm_sizes[0]):
+                    print(f'COMMUNITY {i} MODEL: \n')
+                    summary(self.MiddleModules[i])
     
 
 
