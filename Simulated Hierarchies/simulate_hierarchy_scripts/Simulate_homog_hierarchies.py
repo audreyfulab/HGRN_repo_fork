@@ -15,28 +15,21 @@ import seaborn as sbn
 import matplotlib.pyplot as plt
 import sys
 import pandas as pd
-#sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/HC-GNN/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/')
 #sys.path.append('/mnt/ceph/jarredk/HGRN_repo/HGRN_software/')
-#sys.path.append('/mnt/ceph/jarredk/scGNN_for_genes/gen_data')
-#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/gen_data')
-#sys.path.append('C:/Users/Bruin/Documents/GitHub/scGNN_for_genes/HC-GNN/')
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
 from simulation_software.Simulate import simulate_graph
 from simulation_software.simulation_utilities import compute_graph_STATs
-#import os
-#os.chdir('C:/Users/Bruin/Documents/GitHub/HGRN_repo/Bethe Hessian Tests/')
 import warnings
-warnings.filterwarnings('ignore')
-parser = argparse.ArgumentParser()
-# general
 import random as rd
 from itertools import product
 from tqdm import tqdm
 import time
 import os
 #set seed
+warnings.filterwarnings('ignore')
+parser = argparse.ArgumentParser()
 rd.seed(978)
 
 
@@ -47,9 +40,9 @@ parser.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default
 parser.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
 parser.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
 parser.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
-parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=0.5, type=float)
-parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5, 8), type=tuple)
-parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20, 30), type=tuple)
+parser.add_argument('--subgraph_prob', dest='subgraph_prob', default=[0.5, 0.2], type=float)
+parser.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(5, 5), type=tuple)
+parser.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(60, 70), type=tuple)
 parser.add_argument('--node_degree_middle', dest='node_degree_middle', default=3, type=int)
 parser.add_argument('--node_degree_bottom', dest='node_degree_bottom', default=5, type=int)
 parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
@@ -64,8 +57,8 @@ args = parser.parse_args()
 
 
 # args.connect = 'full'
-args.connect_prob_middle = [0.1, 0.05] #first value is for within community, second value is for between community
-args.connect_prob_bottom = [0.005, 0.0025]
+args.connect_prob_middle = [0.1, 0.1] #first value is for within community, second value is for between community
+args.connect_prob_bottom = [0.002, 0.001]
 args.common_dist = False
 # args.top_layer_nodes = 5
 # args.subgraph_type = 'small world'
@@ -77,6 +70,7 @@ args.common_dist = False
 #args.node_degree = 5
 
 path = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+#path = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
 location = 'complex_networks/'
 mainpath = os.path.join(path, location)
 if not os.path.exists(mainpath):
@@ -114,7 +108,10 @@ info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers'
                                      'avg_connect_within_middle','avg_connect_between_middle',
                                      ])
 
+#net = 22
+
 for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hierarchies…", ascii=False, ncols=75):
+    
     
     args.subgraph_type = value[2][0]
     args.connect = value[2][1]
@@ -124,7 +121,16 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     
     print('-'*60)
     args.savepath = mainpath+''.join(value[0])+''.join(value[1])
+    
+    if not os.path.exists(args.savepath):
+        os.makedirs(args.savepath)
     print('saving hierarchy to {} '.format(args.savepath))
+    
+    if args.layers == 2:
+        args.nodes_per_super2 = (50, 100)
+    else:
+        args.nodes_per_super2 = (3, 3)
+        
     pe, gexp, nodes, edges, nx_all, adj_all, args.savepath, nodelabs, ori = simulate_graph(args)
     print('done')
     print('-'*60)
@@ -176,6 +182,8 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
     info_table.to_csv(mainpath+'network_statistics.csv')
     np.savez(mainpath+'network_statistics.npz', data = info_table.to_numpy())
     print('done')
+    
+    plt.close('all')
     
 print('Simulation Complete')
         

@@ -56,10 +56,12 @@ parser.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
 parser.add_argument('--layers',dest='layers', default = 2, type=int)
 parser.add_argument('--SD',dest='SD', default = 0.1, type=float)
 parser.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
-parser.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
+parser.add_argument('--seed_number', dest='seed_number', default = 555, type=int)
 parser.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
 parser.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.2), type=tuple)
 parser.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
+parser.add_argument('--set_seed', dest='set_seed', default=False, type=bool)
+parser.add_argument('--force_connect', dest='force_connect', default=True, type=bool)
 args = parser.parse_args()
 
 
@@ -120,7 +122,7 @@ grid3 = product(struct, connect, layers)
 
 #simulate
 
-info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_prob','layers','StDev',
+info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_type', 'connection_prob','layers','StDev',
                                      'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
                                      'sample_size','modularity_top','avg_node_degree_top',
                                      'avg_connect_within_top','avg_connect_between_top',
@@ -181,14 +183,18 @@ for idx, value in tqdm(enumerate(zip(grid1, grid2, grid3)), desc="Simulating hie
             deg_within[1], deg_between[1] 
             ))
         print('*'*60)
+        
+        
+    cp_dict = {'middle': args.connect_prob_middle, 'bottom': args.connect_prob_bottom}
+    
     if args.layers == 3:
         
-        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+        row_info = [args.subgraph_type, args.connect, cp_dict, args.layers, args.SD,
                     tuple(nodes),tuple(edges),args.subgraph_prob, args.sample_size,
                     mod[0], node_deg[0], deg_within[0], deg_between[0], 
                     mod[1], node_deg[1], deg_within[1], deg_between[1]]
     else:
-        row_info = [args.subgraph_type, args.connect, args.layers, args.SD,
+        row_info = [args.subgraph_type, args.connect, cp_dict, args.layers, args.SD,
                     tuple(nodes),tuple(edges), args.connect_prob, args.sample_size,
                     mod[0], node_deg[0], deg_within[0], deg_between[0], 
                     'NA', 'NA', 'NA', 'NA']

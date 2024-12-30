@@ -4,9 +4,6 @@ Created on Sat Aug 26 11:50:12 2023
 
 @author: Bruin
 """
-import random
-import torch
-import argparse
 import numpy as np
 import pandas as pd
 import networkx as nx
@@ -18,8 +15,6 @@ from simulation_software.HGRN_hierarchicalgraph import same_cluster
 from simulation_software.simulation_utilities import plot_diGraph
 from model.utilities import pickle_data, sort_labels
 from random import randint as rd   
-from random import seed
-import pdb
 
 
 
@@ -27,6 +22,15 @@ import pdb
 
 
 def simulate_graph(args): 
+    
+    
+    if args.set_seed:
+        if args.seed_number:
+            rd.seed(args.seed_number)
+        else:
+            rd.seed(rd(100, 1000))
+        
+        
     
     #seed(args.seed_number)
     nodes_by_layer = []
@@ -228,15 +232,19 @@ def simulate_graph(args):
     gexp.head()
     
     
-    sort = sort_labels(ts_full)
+    indices_top, indices_mid, true_labels, sorted_top, sorted_middle = sort_labels(gene_list)
     
     fig, ax = plt.subplots(1,2, figsize = (16, 10))
-    
-    sbn.heatmap(np.corrcoef(pe[sort[0], :]), ax = ax[0])
-    sbn.heatmap(h3_undi_adj, ax = ax[1])
+    if args.layers > 2:
+        sbn.heatmap(h3_undi_adj, ax = ax[1])
+        sbn.heatmap(np.corrcoef(pe[indices_mid, :]), ax = ax[0])
+    else:
+        sbn.heatmap(h2_undi_adj, ax = ax[1])
+        sbn.heatmap(np.corrcoef(pe[indices_top, :]), ax = ax[0])
     
     fig.savefig(args.savepath+'heatmaps.pdf')
     fig.savefig(args.savepath+'heatmaps.png', dpi = 500)
     
+    plt.close('all')
     
     return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes

@@ -102,9 +102,6 @@ def run_simulations(args, save_results = False, which_net = 0, which_ingraph=0, 
 
     indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(nodelabs)
 
-
-    #C = F.one_hot(torch.Tensor(sorted_true_labels_top).to(torch.int64)).to(torch.float32)
-    #X = torch.Tensor(pe_sorted).requires_grad_()
     origin_nodes = [i[0] for i in orin]
     if args.layers > 2:
         pe_sorted = pe[indices_mid,:]

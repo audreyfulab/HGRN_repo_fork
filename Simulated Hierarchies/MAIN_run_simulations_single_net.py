@@ -12,13 +12,13 @@ import numpy as np
 import pandas as pd
 from model.model import HCD 
 from model.train import fit, split_dataset
-from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, run_trad_hc, read_benchmark_CORA, post_hoc, run_kmeans, load_application_data
+from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, run_trad_hc, read_benchmark_CORA, post_hoc, run_kmeans, load_application_data_regulon, load_application_data_Dream5, set_up_model_for_simulation_inplace
 import pickle
 import random as rd
 import os
 
 
-def run_single_simulation(args, **kwargs):
+def run_single_simulation(args, simulation_args = None, return_model = False, **kwargs):
     
     if args.save_results:
         if args.make_directories:
@@ -37,12 +37,16 @@ def run_single_simulation(args, **kwargs):
     
     savepath_main = args.sp
     comm_sizes = args.community_sizes
+    layers = len(args.community_sizes)
     
+    
+    
+    #read in data 
     if args.dataset in ['complex', 'intermediate', 'toy']:
         
         loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
             
-        X, A, target_labels, comm_sizes = set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, device, **kwargs)
+        X, A, target_labels, comm_sizes = set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, **kwargs)
            
         if args.split_data:
             train, test = split_dataset(X, A, target_labels, args.train_test_size)         
@@ -67,13 +71,33 @@ def run_single_simulation(args, **kwargs):
             
     elif args.dataset in ['regulon.EM', 'regulon.DM']:
         
-        train, test, gene_names = load_application_data(args)
+        train, test, gene_names = load_application_data_regulon(args)
         target_labels = None
         valid = None
         
         X, A, [] = train
+        
+    elif args.dataset in ['Dream5.'+i for i in ['E_coli', 'in_silico', 'S_aureus', 'S_cerevisiae']]:
+        
+        train, test, gene_names = load_application_data_Dream5(args)
+        target_labels = None
+        valid = None
+        
+        X, A, [] = train
+        
+    elif args.dataset == 'generated':
+        
+        X, A, target_labels = set_up_model_for_simulation_inplace(args, simulation_args)
+        
+        if args.split_data:
+            train, test = split_dataset(X, A, target_labels, args.train_test_size)         
             
-    layers = len(args.community_sizes)
+            X, A, target_labels = train
+        else:
+            test = None
+        
+        valid = None
+      
     nodes, attrib = X.shape
     
     #move inputs to device
@@ -98,7 +122,9 @@ def run_single_simulation(args, **kwargs):
                 use_output_layers = args.add_output_layers,
                 **kwargs
                 ).to(device)
-        
+    
+    X = X.to(device)
+    A = A.to(device)
             
     print('summary of model architecture:')
     model.summarize()
@@ -136,12 +162,13 @@ def run_single_simulation(args, **kwargs):
                          true_labels = target_labels, 
                          validation_data = valid,
                          test_data = test,
+                         early_stopping = args.early_stopping,
+                         patience = args.patience,
                          verbose=args.verbose, 
                          save_output=args.save_results, 
                          output_path=savepath_main, 
                          ns = args.plotting_node_size, 
                          fs = args.fs,
-                         update_graph = args.use_graph_updating,
                          use_batch_learning = args.use_batch_learning,
                          batch_size = args.batch_size
                          )
@@ -191,18 +218,18 @@ def run_single_simulation(args, **kwargs):
         
     #post fit plots and results
     if args.post_hoc_plots:
-        post_hoc(args, 
-                 output = out, 
-                 data = X, 
-                 adjacency = A, 
-                 predicted = best_preds,
-                 truth = target_labels,
-                 louv_pred = louv_preds,
-                 kmeans_pred = kmeans_preds,
-                 thc_pred = hc_preds,
-                 bp = best_result_index,
-                 k_layers = layers,
-                 verbose = True)
+        pbmt=post_hoc(args, 
+                      output = out, 
+                      data = X, 
+                      adjacency = A, 
+                      predicted = best_preds,
+                      truth = target_labels,
+                      louv_pred = louv_preds,
+                      kmeans_pred = kmeans_preds,
+                      thc_pred = hc_preds,
+                      bp = best_result_index,
+                      k_layers = layers,
+                      verbose = True)
     
     
     #update performance table
@@ -231,10 +258,16 @@ def run_single_simulation(args, **kwargs):
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
         torch.save(model, savepath_main+'MODEL.pth')
-
-    del model
-    
+        
     print('done')
-    return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices
+    
+    if return_model:
+        return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt
+    else:
+        del model
+        return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices, [], pbmt
+    
+    
+    
 
 

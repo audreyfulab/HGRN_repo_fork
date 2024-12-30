@@ -1,6 +1,0 @@
-,Comparison,Homogeneity,Completeness,NMI
-0,louvain vs middle,0.621,0.7053,0.6605
-1,louvain vs top,0.7913,0.5342,0.6378
-2,HCD: middle vs middle,0.5678,0.6321,0.5982
-3,HCD: middle vs top,0.776,0.5135,0.618
-4,HCD: top vs top,0.725,0.7318,0.7284

@@ -12,13 +12,11 @@ import numpy as np
 from torch.utils.data import DataLoader, Dataset
 import time
 import torch.optim as optimizers 
-from model.utilities import Modularity, WCSS, node_clust_eval
+from model.utilities import Modularity, WCSS
 from tqdm import tqdm
-from model.utilities import trace_comms, get_layered_performance
+from model.utilities import trace_comms, get_layered_performance, EarlyStopping
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
-import numpy as np
-import copy
-import gc
+import os
 
 #------------------------------------------------------
 #custom pytorch dataset
@@ -44,15 +42,24 @@ def batch_data(input, batch_size, shuffle_data = True):
     return dataloader
 
 #an alternative batching approach to above
-def get_batched_data(X, A, batch_size = 64):
+def get_batched_data(X, A, batch_size = 64, min_batch_size = 11):
     num_nodes = X.size(0)
-    indices = torch.randperm(num_nodes)
+    # Ensure indices are on the same device as X
+    device = X.device
+    #print(f'This is the device for the input {device}')
+    indices = torch.randperm(num_nodes, device=device)
     X_batches = []
     A_batches = []
     index_batches = []
     
-    for start_idx in range(0, num_nodes, batch_size):
-        end_idx = min(start_idx + batch_size, num_nodes)
+    start_index = list(range(0, num_nodes-batch_size, batch_size))
+    end_index = list(range(64, num_nodes, batch_size))
+    
+    if (num_nodes - end_index[-1]) < min_batch_size:
+        end_index[-1] = num_nodes
+    
+    for (start_idx, end_idx) in zip(start_index, end_index):
+        #end_idx = min(start_idx + batch_size, num_nodes)
         batch_indices = indices[start_idx:end_idx]
         X_batch = torch.index_select(X, 0, batch_indices)
         A_batch = torch.index_select(torch.index_select(A, 0, batch_indices), 1, batch_indices)
@@ -63,8 +70,51 @@ def get_batched_data(X, A, batch_size = 64):
     return X_batches, A_batches, index_batches
 
 
+
+
+# def get_batched_data(X, A, batch_size=64, min_samples_per_batch=11):
+#     num_nodes = X.size(0)
+#     device = X.device
+#     indices = torch.randperm(num_nodes, device=device)
+#     X_batches = []
+#     A_batches = []
+#     index_batches = []
+
+#     for start_idx in range(0, num_nodes, batch_size):
+#         end_idx = min(start_idx + batch_size, num_nodes)
+#         batch_indices = indices[start_idx:end_idx]
+#         X_batch = torch.index_select(X, 0, batch_indices)
+#         A_batch = torch.index_select(torch.index_select(A, 0, batch_indices), 1, batch_indices)
+#         X_batches.append(X_batch)
+#         A_batches.append(A_batch)
+#         index_batches.append(batch_indices)
+
+#     # Handle the case where the last batch has fewer than min_samples_per_batch
+#     if len(index_batches) > 1 and len(index_batches[-1]) < min_samples_per_batch:
+#         # Take some samples from the second last batch
+#         deficit = min_samples_per_batch - len(index_batches[-1])
+#         index_batches[-2] = torch.cat((index_batches[-2], index_batches[-1][:deficit]))
+#         X_batches[-2] = torch.index_select(X, 0, index_batches[-2])
+#         A_batches[-2] = torch.index_select(torch.index_select(A, 0, index_batches[-2]), 1, index_batches[-2])
+
+#         # Update the last batch
+#         index_batches[-1] = index_batches[-1][deficit:]
+#         X_batches[-1] = torch.index_select(X, 0, index_batches[-1])
+#         A_batches[-1] = torch.index_select(torch.index_select(A, 0, index_batches[-1]), 1, index_batches[-1])
+        
+#         # Remove the last batch if it's empty
+#         if len(index_batches[-1]) == 0:
+#             del X_batches[-1]
+#             del A_batches[-1]
+#             del index_batches[-1]
+
+#     return X_batches, A_batches, index_batches
+
+
+
+
 #for train, test splitting
-def split_dataset(X, A, labels, split=[0.8, 0.2]):
+def split_dataset(X, A, labels, layers, split=[0.8, 0.2]):
     #an alternative batching approach to above
     num_nodes = X.size(0)
     train_size = int(np.round(0.8*num_nodes))
@@ -76,6 +126,11 @@ def split_dataset(X, A, labels, split=[0.8, 0.2]):
     train_X, test_X = torch.index_select(X, 0, train_indices[sort_train]), torch.index_select(X, 0, test_indices[sort_test])
     train_A = torch.index_select(torch.index_select(A, 0, train_indices[sort_train]), 1, train_indices[sort_train])
     test_A = torch.index_select(torch.index_select(A, 0, test_indices[sort_test]), 1, test_indices[sort_test])
+    
+    # if layers <= 1:
+    #     labels_train = labels[0][train_indices[sort_train]]
+    #     labels_test = labels[0][test_indices[sort_test]]
+    # else:
     labels_train = [lab[train_indices[sort_train]] for lab in labels]
     labels_test = [lab[test_indices[sort_test]] for lab in labels]
     
@@ -291,13 +346,42 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
-        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, 
-        use_batch_learning = True, batch_size = 64, true_labels = None, turn_off_A_loss = False, 
-        validation_data = None, test_data = None, save_output = False, output_path = 'path/to/output', 
-        fs = 10, ns = 10, verbose = True, **kwargs):
+        gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, use_batch_learning = True, 
+        batch_size = 64, early_stopping = False, patience = 5, true_labels = None, turn_off_A_loss = False, 
+        validation_data = None, test_data = None, save_output = False, output_path = '', fs = 10, ns = 10, 
+        verbose = True, **kwargs):
     
     """
-    
+    Args:
+        model (torch.nn.Module): The neural network model to be trained.
+        X (array-like): Feature data used for training the model.
+        A (array-like): Additional input data, such as adjacency matrices or auxiliary features.
+        optimizer (str, optional): The optimization algorithm to use. Defaults to 'Adam'.
+        epochs (int, optional): The number of training epochs. Defaults to 100.
+        update_interval (int, optional): The interval in epochs to update certain parameters or perform evaluations. Defaults to 10.
+        lr (float, optional): Learning rate for the optimizer. Defaults to 1e-4.
+        gamma (float, optional): Weighting factor attribute reconstruction loss term. Defaults to 1.
+        delta (float, optional): Weighting factor for modularity loss term. Defaults to 1.
+        lamb (float, optional): Weighting factor for clustering loss term. Defaults to 1.
+        layer_resolutions (list of int, optional): Resolution parameters for modularity in each layer. Defaults to [1, 1].
+        k (int, optional): Parameter defining the number of hierarchical layers. Defaults to 2.
+        use_batch_learning (bool, optional): Flag to indicate whether to use batch learning. Defaults to True.
+        batch_size (int, optional): The size of each batch if batch learning is used. Defaults to 64.
+        early_stopping (bool, optional): Whether to stop training early if no improvement is observed. Defaults to False.
+        patience (int, optional): Number of epochs to wait for improvement before stopping if early stopping is enabled. Defaults to 5.
+        true_labels (array-like, optional): Ground truth labels for evaluation. Defaults to None.
+        turn_off_A_loss (bool, optional): Whether to disable the loss term related to input graph. Defaults to False.
+        validation_data (tuple, optional): Validation dataset in the form (X_val, A_val). Defaults to None.
+        test_data (tuple, optional): Test dataset in the form (X_test, A_test). Defaults to None.
+        save_output (bool, optional): Whether to save the output of the model. Defaults to False.
+        output_path (str, optional): Path to save the model output if save_output is True. Defaults to an empty string.
+        fs (int, optional): figure size for plotting. Defaults to 10.
+        ns (int, optional): node size for plotting. Defaults to 10.
+        verbose (bool, optional): Whether to print detailed logs during training. Defaults to True.
+        **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+        
     """
     
     #preallocate storage
@@ -312,7 +396,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     all_out = []
     test_loss_history = []
     test_loss = 0
-    max_epochs = epochs
+        
+    if early_stopping:
+        early_stop = EarlyStopping(patience=patience, verbose=True,  path = output_path)
     
     
     #set optimizer Adam
@@ -334,10 +420,13 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     
     #get batches
     if use_batch_learning:
+        if batch_size > X.shape[0]:
+            raise ValueError(f'ERROR! Batch size is larger than number of items to split features.shape[0] = {X.shape[0]}')
         X_batches, A_batches, index_batches = get_batched_data(X, A, batch_size = batch_size)
     else:
         X_batches, A_batches = [X], [A]
     
+
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(range(epochs)):
         #epoch printing
@@ -373,7 +462,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             Mod_loss, Modloss_values, Clust_loss, Clustloss_values, S_sub, S_relab = get_output
             X_hat, A_hat, X_all, A_all, P_all, S_all, AW = forward_output
             #update output list
-            all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all]])
+            all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all], AW])
             
             #compute reconstruction losses for graph and attributes
             X_loss = X_recon_loss(X_hat, Xbatch)
@@ -423,7 +512,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 
             batch_iterable.set_description(f'Epoch {idx} Processing batch {"-"*15} batch loss: {total_loss:.2f} test loss: {print_loss_test}')
            
-        train_loss = total_loss
+        
         epoch_end = time.time()
         #store loss component information
         train_loss_history.append({'Total Loss': total_loss,
@@ -531,19 +620,23 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                               path= output_path, 
                               save = save_output)
                 
+        if early_stopping:
+            if test_data:
+                # Check for early stopping
+                early_stop(test_loss, model, _type = 'test')
+            else:
+                # Check for early stopping
+                early_stop(total_loss, model, _type = 'total')
                 
-                
-                    
-                
+            if early_stop.early_stop == True:
+                break
             
+            
+        if epoch > 0:
             print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
         time_hist.append(time.time() - epoch_start)
         if verbose:
             print(f'Total Epoch Time: {(epoch_end - epoch_start):.2f}')
-            
-        if test_loss > total_loss:
-            print(f"Stopping early at epoch {epoch+1} due to high test loss: {test_loss:.4f}")
-            break
     
     #return 
     X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model.forward(X, A)

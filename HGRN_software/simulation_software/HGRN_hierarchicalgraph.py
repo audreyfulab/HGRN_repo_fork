@@ -6,14 +6,9 @@ Created on Tue Aug 23 13:18:48 2022
 """
 
 #from IPython.core.display import HTML, Image, display
-from IPython.display import HTML, Image, display
 import networkx as nx
 import numpy as np
-from random import shuffle
 from random import randint as rd    
-from model.utilities import pickle_data
-from collections import defaultdict
-from matplotlib import pyplot as plt
 
 
 

@@ -18,6 +18,7 @@ import scipy as spy
 import seaborn as sbn
 import matplotlib.pyplot as plt
 import pickle
+import os
 
 
 
@@ -126,6 +127,10 @@ def BCSS(X = None, cluster_centroids=None, numclusts = None, norm_degree = 2,
     
     
     return BCSS_mean_distance
+
+
+
+
 
 
 
@@ -808,7 +813,46 @@ def get_layered_performance(k, S_relab, true_labels):
 
 
 
+class EarlyStopping:
+    def __init__(self, patience=7, verbose=False, delta=0, path = None):
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.loss_min = float('inf')
+        self.delta = delta
+        
+        if not path:
+            self.path = os.getcwd()
+        else:
+            self.path = path
+        
 
+    def __call__(self, loss, model, _type = ['test', 'total']):
+        score = loss
+        self._type = _type
+            
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(loss, model)
+        elif score > self.best_score + self.delta:
+            self.counter += 1
+            if self.verbose:
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, loss, model):
+        
+        if self.verbose:
+            print(f'\n {self._type} loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ... \n')
+        torch.save(model, os.path.join(self.path, 'checkpoint.pth'))
+        self.loss_min = loss
 
 
 

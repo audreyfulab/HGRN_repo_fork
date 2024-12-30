@@ -15,21 +15,22 @@ import pandas as pd
 import ast
 import numpy as np
 from model.utilities import LoadData, get_input_graph, trace_comms, node_clust_eval, resort_graph, plot_clust_heatmaps
-from simulation_software.simulation_utilities import compute_beth_hess_comms, plot_nodes, post_hoc_embedding
+from simulation_software.simulation_utilities import compute_beth_hess_comms, plot_nodes, post_hoc_embedding, compute_graph_STATs
+from simulation_software.Simulate import simulate_graph
 import torch
 import networkx as nx
 from community import community_louvain as cl
 import matplotlib.pyplot as plt
 import seaborn as sbn
 from torch_geometric.datasets import Planetoid
-from torch_geometric.utils import to_dense_adj, subgraph
+from torch_geometric.utils import subgraph
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from scipy.cluster.hierarchy import dendrogram
 from sklearn.model_selection import train_test_split
 from colorama import Fore, Style
-from functools import partial
+import plotly.graph_objects as go
 import os
 
 
@@ -49,7 +50,6 @@ def train_test(dataset, prop_train):
 
 
 def load_simulated_data(args):
-    
     
     if args.read_from == 'local':
         readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
@@ -134,6 +134,8 @@ def load_simulated_data(args):
         stats = pd.read_csv(os.path.join(readpath+'/Toy_examples/toy_examples_network_statistics.csv'))
 
     return loadpath_main, grid1, grid2, grid3, stats
+    
+    
 
 
 
@@ -142,27 +144,17 @@ def format_regulon_data(args, data, nodes):
     #filter out Zero columns
     X = torch.Tensor(data)
     
-    nonzero_cols = [idx for idx, i in enumerate(range(0, X.shape[1])) if X[:, i].sum() != 0]
-    nonzero_rows = [idx for idx, i in enumerate(range(0, X.shape[0])) if X[i, :].sum() != 0]
-    X_temp = X[:, nonzero_cols]
-    X_final = X_temp[nonzero_rows, :]
     
-    
-    in_graph, in_adj = get_input_graph(X = X_final, 
+    in_graph, in_adj = get_input_graph(X = X, 
                                        method = 'Correlation', 
                                        r_cutoff = args.correlation_cutoff)
     
-    A = torch.Tensor(in_adj)+torch.eye(X_final.shape[0])
+    A = torch.Tensor(in_adj)+torch.eye(X.shape[0])
     
-    
-    
-    #A_temp = A[:, nonzero_rows]
-    #A_final = A_temp[nonzero_rows, :]
-    
-    return X_final, A
+    return X, A
 
 
-def load_application_data(args):
+def load_application_data_regulon(args):
     
     if args.read_from == 'local':
         readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
@@ -170,7 +162,7 @@ def load_application_data(args):
         readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
         
     data = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DMEM_organoid.csv'))
-    temp_X = np.array(data)
+
     nodes, samples = data.shape
     gene_labels = data['Unnamed: 0'].tolist() 
     
@@ -183,10 +175,14 @@ def load_application_data(args):
         DM_index = [idx for idx, i in enumerate(data.columns) if "DM" in i]
         regulon_data = data.to_numpy()[:, DM_index].astype('float64')
         
-    nonzero_rows = [idx for idx, i in enumerate(range(0, regulon_data.shape[0])) if regulon_data[i, :].sum() != 0]
+    #nonzero_cols = [idx for idx, i in enumerate((regulon_data > 0.0).sum(0)) if i > 80]
+    nonzero_rows = [idx for idx, i in enumerate((regulon_data > 0.0).sum(1)) if i > 40]
+    
+    #X_temp = regulon_data[:, nonzero_cols]
+    X_reduced = regulon_data[nonzero_rows, :]
     
     if args.split_data:
-        x_train, x_test = train_test_split(regulon_data, 
+        x_train, x_test = train_test_split(X_reduced, 
                                            train_size=args.train_test_size[0],
                                            test_size=args.train_test_size[1],
                                            shuffle=True)
@@ -197,7 +193,7 @@ def load_application_data(args):
         test = [X_test, A_test, []]
     else:
         
-        X_train, A_train = format_regulon_data(args, data = regulon_data, nodes = nodes)
+        X_train, A_train = format_regulon_data(args, data = X_reduced, nodes = nodes)
         test = None
                 
     train = [X_train, A_train, []]
@@ -214,7 +210,152 @@ def load_application_data(args):
 
 
 
-def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, device, **kwargs):
+def load_application_data_Dream5(args):
+    
+    if args.read_from == 'local':
+        readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
+    elif args.read_from == 'cluster':
+        readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
+        
+    set_name = args.dataset.split('.')[1]
+        
+    gexp = pd.read_csv(os.path.join(readpath+f'Applications/Dream5/{set_name}/expression_data.tsv'), sep = '\t').to_numpy().T
+    tfs = pd.read_csv(os.path.join(readpath+f'Applications/Dream5/{set_name}/transcription_factors.tsv'), sep = '\t')
+    chip_feats = pd.read_csv(os.path.join(readpath+f'Applications/Dream5/{set_name}/chip_features.tsv'), sep = '\t')
+    gene_labels = pd.read_csv(os.path.join(readpath+f'Applications/Dream5/{set_name}/gene_ids.tsv'), sep = '\t')["Name"].tolist()
+    
+    
+    nodes, samples = gexp.shape
+    
+    nonzero_rows = [idx for idx, i in enumerate(range(0, gexp.shape[0])) if gexp[i, :].sum() != 0]
+    
+    if args.split_data:
+        x_train, x_test = train_test_split(gexp, 
+                                           train_size=args.train_test_size[0],
+                                           test_size=args.train_test_size[1],
+                                           shuffle=True)
+        
+        X_train, A_train = format_regulon_data(args, x_train, x_train.shape[0]) 
+        X_test, A_test = format_regulon_data(args, x_test, x_test.shape[0])
+        
+        test = [X_test, A_test, []]
+    else:
+        
+        X_train, A_train = format_regulon_data(args, data = gexp, nodes = nodes)
+        test = None
+                
+    train = [X_train, A_train, []]
+    
+    gene_labels_final = np.array(gene_labels)[nonzero_rows]
+   
+    
+    return train, test, gene_labels_final
+
+
+
+def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = False):
+    
+    if not load_from_existing:
+        if not os.path.exists(simargs.savepath):
+            os.makedirs(simargs.savepath)
+            
+        
+        
+        info_table = pd.DataFrame(columns = ['subgraph_type', 'connection_type', 'connection_prob','layers','StDev',
+                                            'nodes_per_layer', 'edges_per_layer', 'subgraph_prob',
+                                            'sample_size','modularity_top','avg_node_degree_top',
+                                            'avg_connect_within_top','avg_connect_between_top',
+                                            'modularity_middle','avg_node_degree_middle',
+                                            'avg_connect_within_middle','avg_connect_between_middle'
+                                            ])
+        
+        print(f'saving hierarchy to {simargs.savepath}')
+        pe, gexp, nodes, edges, nx_all, adj_all, path, nodelabs, ori = simulate_graph(simargs)
+        print('done.')
+        print('computing statistics....')
+        
+        mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
+                                                                    comm_assign = nodelabs, 
+                                                                    layers = simargs.layers,
+                                                                    sp = simargs.savepath,
+                                                                    node_size = 60,
+                                                                    font_size = 9,
+                                                                    add_labels=True)
+        print('*'*25+'top layer stats'+'*'*25)
+        print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
+            mod[0], node_deg[0]
+            )) 
+        print('mean within community degree = {:.4f}, mean edges between communities = {:.4f}'.format(
+            deg_within[0], deg_between[0] 
+            ))
+        if simargs.layers > 2:
+            print('*'*25+'middle layer stats'+'*'*25)
+            print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
+                mod[1], node_deg[1]
+            )) 
+            print('mean within community degree = {}, mean edges between communities = {}'.format(
+                deg_within[1], deg_between[1] 
+                ))
+            print('*'*60)
+            
+            
+        cp_dict = {'middle': simargs.connect_prob_middle, 'bottom': simargs.connect_prob_bottom}
+        
+        if simargs.layers == 3:
+            
+            row_info = [simargs.subgraph_type, simargs.connect, cp_dict, simargs.layers, simargs.SD,
+                        tuple(nodes),tuple(edges),simargs.subgraph_prob, simargs.sample_size,
+                        mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                        mod[1], node_deg[1], deg_within[1], deg_between[1]]
+        else:
+            row_info = [simargs.subgraph_type, simargs.connect, cp_dict, simargs.layers, simargs.SD,
+                        tuple(nodes),tuple(edges), simargs.sample_size,
+                        mod[0], node_deg[0], deg_within[0], deg_between[0], 
+                        'NA', 'NA', 'NA', 'NA']
+            
+        print(pd.DataFrame(row_info))
+        
+        print('done')
+        print('saving hierarchy statistics...')
+        info_table.loc[0] = row_info
+        info_table.to_csv(simargs.savepath+'intermediate_examples_network_statistics.csv')
+        np.savez(simargs.savepath+'intermediate_examples_network_statistics.npz', data = info_table.to_numpy())
+        print('done')
+        
+        print('Simulation Complete')       
+    
+    pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=simargs.savepath)
+    
+    #combine target labels into list
+    print('Read in expression data of dimension = {}'.format(pe.shape))
+    if simargs.layers == 2:
+        target_labels = [sorted_true_labels_top, []]
+        #sort nodes in expression table 
+        pe_sorted = pe[indices_top,:]
+    else:
+        target_labels = [sorted_true_labels_top, 
+                            sorted_true_labels_middle]
+        #sort nodes in expression table 
+        pe_sorted = pe[indices_middle,:]
+     
+    #nodes and attributes
+    nodes, attrib = pe.shape
+    X = torch.Tensor(pe_sorted)
+    #generate input graphs
+    if args.use_true_graph:
+        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
+    else:    
+        in_graph, in_adj = get_input_graph(X = pe_sorted, 
+                                           method = 'Correlation', 
+                                           r_cutoff = args.correlation_cutoff)
+
+        A = torch.Tensor(in_adj)+torch.eye(nodes)
+            
+    return X, A, target_labels
+    
+
+
+def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats, **kwargs):
     
     #run simulations
     for idx, value in enumerate(zip(grid1, grid2, grid3)):
@@ -223,11 +364,11 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
             
             #print network statistics
             print(f'summary of simulated network statistics for collection {args.dataset}:network {idx}')
-            print(stats.loc[idx])
+            #print(stats.loc[idx])
             print('='*55)
             
             #pdb.set_trace()
-            layers = value[2][1]
+            layers = value[2][2]
             #extract and use true community sizes
             if args.use_true_communities == True:
                 npl = np.array(ast.literal_eval(stats.nodes_per_layer[idx])).tolist()
@@ -789,7 +930,7 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     
     #unpack results
     all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, train_loss_history, test_loss_history, perf_hist = output
-    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes = all_out[bp]
+    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes, AW = all_out[bp]
      
     if args.use_method == 'bottom_up':
         P_pred_bp = P_all
@@ -873,15 +1014,136 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
         if args.save_results == True:
             fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')
+            
+    if truth:
+        return best_iter_metrics
 
 
 
 
+
+def plot_embeddings_heatmap(embeddings_list, use_correlations = False, verbose =False):
+    """
+    Plots a heatmap of model embeddings with a slider for epochs.
+
+    Parameters:
+    embeddings_list (list of np.ndarray): A list of 2D numpy arrays where each array
+                                          represents the embeddings at a particular epoch.
+    """
+    # Ensure all embeddings have the same shape
+    if use_correlations:
+        mats = [np.corrcoef(i) for i in embeddings_list]
+    else:
+        mats = embeddings_list
+    shape = mats[0].shape
+    assert all(emb.shape == shape for emb in mats), "All embeddings must have the same shape."
+
+    # Create initial heatmap for the first epoch
+    fig = go.Figure(data=go.Heatmap(z=mats[0]))
+
+    # Add frames for each epoch
+    frames = [go.Frame(data=go.Heatmap(z=emb), name=f"Epoch {i}") for i, emb in enumerate(mats)]
+    fig.frames = frames
+
+    # Update layout with slider
+    fig.update_layout(
+        updatemenus=[{
+            "buttons": [
+                {
+                    "args": [None, {"frame": {"duration": 500, "redraw": True}, "fromcurrent": True}],
+                    "label": "Play",
+                    "method": "animate"
+                },
+                {
+                    "args": [[None], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate", "transition": {"duration": 0}}],
+                    "label": "Pause",
+                    "method": "animate"
+                }
+            ],
+            "direction": "left",
+            "pad": {"r": 10, "t": 87},
+            "showactive": False,
+            "type": "buttons",
+            "x": 0.1,
+            "xanchor": "right",
+            "y": 0,
+            "yanchor": "top"
+        }],
+        sliders=[{
+            "active": 0,
+            "yanchor": "top",
+            "xanchor": "left",
+            "currentvalue": {
+                "font": {"size": 20},
+                "prefix": "Epoch:",
+                "visible": True,
+                "xanchor": "right"
+            },
+            "transition": {"duration": 300, "easing": "cubic-in-out"},
+            "pad": {"b": 10, "t": 50},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": [
+                {
+                    "args": [[f"Epoch {i}"], {"frame": {"duration": 300, "redraw": True}, "mode": "immediate", "transition": {"duration": 300}}],
+                    "label": str(i),
+                    "method": "animate"
+                } for i in range(len(embeddings_list))
+            ]
+        }]
+    )
+
+    if verbose:
+        fig.show()
+    
+    return fig
+
     
     
     
+def generate_attention_graph(args, A, AW, gene_labels, S_all, cutoff = 'mean'):
+    G = nx.from_numpy_array(A.detach().numpy())
+    new_G = nx.Graph()
+
+    edgelist = []
+    nodelist = []
+
+    attent_weights = AW['encoder'][0][1].mean(dim=1)
+    atn_edges = [(i,j) for idx, (i,j) in enumerate(zip(AW['encoder'][0][0][0].detach().numpy(), AW['encoder'][0][0][1].detach().numpy()))]
+
+    fig, ax = plt.subplots(1,1, figsize = (12, 10))
+    ax.hist(attent_weights.detach().numpy())
+    ax.set_title('Histogram of attention weights')
+    fig.savefig(args.sp+'histogram_attent_weights.pdf')
     
+    if cutoff == 'mean':
+        ct = float(attent_weights.mean())
+    else: 
+        ct = float(attent_weights.min())
+
+
+    for index, edge in enumerate(atn_edges):
+        if edge[0] != edge[1]:
+            attn_weight = attent_weights[index].detach().numpy()
+            if attn_weight >= ct:
+                edgelist.append([(gene_labels[edge[0]], gene_labels[edge[1]]), attn_weight])
+                
+
+    for index, node in enumerate(gene_labels):
+        nodelist.append((str(gene_labels[index]), {'name': str(gene_labels[index]),
+                        'top_label': int(S_all[0].unsqueeze(1)[index]),
+                        'middle_label': int(S_all[1].unsqueeze(1)[index])}))
+        
+    edges = [i[0] for i in edgelist]
+    weights = [float(i[1]) for i in edgelist]
+    new_G.add_nodes_from(nodelist)
+    for edge, weight in zip(edges, weights):
+                new_G.add_edge(edge[0], edge[1], weight = weight)
+
+    if args.save_results:
+        nx.write_gexf(new_G, args.sp+"gene_network.gexf")
+
+    weighted_adj = nx.to_numpy_array(new_G)
     
-    
-    
-    
+    return new_G, weighted_adj

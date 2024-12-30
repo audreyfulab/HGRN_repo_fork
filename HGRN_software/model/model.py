@@ -22,11 +22,15 @@ from torchinfo import summary
 #from torchsummary import summary
 from torch_kmeans import SoftKMeans
 
-def select_class(X, labels, k, dim = 0):
+def select_class(X, labels, k, dim = 0, return_index = False):
     #L = torch.tensor(labels)
-    indices = torch.nonzero(labels == k).squeeze()
-    X_sub = torch.index_select(X, dim=dim, index=indices)
-    return X_sub
+    indices = torch.nonzero(labels == k)
+    X_sub = torch.index_select(X, dim=dim, index=indices.squeeze())
+    
+    if return_index:
+        return X_sub, indices
+    else:
+        return X_sub
 
 
 def select_subgraph(A, labels, k):
@@ -36,6 +40,21 @@ def select_subgraph(A, labels, k):
     # Select the rows corresponding to community 1
     subgraph = torch.index_select(A_rows, dim = 1, index = indices)
     return subgraph
+
+
+def reorganize_labels(S1, S2_list):
+    # S1: tensor of initial class labels
+    # S2_list: list of tensors, each containing predicted labels for subsets of X based on unique labels in S1
+
+    # Create a list to hold the indices for each unique label in S1
+    indices_list = [torch.where(S1 == label)[0] for label in torch.unique(S1, sorted=False)]
+
+    # Concatenate S2 tensors according to the order of indices
+    S2_reorganized = torch.empty_like(S1)
+    for indices, S2 in zip(indices_list, S2_list):
+        S2_reorganized[indices] = S2
+
+    return S2_reorganized
 
 
 
@@ -141,7 +160,7 @@ class CommunityDetectionLayers(nn.Module):
 
     def __init__(self, in_nodes, in_attrib, comm_sizes=[60, 10], 
                  layer_operator = 'Linear', dropout = 0.2, normalize = True, 
-                 **kwargs):
+                 input_transform_layer = False, **kwargs):
         
         super(CommunityDetectionLayers, self).__init__()
         #store size
@@ -338,6 +357,8 @@ class HCD(nn.Module):
         #top down method
         if self.method == 'top_down':
                 #fit hierarchy
+                
+                #Get initial set of labels S - a list with one element (a tensor of class labels)
                 if self.use_kmeans_top:
                     if self.use_output_layers: 
                         W = self.fully_connected_layers(Z)
@@ -357,12 +378,17 @@ class HCD(nn.Module):
                     P = P_all[0]
                  
                 
-                #Select data based on top partition
+                #Select data based on top partition i.e S
                 if self.use_output_layers:
-                    subsets_Z = [select_class(W, S[0], k, dim=0) for k in torch.unique(S[0])]
-                else:
-                    subsets_Z = [select_class(Z, S[0], k, dim=0) for k in torch.unique(S[0])]
+                    subsets_with_index = [select_class(W, S[0], k, dim=0, return_index=True) for k in torch.unique(S[0])]
                     
+                else:
+                    subsets_with_index = [select_class(Z, S[0], k, dim=0, return_index=True) for k in torch.unique(S[0])]
+                    
+                    
+                #print(f'indices {[i[1] for i in subsets_with_index]}')
+                #positions = torch.cat([i[1] for i in subsets_with_index])
+                subsets_Z = [i[0] for i in subsets_with_index]
                 subsets_X = [select_class(X, S[0], k, dim=0) for k in torch.unique(S[0])] 
                 subsets_A = [select_subgraph(A, S[0], k) for k in torch.unique(S[0])]
                 
@@ -378,7 +404,7 @@ class HCD(nn.Module):
                         A_all = []
                         P_all = [P, [i.soft_assignment.squeeze(0) for i in results]]
                         S_temp = [i.labels.squeeze(0)+index*j for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
-                        S_final = torch.cat(S_temp)
+                        S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
                         S_all = [S[0], S_final]
                         
                         
@@ -392,8 +418,9 @@ class HCD(nn.Module):
                         X_all = [i[0] for i in results]
                         A_all = [i[1] for i in results]
                         P_all = [P, [i[4][0] for i in results]]
-                        S_temp = [i[5][0]+index*j for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])]))]
-                        S_final = torch.cat(S_temp)
+                        #S_temp = [(i[5][0]+self.comm_sizes[1]+10) % 100 if index > 0 else i[5][0] for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])])) ]
+                        S_temp = [i[5][0]+((self.comm_sizes[1]+10)*index) for index, i in enumerate(results) ]
+                        S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
                         S_all = [S[0], S_final]
                 
         A_all_final = [A]+[A_all]+[subsets_A]

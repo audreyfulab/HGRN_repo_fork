@@ -147,25 +147,16 @@ class Fully_ConnectedLayer(nn.Module):
         #apply linear layer and dropout
         H = self.Linearlayer(X)
         
-        #normalize and return
-        H_norm = self.act_norm(H)
-        
         #apply LeakyReLU activation
-        H_act = self.act(H_norm)
+        H_act = self.act(H)
+        
+        #normalize and return
+        H_norm = self.act_norm(H_act)
         
         #apply dropout
-        H_out = self.Dropout_layer(H_act)
+        H_out = self.Dropout_layer(H_norm)
         
         return H_out
-
-
-
-
-
-
-
-
-
 
 
 
@@ -264,7 +255,8 @@ class Comm_DenseLayer2(nn.Module):
         if self.operator == 'SAGEConv':
             
             ei, ea = pyg_utils.dense_to_sparse(A)
-            H = self.layer(x=Z, edge_index=ei)
+            M = self.layer(x=Z, edge_index=ei)
+            H = self.out_norm(M)
             
         if self.operator in ['GATConv', 'GATv2Conv']:
             ei, ea = pyg_utils.dense_to_sparse(A)
