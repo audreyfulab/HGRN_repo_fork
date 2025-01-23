@@ -23,7 +23,54 @@ from random import randint as rd
 
 def simulate_graph(args): 
     
+    """
+    Simulates a hierarchical graph with two or three layers based on parameters passed in 'args' and generates pseudo-expression data.
+
+    Args:
+        args (argparse.Namespace): A namespace containing the following attributes:
+            connect (str): Type of connectivity between nodes ('full' for fully connected, 'disc' for disconnected).
+            connect_prob_middle (str): Probability model for connections in the middle layer.
+            connect_prob_bottom (str): Probability model for connections in the bottom layer.
+            toplayer_connect_prob (float): Probability of connections in the top layer graph.
+            top_layer_nodes (int): Number of nodes in the top layer of the hierarchy.
+            subgraph_type (str): Type of subgraph to use ('small world', etc.).
+            subgraph_prob (float or list of float): Probability for subgraph connections.
+            nodes_per_super2 (tuple): Number of nodes per super node in the second layer.
+            nodes_per_super3 (tuple): Number of nodes per super node in the third layer.
+            node_degree_middle (int): Degree of nodes in the middle layer.
+            node_degree_bottom (int): Degree of nodes in the bottom layer.
+            sample_size (int): Number of samples for pseudo-expression data.
+            layers (int): Number of layers in the hierarchy (2 or 3).
+            SD (float): Standard deviation for the pseudo-expression data generation.
+            common_dist (bool): If True, use a common distribution for expression data.
+            seed_number (int): Seed number for random number generation.
+            within_edgeweights (tuple): Weights for edges within subgraphs.
+            between_edgeweights (tuple): Weights for edges between subgraphs.
+            use_weighted_graph (bool): If True, generate a weighted graph.
+            set_seed (bool): If True, set a seed for random number generation.
+            force_connect (bool): If True, force connectivity in the graph.
+            savepath (str): Directory path to save the generated graphs and data.
+            mixed_graph (bool): Whether to mixed subgraph types between layers.
+
+    Returns:
+        tuple: Contains the following elements:
+            - pe (numpy.ndarray): Generated pseudo-expression data.
+            - gexp (pandas.DataFrame): Pseudo-expression data as a DataFrame.
+            - nodes_by_layer (list): Number of nodes in each layer.
+            - edges_by_layer (list): Number of edges in each layer.
+            - nx_all (list): Topological orderings of nodes in each graph layer.
+            - adj_all (list): Adjacency matrices for each graph layer.
+            - savepath (str): Path where the outputs are saved.
+            - ts_full (list): Topological order of the full graph.
+            - ori_nodes (list): Original nodes in the final graph.
+
+    This function constructs a hierarchical graph based on the given parameters,
+    generates and saves visualizations of the graph layers, and produces
+    pseudo-expression data for the nodes. The outputs include the generated data
+    and structural information about the graphs.
+    """
     
+    # set a random seed
     if args.set_seed:
         if args.seed_number:
             rd.seed(args.seed_number)
@@ -32,15 +79,18 @@ def simulate_graph(args):
         
         
     
-    #seed(args.seed_number)
+    #preallocate
     nodes_by_layer = []
     edges_by_layer = []
+    
+    #for networks with fully connected top layer
     if args.connect == 'full':
         #randomly generate first layer of hierarchy
         h1_graph = nx.watts_strogatz_graph(args.top_layer_nodes, 
                                            args.top_layer_nodes, 
                                            args.subgraph_prob)
-        #h1_graph = nx.erdos_renyi_graph(args.top_layer_nodes, args.toplayer_connect_prob, directed=True)
+        
+        #convert to directed graph
         h1_graph = nx.DiGraph([(u,v) for (u,v) in h1_graph.edges() if u!=v])
 
         #draw directed graph
@@ -55,6 +105,7 @@ def simulate_graph(args):
         h1_in_degree = [i[1] for i in h1_graph.in_degree()]
         h1_out_degree = [i[1] for i in h1_graph.in_degree()]
         
+    #for networks with disconnected top layer
     if args.connect == 'disc':
     
         h1_graph =  np.zeros((args.top_layer_nodes,args.top_layer_nodes))
@@ -73,7 +124,7 @@ def simulate_graph(args):
         h1_in_degree = 0
         h1_out_degree = 0
         
-        
+    #print top layer summary stats
     print('-'*60)
     print("Number of edges: {} \nNumber of nodes: {} \n Mean In degree: {} \n Mean Out degree: {}".format(
         h1_graph.number_of_edges(), h1_graph.number_of_nodes(),
@@ -82,6 +133,7 @@ def simulate_graph(args):
     nodes_by_layer.append(h1_graph.number_of_nodes())
     edges_by_layer.append(h1_graph.number_of_edges())
     
+    #generate middle layer graph
     h2_graph, subgraphs2 = hierachical_graph(top_graph=h1_graph, 
                                  subgraph_node_number=args.nodes_per_super2, 
                                  subgraph_type =args.subgraph_type, 
@@ -92,7 +144,8 @@ def simulate_graph(args):
                                  weight_w = args.within_edgeweights,
                                  weight_b = args.between_edgeweights,
                                  as_weighted = args.use_weighted_graph,
-                                 force_connections= args.force_connect)
+                                 force_connections= args.force_connect,
+                                 mixed=args.mixed_graph)
         
     #sort middle layer
     ts_h2_graph = list(nx.topological_sort(h2_graph))
@@ -100,7 +153,7 @@ def simulate_graph(args):
     
     
     
-    #print toplayer attributes
+    #print middle layer summary stats
     print('-'*60)
     print("Number of edges: {} \nNumber of nodes: {} \nIn degree: {} \nOut degree: {}".format(
         h2_graph.number_of_edges(), h2_graph.number_of_nodes(),
@@ -109,6 +162,8 @@ def simulate_graph(args):
     print('-'*60)
     nodes_by_layer.append(h2_graph.number_of_nodes())
     edges_by_layer.append(h2_graph.number_of_edges())
+    
+    #handle two layer networks
     if args.layers == 2:
         #draw top layer
         fig, ax = plt.subplots(figsize = (14,10))
@@ -122,6 +177,7 @@ def simulate_graph(args):
         midfig.savefig(args.savepath+'middle_layer_graph.pdf')
         midfig.savefig(args.savepath+'middle_layer_graph.png', dpi = 500)
         
+        #generate bottom layer of the network
         h3_graph, subgraphs3 = hierachical_graph(top_graph=h2_graph, 
                                      subgraph_node_number=args.nodes_per_super3, 
                                      subgraph_type =args.subgraph_type, 
@@ -132,16 +188,19 @@ def simulate_graph(args):
                                      weight_w = args.within_edgeweights,
                                      weight_b = args.between_edgeweights,
                                      as_weighted = args.use_weighted_graph,
-                                     force_connections= args.force_connect)
+                                     force_connections= args.force_connect,
+                                     mixed=args.mixed_graph)
         
-        
+        #topo sort 
         ts_h3_graph = list(nx.topological_sort(h3_graph))
         adj_h3_graph = nx.adjacency_matrix(h3_graph, ts_h3_graph).todense()
+        
         #draw middle layer
         fig, ax = plt.subplots(figsize = (14,10))
         botfig = plot_diGraph(fig, ax, h3_graph, return_fig=True)
         botfig.savefig(args.savepath+'bottom_layer_graph.pdf')
         botfig.savefig(args.savepath+'bottom_layer_graph.png', dpi = 500)
+        
         #print toplayer attributes
         print('-'*60)
         print("Number of edges: {} \nNumber of nodes: {} \nIn degree: {} \nOut degree: {}".format(
@@ -154,6 +213,7 @@ def simulate_graph(args):
         nodes_by_layer.append(h3_graph.number_of_nodes())
         edges_by_layer.append(h3_graph.number_of_edges())
 
+    #convert topology to undirected 
     h1_undi = h1_graph.to_undirected()
     h2_undi = h2_graph.to_undirected()
     h1_undi_adj = nx.to_numpy_array(h1_undi)
@@ -173,6 +233,7 @@ def simulate_graph(args):
         
     print(len(ts_full), adj_full.shape)
     
+    #generate pseudoexpression data according to network topology in last/bottom layer
     print('Generating pseudoexpression...')
     if args.use_weighted_graph:
         pe, ori_nodes = generate_pseudo_expression_weighted(topological_order=ts_full, 
@@ -190,8 +251,8 @@ def simulate_graph(args):
                                                    common_distribution=args.common_dist)
     
     print('data dimension = {}'.format(pe.shape))
-    #pdb.set_trace()
-    #save as .npz
+    
+    #save data
     if args.layers == 2:
         np.savez(args.savepath, layer1 = h1_undi, 
                  adj_layer1 = h1_undi_adj,
@@ -231,9 +292,10 @@ def simulate_graph(args):
     np.save(args.savepath+'_gexp.npy', gexp_numpy)
     gexp.head()
     
-    
+    #sort group labels
     indices_top, indices_mid, true_labels, sorted_top, sorted_middle = sort_labels(gene_list)
     
+    #make plot of data and graph
     fig, ax = plt.subplots(1,2, figsize = (16, 10))
     if args.layers > 2:
         sbn.heatmap(h3_undi_adj, ax = ax[1])
@@ -245,6 +307,8 @@ def simulate_graph(args):
     fig.savefig(args.savepath+'heatmaps.pdf')
     fig.savefig(args.savepath+'heatmaps.png', dpi = 500)
     
+    #close all open figures
     plt.close('all')
     
+    #return 
     return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes

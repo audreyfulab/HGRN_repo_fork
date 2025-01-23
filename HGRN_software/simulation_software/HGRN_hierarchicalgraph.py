@@ -77,45 +77,64 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                       degree=3, connection_prob_within=0.05, connection_prob_between = 0.01,
                       sub_graph_prob=0.01, weight_b = (0.1, 0.3), weight_w = (0.4, 0.8), mixed = False, 
                       force_connections = False, seed = None):
-    '''
-    Input:
-        top_graph: the base graph
-        subgraph_node_number: the average node number of subgraph
-        subgraph_type: the type of subgraph, now only small world
-        sub_graph_prob: the connectivity inside subgraph
-        sub_graph_prob: the probability of connection among subgraph
-    Output:
-        a directed graph that inplies hierarchical structure
-    '''
+    """
+    Constructs a hierarchical directed graph using subgraphs of specified types and properties, 
+    based on a given top-level graph structure. The function supports multiple subgraph types and 
+    allows for mixed or uniform subgraph configurations.
+
+    Args:
+        top_graph (networkx.Graph): The base graph defining the hierarchy among subgraphs.
+        subgraph_node_number (tuple): Range (min, max) for the number of nodes in each subgraph.
+        subgraph_type (str): Type of subgraph to be used ('small world', 'random graph', or 'scale free').
+        as_weighted (bool, optional): If True, assigns weights to the edges in the subgraphs. Defaults to True.
+        degree (int, optional): Degree parameter for subgraphs where applicable (e.g., small world). Defaults to 3.
+        connection_prob_within (float, optional): Probability of connecting nodes within the same community. Defaults to 0.05.
+        connection_prob_between (float, optional): Probability of connecting nodes between different communities. Defaults to 0.01.
+        sub_graph_prob (float, optional): Probability of connections within subgraphs. Defaults to 0.01.
+        weight_b (tuple, optional): Range (min, max) for weights between subgraph connections. Defaults to (0.1, 0.3).
+        weight_w (tuple, optional): Range (min, max) for weights within subgraph connections. Defaults to (0.4, 0.8).
+        mixed (bool, optional): If True, uses a mix of subgraph types. Otherwise, uses a uniform type. Defaults to False.
+        force_connections (bool, optional): If True, ensures at least one connection between communities even if probability conditions fail. Defaults to False.
+        seed (int, optional): Seed for random number generation to ensure reproducibility. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing:
+            - full_graph (networkx.DiGraph): The complete hierarchical graph constructed.
+            - subgraphs (list): A list of subgraphs used in constructing the full graph.
+
+    This function generates a hierarchical graph structure by populating a base graph with subgraphs
+    defined by the specified parameters. It handles different configurations for subgraphs, supports
+    both directed and weighted connections, and allows for probabilistic inter-community links.
+    """
     subgraphs, node_list = [], []
     full_graph = nx.DiGraph()
     full_graph_node_list = {}
 
+    # if no seed is select a seed at random
     if not seed:
         seed = rd(100, 500)
-    # generate a list of sub-graphs
-    
-        ##--------------------##
-        ##   Mixed Subgraphs  ##
-        ##--------------------##
+        print(f'Using random seed {seed}')
+
+    #for mixed topologies
     if (mixed == True and (subgraph_type == 'small world' or subgraph_type == 'random graph' or subgraph_type == 'scale free')):
         top_node_length =  len(list(top_graph.nodes())) ; g_index  = top_node_length // 3
         top_node_g1 = list(top_graph.nodes())[:g_index]
         top_node_g2 = list(top_graph.nodes())[g_index:(g_index + g_index)]
         top_node_g3 = list(top_graph.nodes())[(g_index + g_index):]
         
-        for top_node_g1 in top_node_g1: ## sm = small world
+        #small world
+        for top_node_g1 in top_node_g1: 
             subgraph_sm = nx.watts_strogatz_graph(n=rd(subgraph_node_number[0], 
                                                      subgraph_node_number[1]), 
                                                   k=degree, 
                                                   p=sub_graph_prob/np.mean(subgraph_node_number))
-            #subgraph_sme = nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]
+            
             subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]))
             node_list.append(top_node_g1)
             print('small world',subgraph_sm.nodes())
             print(subgraph_sm.edges())
         
-        
+        #random graph
         for top_node_g2 in top_node_g2:
             subgraph_random = nx.gnp_random_graph(n=rd(subgraph_node_number[0], 
                                                      subgraph_node_number[1]),
@@ -127,7 +146,8 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
             print(subgraph_random.edges())
             
             
-        for top_node_g3 in top_node_g3: # sf : scale free
+        #scale free
+        for top_node_g3 in top_node_g3: 
             n = rd(subgraph_node_number[0], subgraph_node_number[1]); m = rd(2,(n-1))
             subgraph_sf = nx.barabasi_albert_graph(n,m)
             subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sf.edges() if u!=v]))
@@ -144,11 +164,11 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         
     else :
         
+        # for uniform topologies 
         for index, topgraph_node in enumerate(list(top_graph.nodes)):
-            ##--------------##
-            ## Small world  ##
-            ##--------------##
-            if (subgraph_type == 'small world' and (mixed == 'False' or mixed is None)):
+            
+            #small world
+            if (subgraph_type == 'small world' and (mixed == False or mixed is None)):
                 subgraph = nx.watts_strogatz_graph(n=rd(subgraph_node_number[0], 
                                                       subgraph_node_number[1]), 
                                                    k=degree, 
@@ -159,22 +179,9 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                 G = add_edges_to_subgraph(nx.DiGraph(), subgraph.nodes, subgraph.edges, 
                                        weighted_graph = as_weighted, weighting = weight_w)
                 subgraphs.append(G)
-                #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph.edges() if u!=v]))
             
-            ##--------------##
-            ## Random Graph ##
-            ##--------------##
-            elif (subgraph_type == 'random graph' and (mixed == 'False' or mixed is None)):
-                # subgraph = generate_random_dag_with_gnp(n = rd(subgraph_node_number[0], 
-                #                                         subgraph_node_number[1]),
-                #                                         p = sub_graph_prob,
-                #                                         make_directed=True)
-                
-                # subgraph = nx.gnm_random_graph(n = rd(subgraph_node_number[0], 
-                #                                         subgraph_node_number[1]), 
-                #                                m = rd(subgraph_node_number[0], 
-                #                                         subgraph_node_number[1]),
-                #                                directed = True)
+            #random graph
+            elif (subgraph_type == 'random graph' and (mixed == False or mixed is None)):
                 
                 subgraph = nx.gnp_random_graph(n = rd(subgraph_node_number[0], 
                                                         subgraph_node_number[1]), 
@@ -188,29 +195,22 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                                        weighted_graph = as_weighted, weighting = weight_w)
                 
                 subgraphs.append(G)
-                #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph.edges() if u<v]))
-            ##--------------##
-            ##  Scale Free  ##
-            ##--------------##
-            elif (subgraph_type == 'scale free' and (mixed == 'False' or mixed is None)):
+                
+            #Scale free subgraph
+            elif (subgraph_type == 'scale free' and (mixed == False or mixed is None)):
                 n = rd(subgraph_node_number[0], subgraph_node_number[1]); m = rd(2,(n-1))
                 subgraph = nx.barabasi_albert_graph(n,m)
                 G = add_edges_to_subgraph(nx.DiGraph(), subgraph.nodes, subgraph.edges, 
                                        weighted_graph = as_weighted, weighting = weight_w)
                 subgraphs.append(G)
-                #subgraph = nx.scale_free_graph(rd(subgraph_node_number[0], subgraph_node_number[1]))
-                #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph.edges() if u!=v]))
-            
-            
-
 
             node_list.append(topgraph_node)
-        #print(subgraphs[1])
+
         print(subgraph_type, "subgraphs used")
         
     # generate full graph based on top graph
-    #creates a directed DiGraph for each community corresponding nodes in the layer
-    #above
+    # creates a directed DiGraph for each community corresponding nodes in the layer
+    # above
     for index, topgraph_node in enumerate(node_list):
         # add nodes and edges to full_graph
         nodes = [str(topgraph_node) + '_' + str(node) for node in list(subgraphs[index].nodes)]
@@ -222,17 +222,6 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                                             edges_to_add = edges)
         full_graph_node_list[topgraph_node] = nodes
         
-        # subgraph_node_list = []
-        # # add nodes to full_graph
-        # for subgraph_node in list(subgraphs[index].nodes):
-        #     full_graph.add_node(str(topgraph_node) + '_' + str(subgraph_node))
-        #     subgraph_node_list.append(str(topgraph_node) + '_' + str(subgraph_node))
-        # # add the nodes to a dict for nex step
-        # full_graph_node_list[topgraph_node] = subgraph_node_list
-        # # add edges in sub-graphs to full graph 
-        # for subgraph_edge in subgraphs[index].edges:
-        #     full_graph.add_edge(str(topgraph_node) + '_' + str(subgraph_edge[0]), 
-        #                         str(topgraph_node) + '_' + str(subgraph_edge[1]))
     print(f'{top_graph.edges}')
     # add connections between sub-graphs
     for p_graph, c_graph in top_graph.edges:
@@ -253,23 +242,22 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         possible_edges = [(i, j) for i in p_list for j in c_list]
         np.random.shuffle(possible_edges)
         num_possible = len(possible_edges)
-        # unless specified, probability will be 1/(total cross connections i.e equal probability)
-        # if connection_prob == 'use_baseline':
-        #          c_prob = (num_possible/len(top_graph.edges))/num_possible
-        # else:
-        #     c_prob = connection_prob
+        #generate edges
         if p_community == c_community:
             c_prob = connection_prob_within
-        else: c_prob = connection_prob_between
+        else: 
+            c_prob = connection_prob_between
             
-        
+        #get edge indices
         which_edges=[i<=c_prob for i in np.random.uniform(size = num_possible).tolist()]
         
+        #handle forced connections (select one edge at random from possible edges)
         if sum(which_edges) == 0 and force_connections:
             which_edges_idx = np.array([np.random.randint(num_possible)])
-        
         else:
             which_edges_idx = np.arange(num_possible)[which_edges]
+            
+        #add edges and print which edges were added to user
         edges_to_add = [possible_edges[x] for x in which_edges_idx]
         print(f'Adding {len(edges_to_add)} edges between community {p_graph} and community {c_graph}: \n {edges_to_add}')
         
@@ -278,32 +266,9 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                                            edges_to_add = edges_to_add, 
                                            weighted_graph = as_weighted, 
                                            weighting = weight_b)
-        
-        # for p_node, c_node in edges_to_add:
-        #       # add based on probability
-        #       full_graph.add_edge(p_node, c_node)
-    
     
     return full_graph, subgraphs
 
-
-# def generate_pseudo_expression(topological_order, adjacency_matrix, 
-#                                 number_of_invididuals, free_mean=0, std=0.5,
-#                                 common_distribution = True):
-#     pseudo_expression = np.zeros((len(topological_order), number_of_invididuals))
-#     for i in range(number_of_invididuals): 
-#         cur_sample = np.zeros((len(topological_order), ))
-#         for index, node in enumerate(topological_order):
-#             if np.sum(adjacency_matrix[:, index]) == 0:
-#                 if common_distribution == True:
-#                     cur_sample[index] = np.random.normal(free_mean, std)
-#                 else:
-#                     cur_sample[index] = np.random.normal(np.random.uniform(-10, 10), std)
-#             else:
-#                 parents_loc = [cur_sample[i] for i in range(len(cur_sample)) if adjacency_matrix[i, index]==1]
-#                 cur_sample[index] = np.random.normal(np.mean(parents_loc), std)
-#         pseudo_expression[:, i] = cur_sample.reshape(-1,)
-#     return pseudo_expression
 
 
 
@@ -311,6 +276,37 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
 def generate_pseudo_expression(topological_order, adjacency_matrix, 
                                number_of_invididuals, free_mean=0, std=0.5,
                                common_distribution = True):
+    
+    """
+    Generates pseudo-expression data for a directed acyclic graph (DAG) based on 
+    the given topological order and adjacency matrix. This function simulates 
+    expression levels for nodes, where the expression level of each node is 
+    influenced by its parent nodes.
+
+    Args:
+        topological_order (list): A list of nodes in topological order, representing the DAG.
+        adjacency_matrix (numpy.ndarray): A binary adjacency matrix indicating the presence of edges 
+            between nodes (1 for an edge from row node to column node, 0 otherwise).
+        number_of_invididuals (int): The number of individual samples for which to generate expression data.
+        free_mean (float, optional): The mean of the normal distribution for generating expression levels 
+            for nodes without parents. Defaults to 0.
+        std (float, optional): The standard deviation of the normal distribution used for generating 
+            expression levels. Defaults to 0.5.
+        common_distribution (bool, optional): If True, uses a common distribution with mean `free_mean` 
+            for all origin nodes. If False, uses the index of the node as the mean for each origin node. 
+            Defaults to True.
+
+    Returns:
+        tuple: A tuple containing:
+            - pseudo_expression (numpy.ndarray): A matrix of generated pseudo-expression data, 
+              with shape (number_of_nodes, number_of_invididuals).
+            - origin_nodes (list): A list of tuples (index, node) for nodes without parent nodes in the DAG.
+
+    This function iterates over each node in topological order, determining whether it has parents 
+    based on the adjacency matrix. For nodes without parents, it generates expression data from 
+    a normal distribution. For nodes with parents, it generates data based on the mean expression 
+    level of the parent nodes.
+    """
     
     N = len(topological_order)
     pseudo_expression = np.zeros((N, number_of_invididuals))
@@ -338,6 +334,38 @@ def generate_pseudo_expression(topological_order, adjacency_matrix,
 def generate_pseudo_expression_weighted(topological_order, adjacency_matrix, 
                                         number_of_invididuals, free_mean=0, std=0.5,
                                         common_distribution = True):
+    
+    
+    """
+    Generates weighted pseudo-expression data for a directed acyclic graph (DAG) based on 
+    the given topological order and weighted adjacency matrix. This function simulates 
+    expression levels for nodes, where the expression level of each node is influenced by 
+    its parent nodes, accounting for edge weights.
+
+    Args:
+        topological_order (list): A list of nodes in topological order, representing the DAG.
+        adjacency_matrix (numpy.ndarray): A weighted adjacency matrix indicating the strength 
+            of edges between nodes (non-zero values indicate an edge from row node to column node).
+        number_of_invididuals (int): The number of individual samples for which to generate expression data.
+        free_mean (float, optional): The mean of the normal distribution for generating expression levels 
+            for nodes without parents. Defaults to 0.
+        std (float, optional): The standard deviation of the normal distribution used for generating 
+            expression levels. Defaults to 0.5.
+        common_distribution (bool, optional): If True, uses a common distribution with mean `free_mean` 
+            for all origin nodes. If False, uses the index of the node as the mean for each origin node. 
+            Defaults to True.
+
+    Returns:
+        tuple: A tuple containing:
+            - pseudo_expression (numpy.ndarray): A matrix of generated pseudo-expression data, 
+              with shape (number_of_nodes, number_of_invididuals).
+            - origin_nodes (list): A list of tuples (index, node) for nodes without parent nodes in the DAG.
+
+    This function iterates over each node in topological order, determining whether it has parents 
+    based on the weighted adjacency matrix. For nodes without parents, it generates expression data 
+    from a normal distribution. For nodes with parents, it generates data based on a weighted average 
+    of the expression levels of the parent nodes, using the weights from the adjacency matrix.
+    """
     
     N = len(topological_order)
     pseudo_expression = np.zeros((N, number_of_invididuals))
