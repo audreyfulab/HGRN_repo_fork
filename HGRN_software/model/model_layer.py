@@ -183,49 +183,56 @@ class Comm_DenseLayer2(nn.Module):
         super(Comm_DenseLayer2, self).__init__()
         #store community info
         self.in_features = in_features
+        self.out_features = out_comms
         self.out_comms = out_comms
         self.norm = norm
         self.operator = operator
-        #set parameter initilization gain
         
         if self.operator == 'Linear':
             
-            self.layer = nn.Linear(in_features = in_features, 
-                                   out_features = out_comms, 
+            self.transform = nn.Linear(in_features = self.in_features, 
+                                   out_features = self.out_features, 
                                    bias = use_bias)
         
-            #self.Dropout_layer = nn.Dropout1d(p = dropout)
+            self.Dropout_layer = nn.Dropout1d(p = dropout)
             
             
         if self.operator == 'SAGEConv':
             
-            self.layer = SAGEConv(in_channels = in_features, 
-                                  out_channels = out_comms,
+            self.transform = SAGEConv(in_channels = self.in_features, 
+                                  out_channels = self.out_features,
                                   aggr='mean',
                                   normalize=norm)
             
         if self.operator == 'GATConv':
             
-            self.layer = GATConv(in_channels = in_features, 
-                                 out_channels = out_comms,
+            self.transform = GATConv(in_channels = self.in_features, 
+                                 out_channels = self.out_features,
                                  heads=heads,
                                  dropout=dropout,
                                  concat = False)
         if self.operator == 'GATv2Conv':
             
-            self.layer = GATv2Conv(in_channels=in_features,
-                                   out_channels=out_comms,
+            self.transform = GATv2Conv(in_channels=self.in_features,
+                                   out_channels=self.out_features,
                                    heads=heads,
                                    dropout=dropout,
                                    concat = False)
+            
+        #self.linear = nn.Linear(in_features=self.out_features, out_features=self.out_comms)
         
         #normalize layer output
         if self.norm == True:
-            self.out_norm = nn.LayerNorm(out_comms)
+            if self.operator in ['GATConv', 'GraphSAGE', 'GATv2Conv']:
+                self.out_norm = GraphNorm(self.out_features)
+            else:
+                self.out_norm = nn.LayerNorm(self.out_features)
+            #self.last_norm = nn.LayerNorm(self.out_comms)
         else:
             self.out_norm = nn.Identity()
+            self.last_norm = nn.Identity()
             
-        #output activation 
+        #set parameter initilization gain
         if layer_gain == 'automatic':
             self.gain = nn.init.calculate_gain('leaky_relu', alpha)
         else:
@@ -248,22 +255,25 @@ class Comm_DenseLayer2(nn.Module):
         if self.operator == 'Linear':
             
             #linear layer and activation
-            M = self.layer(Z)
+            M = self.transform(Z)
             M_act = self.act(M)
-            H = self.out_norm(M_act)
+            M_norm = self.out_norm(M_act)
+            H = self.Dropout_layer(M_norm)
             
         if self.operator == 'SAGEConv':
             
             ei, ea = pyg_utils.dense_to_sparse(A)
-            M = self.layer(x=Z, edge_index=ei)
-            H = self.out_norm(M)
+            M = self.transform(x=Z, edge_index=ei)
+            M_act = self.act(M)
+            H = self.out_norm(M_act)
             
         if self.operator in ['GATConv', 'GATv2Conv']:
             ei, ea = pyg_utils.dense_to_sparse(A)
-            M = self.layer(x=Z, edge_index=ei)
-            
-            H = self.out_norm(M)
+            M = self.transform(x=Z, edge_index=ei)
+            M_act = self.act(M)
+            H = self.out_norm(M_act)
         
+        #H_out = self.last_norm(self.act(self.linear(H)))
         # class prediction probabilities
         P = F.softmax(H, dim = 1)
         

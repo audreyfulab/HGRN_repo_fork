@@ -272,9 +272,9 @@ def evaluate(model, X, A, k, true_labels):
         S_all, S_temp, S_out = S_trace_eval
         S_relab = [i.detach().numpy() for i in S_temp]
     else:
-        if any([True if max(i) > len(np.unique(i)) else False for i in S_pred]):
-            gp = [torch.unique(i, sorted=True, return_inverse=True) for i in S_pred]
-            
+        #if any([True if max(i) > len(np.unique(i)) else False for i in S_pred]):
+        gp = [torch.unique(i, sorted=True, return_inverse=True) for i in S_pred]
+        
         S_relab = [i[1] for i in gp]
         
     if true_labels:
@@ -334,9 +334,10 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
         #Compute clustering loss
         #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         Clust_loss_top, Clustloss_values_top = clustlossfn(lamb[0], Xbatch, [P_all[0]], model.method)
+        #Clust_loss_mid, Clustloss_values_mid = clustlossfn(lamb[1], torch.concat(X_all[-1]), [torch.concat(P_all[1])], model.method)
         Clust_loss_mid, Clustloss_values_mid = clustlossfn(lamb[1], X_all[-1], P_all[1], model.method)
         Clust_loss = Clust_loss_top+Clust_loss_mid
-        Clustloss_values = Clustloss_values_top+[torch.mean(torch.tensor(Clustloss_values_mid)).detach().tolist()]
+        Clustloss_values = Clustloss_values_top+[torch.sum(torch.tensor(Clustloss_values_mid)).detach().tolist()]
         
     return Mod_loss, Modloss_values, Clust_loss, Clustloss_values, S_sub, S_relab
     

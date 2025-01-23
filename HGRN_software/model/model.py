@@ -16,7 +16,6 @@ from model.model_layer import Fully_ConnectedLayer as FCL
 from collections import OrderedDict
 from model.model_layer import AE_layer
 import torch_geometric.utils as pyg_utils
-from torch_geometric.nn import GraphNorm
 from torchinfo import summary
 #from src.torch_kmeans.clustering.soft_kmeans import SoftKMeans
 #from torchsummary import summary
@@ -123,7 +122,7 @@ class AddLearningLayers(nn.Module):
     to improve class learning
     """
     def __init__(self, in_nodes, in_attrib, sizes = [64, 32], 
-                 normalize = True, dropout = 0.2):
+                 normalize = True, dropout = 0.0, negative_slope = 0.2):
         super(AddLearningLayers, self).__init__()
         self.nodes = in_nodes
         self.attrib = in_attrib
@@ -136,7 +135,8 @@ class AddLearningLayers(nn.Module):
             module_dict.update({f'LinearLayer_{size}_{idx}': FCL(in_dim = in_attrib, 
                                                              out_dim = size,
                                                              norm = normalize,
-                                                             dropout = dropout)
+                                                             dropout = dropout,
+                                                             alpha=negative_slope)
                                 })
             
             in_attrib = size

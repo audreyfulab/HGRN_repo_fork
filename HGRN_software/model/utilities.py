@@ -12,14 +12,15 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
-from sklearn.metrics import roc_auc_score, f1_score, normalized_mutual_info_score,homogeneity_score, completeness_score, adjusted_rand_score
+from sklearn.metrics import normalized_mutual_info_score,homogeneity_score, completeness_score, adjusted_rand_score
 from sklearn.neighbors import kneighbors_graph
 import scipy as spy
 import seaborn as sbn
 import matplotlib.pyplot as plt
 import pickle
 import os
-
+from torch_kmeans import SoftKMeans
+import matplotlib.pyplot as plt
 
 
 
@@ -107,8 +108,8 @@ def WCSS(X, Plist, method):
 #This function computes the between cluster sum of squares (BCSS) for the node
 #attribute matrix X given a set of identified clusters 
 #----------------------------------------------------------------
-def BCSS(X = None, cluster_centroids=None, numclusts = None, norm_degree = 2,
-         weight_by = ['kmeans','anova']):
+def BCSS(X: torch.Tensor, cluster_centroids: torch.Tensor, numclusts: int, norm_degree: int = 2,
+         weight_by: str = ['kmeans','anova']):
     """
     X: node attribute matrix
     cluster_centroids: the centroids corresponding to a set of identified clusters
@@ -135,6 +136,63 @@ def BCSS(X = None, cluster_centroids=None, numclusts = None, norm_degree = 2,
 
 
 
+# this function uses the beth hessian to compute the number of detectable 
+# communities by spectral means - method from 
+# Schaub et al - Hierarchical community structure in networks
+def compute_beth_hess_comms(A: torch.Tensor):
+    N = A.shape[0]
+    Deg = torch.diag(torch.mm(A, torch.ones((N, 1))).reshape(N))
+    avg_degree = torch.mm(torch.mm(torch.ones((N,1)).T, A), torch.ones((N, 1)))/N
+    eta = torch.sqrt(avg_degree)
+    Bethe_Hessian = (torch.square(eta)-1)*torch.diag(torch.ones(N))+Deg - eta*A
+    eigvals = torch.linalg.eigh(Bethe_Hessian)[0]
+    k = torch.sum(eigvals<0)
+    return int(k)
+
+
+
+
+
+#this function computes the number of communities k by chosen method
+def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian', max_k: int = 25, save: bool = False, 
+                  PATH: str = '/path/to/directory'):
+    if method == 'bethe_hessian':
+            kappa = compute_beth_hess_comms(A)
+            print(f'Beth Hessian estimated communities = {kappa}')
+            
+    #elbow plot method
+    elif method == 'elbow':
+        inertias = []
+        kappa_range = range(2, max_k+1)
+        for i in kappa_range:
+            KMeans = SoftKMeans(n_clusters=i, max_iter=100, num_init=10, init_method='k-means++', verbose=False)
+            #kmeans = KMeans(n_clusters=i)
+            #kmeans.fit(data)
+            result = KMeans(X.unsqueeze(0))
+            inertias.append(result.inertia.sum())
+        
+        
+        #compute change in inertia
+        change_inertias = [float(torch.abs(inertias[i] - inertias[i-1])) if i>0 else float(inertias[i]) for i in range(0, len(inertias))]
+        
+        #construct elbow plot
+        fig, ax = plt.subplots(figsize = (12, 10))
+        ax.plot(kappa_range, change_inertias)
+        ax.set_xticks(kappa_range)
+        ax.set_xlabel('Number of Clusters')
+        ax.set_ylabel('Change Inertia')
+        ax.set_title('Elbow Plot')
+        if save:
+            fig.savefig(PATH+'Elbow_plot.pdf')
+            
+    #silouette optimization method
+    elif method == 'silouette':
+        print('do thing')
+    else:
+        raise ValueError(f'ERROR unrecognized value for argument method: "{method}" in compute_kappa()')
+    
+    return kappa
+    
 
 
 

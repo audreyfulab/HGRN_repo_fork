@@ -75,7 +75,7 @@ def make_dag(graph):
 
 def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighted = True, 
                       degree=3, connection_prob_within=0.05, connection_prob_between = 0.01,
-                      sub_graph_prob=0.01, weight_b = (0.1, 0.3), weight_w = (0.4, 0.8), mixed = None, 
+                      sub_graph_prob=0.01, weight_b = (0.1, 0.3), weight_w = (0.4, 0.8), mixed = False, 
                       force_connections = False, seed = None):
     '''
     Input:
@@ -98,7 +98,7 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
         ##--------------------##
         ##   Mixed Subgraphs  ##
         ##--------------------##
-    if (mixed =="True" and (subgraph_type == 'small world' or subgraph_type == 'random graph' or subgraph_type == 'scale free')):
+    if (mixed == True and (subgraph_type == 'small world' or subgraph_type == 'random graph' or subgraph_type == 'scale free')):
         top_node_length =  len(list(top_graph.nodes())) ; g_index  = top_node_length // 3
         top_node_g1 = list(top_graph.nodes())[:g_index]
         top_node_g2 = list(top_graph.nodes())[g_index:(g_index + g_index)]

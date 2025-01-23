@@ -13,7 +13,7 @@ sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hi
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
 #sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/torch_kmeans/')
 from MAIN_run_simulations_single_net import run_single_simulation
-from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, plot_embeddings_heatmap, generate_attention_graph
+from run_simulations_utils import set_up_model_for_simulation_inplace, plot_embeddings_heatmap, generate_attention_graph
 from model.utilities import resort_graph, node_clust_eval
 from model.train import evaluate
 import os
@@ -36,9 +36,9 @@ parser.add_argument('--correlation_cutoff', type=float, default=0.5, help='Use t
 parser.add_argument('--use_method', type=str, default='top_down', choices=['top_down','bottom_up'], help='method for uncovering the hierarchy')
 parser.add_argument('--use_softKMeans_top', type=bool, default=False, help='If true, the top layer is inferred with a softKMeans layer')
 parser.add_argument('--use_softKMeans_middle', type=bool, default=False, help='If true, the middle layer is inferred with a softKMeans layer')
-parser.add_argument('--gamma', type=float, default=1, help='Gamma value')
-parser.add_argument('--delta', type=float, default=1, help='Delta value')
-parser.add_argument('--lambda_', nargs='+', type=float, default=[1,1], help='Lambda value')
+parser.add_argument('--gamma', type=float, default=1, help='Gamma hyperparameter value')
+parser.add_argument('--delta', type=float, default=1, help='Delta hyperparameter value')
+parser.add_argument('--lambda_', nargs='+', type=float, default=[1,1], help='Lambda hyperparameter value')
 parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate')
 parser.add_argument('--dropout_rate', type=float, default = 0.2, help='Dropout rate')
 parser.add_argument('--use_batch_learning', type=bool, default=False, help='If true data is divided into batches for training according to batch_size')
@@ -76,9 +76,58 @@ parser.add_argument('--post_hoc_plots', type=bool, default=True, help='Boolean -
 parser.add_argument('--add_output_layers', type=bool, default=False, help ='should extra layers be added between the embedding and prediction layers?')
 parser.add_argument('--make_directories', type=bool, default=False, help='If true directors are created using os.makedir()')
 parser.add_argument('--save_model', type=bool, default=False, help='If true model is saved at args.sp as model')
+parser.add_argument('--compute_optimal_clusters', type=bool, default=True, help='If number of top layer communities should be determined via one of the methods in --kappa_method')
+parser.add_argument('--kappa_method', type=str, default='bethe_hessian', choices = ['bethe_hessian', 'elbow', 'silouette'], help='Method for determining the optimal number of communities for the top layer of the hierarchy')
 args = parser.parse_args()
 
 
+
+parser2 = argparse.ArgumentParser(description='Simulation Parameters')
+parser2.add_argument('--connect', dest='connect', default='disc', type=str)
+parser2.add_argument('--connect_prob_middle', dest='connect_prob_middle', default='use_baseline', type=str)
+parser2.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default='use_baseline', type=str)
+parser2.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
+parser2.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
+parser2.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
+parser2.add_argument('--subgraph_prob', dest='subgraph_prob', default=[0.5, 0.2], type=float)
+parser2.add_argument('--nodes_per_super2', dest='nodes_per_super2', default=(3,3), type=tuple)
+parser2.add_argument('--nodes_per_super3', dest='nodes_per_super3', default=(20,20), type=tuple)
+parser2.add_argument('--node_degree_middle', dest='node_degree_middle', default=3, type=int)
+parser2.add_argument('--node_degree_bottom', dest='node_degree_bottom', default=5, type=int)
+parser2.add_argument('--sample_size',dest='sample_size', default = 500, type=int)
+parser2.add_argument('--layers',dest='layers', default = 2, type=int)
+parser2.add_argument('--SD',dest='SD', default = 0.1, type=float)
+parser2.add_argument('--common_dist', dest='common_dist',default = True, type=bool)
+parser2.add_argument('--seed_number', dest='seed_number',default = 555, type=int)
+parser2.add_argument('--within_edgeweights', dest='within_edgeweights',default = (0.5, 0.8), type=tuple)
+parser2.add_argument('--between_edgeweights', dest='between_edgeweights',default = (0, 0.2), type=tuple)
+parser2.add_argument('--use_weighted_graph', dest='use_weighted_graph',default = False, type=bool)
+parser2.add_argument('--set_seed', dest='set_seed', default=False, type=bool)
+parser2.add_argument('--force_connect', dest='force_connect', default=True, type=bool)
+parser2.add_argument('--savepath', dest='savepath', default='./', type=str)
+sim_args = parser2.parse_args()
+
+
+
+#simulation settings
+sim_args.subgraph_type = 'small world'
+sim_args.connect = 'full'
+#global simulation settings
+sim_args.top_layer_nodes = 5
+sim_args.nodes_per_super2 = (3,3)
+sim_args.common_dist = False
+sim_args.force_connect = True
+sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
+                                np.random.uniform(0.01, 0.15)
+                                ] 
+sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01), 
+                                np.random.uniform(0.001, 0.01)
+                                ]
+sim_args.set_seed = False
+sim_args.layers = 3
+sim_args.SD = 0.1
+
+sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
 
 #output save settings
 #args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/test/'
@@ -90,15 +139,16 @@ args.save_model = False
 args.set_seed = 555
 args.read_from = 'local'
 args.early_stopping = True
-args.patience = 20
+args.patience = 10
 args.use_method = "top_down"
-args.use_batch_learning = False
+args.use_batch_learning = True
 args.batch_size = 64
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
-args.AE_operator = 'GATv2Conv'
-args.COMM_operator = 'Linear'
+args.AE_operator = 'SAGEConv'
+#args.COMM_operator = 'Linear'
+args.COMM_operator = 'SAGEConv'
 args.attn_heads = 5
 args.dropout_rate = 0.2
 args.normalize_input = True
@@ -107,18 +157,20 @@ args.AE_hidden_size = [256, 128]
 args.LL_hidden_size = [128, 64] 
 args.gamma = 1
 args.delta = 1
-args.lambda_ = [1, 1e-4]
+args.lambda_ = [1, 1]
 args.learning_rate = 1e-3
 args.use_true_communities = False
-args.community_sizes = [64, 10]
+args.community_sizes = [64, 5]
+args.compute_optimal_clusters = True
+args.kappa_method = 'bethe_hessian'
 
 #training settings
-args.dataset = 'intermediate'
+args.dataset = 'generated'
 args.parent_distribution = 'unequal'
 args.which_net = 1
 args.training_epochs = 100
-args.steps_between_updates = 100
-args.use_true_graph = False
+args.steps_between_updates = 20
+args.use_true_graph = True
 args.correlation_cutoff = 0.2
 args.return_result = 'best_loss'
 args.verbose = False
@@ -129,8 +181,23 @@ args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
-results = run_single_simulation(args, return_model = False, heads = 1)
+# mainpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
+# #dirname = sim_args.subgraph_type.replace(' ', '_')+'_'+sim_args.connect+str(sim_args.SD).replace('.', '')+'_Case_'+str(0)
+# sim_args.savepath = '/'.join([mainpath, 'graph/'])
+# args.sp = '/'.join([mainpath, 'results/'])
+results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
+plt.close('all')
+out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
 
+# X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
+
+# model = torch.load(args.sp+'checkpoint.pth')
+# # model.eval()
+# # output = model.forward(X, A)
+
+# # X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
+
+# perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_labels)
 # def clear_workspace():
 #     global_vars = list(globals().keys())
 #     exclude = ['__name__', '__doc__', '__package__', '__loader__', '__spec__', '__annotations__', '__builtins__', '__file__', '__cached__', 'clear_workspace', 'args', 'run_single_simulation']
@@ -153,9 +220,6 @@ results = run_single_simulation(args, return_model = False, heads = 1)
 #     args.sp = os.path.join(mainpath, _dir)
 #     args.which_net = net
 #     results = run_single_simulation(args, return_model=False, heads = 1)
-    
-
-out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
 #     bpi, bli = indices
     
 loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
@@ -242,15 +306,15 @@ atw = [i[-1] for i in out[0]]
 slist = [i[-4] for i in out[0]]
 
 gl = [str(i) for i in range(0, Xres.shape[0])]
-weighted_graphs = [generate_attention_graph(args, Ares, AW, gl, S, cutoff='none')[1] for index, (AW, S) in enumerate(zip(atw, slist))]
+# weighted_graphs = [generate_attention_graph(args, Ares, AW, gl, S, cutoff='none')[1] for index, (AW, S) in enumerate(zip(atw, slist))]
 
 
-plyfig1 = plot_embeddings_heatmap(embeds, use_correlations=True, verbose=True)
-plyfig2 = plot_embeddings_heatmap(weighted_graphs, verbose = True)
+# plyfig1 = plot_embeddings_heatmap(embeds, use_correlations=True, verbose=True)
+# plyfig2 = plot_embeddings_heatmap(weighted_graphs, verbose = True)
 
-if args.save_results:
-    plyfig1.write_html(args.sp+"embeddings_interactive.html")
-    plyfig2.write_html(args.sp+"attention_weights_interactive.html")
+# if args.save_results:
+#     plyfig1.write_html(args.sp+"embeddings_interactive.html")
+#     plyfig2.write_html(args.sp+"attention_weights_interactive.html")
 
 del results
 plt.close('all')

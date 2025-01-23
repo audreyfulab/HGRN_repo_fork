@@ -13,6 +13,7 @@ import pandas as pd
 from model.model import HCD 
 from model.train import fit, split_dataset
 from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, run_trad_hc, read_benchmark_CORA, post_hoc, run_kmeans, load_application_data_regulon, load_application_data_Dream5, set_up_model_for_simulation_inplace
+from model.utilities import compute_kappa
 import pickle
 import random as rd
 import os
@@ -20,16 +21,44 @@ import os
 
 def run_single_simulation(args, simulation_args = None, return_model = False, **kwargs):
     
+    """Run a single simulation with the specified parameters.
+
+    Args:
+        args: Parsed argument namespace containing primary model parameters.
+        simulation_args (optional): Additional parsed argument namespace for 
+            data simulation-specific settings. Defaults to None.
+        return_model (bool, optional): If True, returns the simulation model along 
+            with results. Defaults to False.
+        **kwargs: Additional keyword arguments to passed to model.HCD
+
+    Returns:
+        If return_model is False:
+            dict: Results of the simulation
+        If return_model is True:
+            tuple: (dict, SimulationModel) containing both the results and the model instance
+
+    Raises:
+        ValueError: If required parameters in args are missing or invalid.
+        
+    Example:
+        args = parser.parse_args(['--param1', 'value1'])
+        results = run_single_simulation(args)
+        results, model = run_single_simulation(args, return_model=True) #save model in output directory as checkpoint.pth file
+    """
+    
+    #set up output directories
     if args.save_results:
         if args.make_directories:
             print(f'Creating new directory at {os.path.join(args.sp)}')
             os.makedirs(args.sp, exist_ok=True)
     
+    #set seed
     if args.set_seed:
         seed = 123
         rd.seed(seed)
         torch.manual_seed(seed)
     
+    #check for local GPU
     print(f'***** GPU AVAILABLE: {torch.cuda.is_available()} ******')
     device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
     print('***** Using device {} ********'.format(device))
@@ -41,7 +70,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     
     
-    #read in data 
+    #read in pre-generated data 
     if args.dataset in ['complex', 'intermediate', 'toy']:
         
         loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
@@ -57,6 +86,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         
         valid = None       
                 
+    # read in benchmark
     elif args.dataset in ['cora', 'pubmed']:
         
         if args.dataset == 'cora':
@@ -69,6 +99,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
             X, A, target_labels = train
             target_labels = None
             
+    # read in regulon data
     elif args.dataset in ['regulon.EM', 'regulon.DM']:
         
         train, test, gene_names = load_application_data_regulon(args)
@@ -77,6 +108,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         
         X, A, [] = train
         
+    # read in Dream5 data
     elif args.dataset in ['Dream5.'+i for i in ['E_coli', 'in_silico', 'S_aureus', 'S_cerevisiae']]:
         
         train, test, gene_names = load_application_data_Dream5(args)
@@ -85,6 +117,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         
         X, A, [] = train
         
+    #randomly generate a new dataset according to argments passed from simulation_args
     elif args.dataset == 'generated':
         
         X, A, target_labels = set_up_model_for_simulation_inplace(args, simulation_args)
@@ -97,13 +130,19 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
             test = None
         
         valid = None
+        
+    else:
+        raise ValueError(f'Unknown value args.dataset == {args.dataset}')
       
     nodes, attrib = X.shape
     
-    #move inputs to device
-    #X.to(device)
-    #A.to(device)
     
+    # estimate number of communities in top layer of hierarchy
+    if args.compute_optimal_clusters:
+        comm_sizes[-1] = compute_kappa(X, A, method = args.kappa_method, save = args.save_results,
+                                       PATH = args.sp)
+    
+    #initiate model 
     print('-'*25+'setting up and fitting models'+'-'*25)
     model = HCD(
                 nodes, attrib, 
@@ -112,7 +151,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                 use_kmeans_middle=args.use_softKMeans_middle,
                 ae_hidden_dims=args.AE_hidden_size,
                 ll_hidden_dims = args.LL_hidden_size,
-                comm_sizes=args.community_sizes, 
+                comm_sizes=comm_sizes, 
                 normalize_input = args.normalize_input,
                 normalize_outputs = args.normalize_layers,
                 ae_operator = args.AE_operator,
@@ -201,7 +240,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     else:
         kmeans_preds = None
         
-        
+    # runs hierarchical clustering using Ward's metric on data 
     if args.run_hc:
         hc_preds = run_trad_hc(args, X=X.detach().numpy(), 
                                   labels=target_labels, 
@@ -266,6 +305,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     else:
         del model
         return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices, [], pbmt
+    
     
     
     

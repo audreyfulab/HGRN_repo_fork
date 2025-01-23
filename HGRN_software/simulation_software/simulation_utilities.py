@@ -325,7 +325,7 @@ def post_hoc_embedding(graph, embed_X, data, probabilities, labels, truth,
 
 
 
-def plot_(X, cl, size = 10, cm = 'plasma'):
+def plot_(X, cl = None, size = 10, cm = 'plasma'):
     
     TSNE_data=TSNE(n_components=3, 
                     learning_rate='auto',

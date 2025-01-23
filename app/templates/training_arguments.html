@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fit HCD Options</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+  <div style="padding: 20px; background: rgba(255, 255, 255, 0.1); border-radius: 10px;">
+    <h5>Fit HCD Options</h5>
+    <form id="hcdOptionsForm">
+      <!-- Dataset Selection -->
+      <div class="mb-3">
+        <label for="dataset" class="form-label">Dataset</label>
+        <select id="dataset" class="form-select">
+          <option value="complex">complex</option>
+          <option value="intermediate">intermediate</option>
+          <option value="toy">toy</option>
+          <option value="cora">cora</option>
+          <option value="pubmed">pubmed</option>
+          <option value="regulon.EM">regulon.EM</option>
+          <option value="regulon.DM">regulon.DM</option>
+        </select>
+      </div>
+      <!-- Parent Distribution Selection -->
+      <div class="mb-3">
+        <label for="parent_distribution" class="form-label">Parent Distribution</label>
+        <select id="parent_distribution" class="form-select">
+          <option value="same_for_all">same_for_all</option>
+          <option value="unequal">unequal</option>
+        </select>
+      </div>
+      <!-- Use True Graph Checkbox -->
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="use_true_graph">
+        <label class="form-check-label" for="use_true_graph">Use True Graph</label>
+      </div>
+      <!-- Gamma Input -->
+      <div class="mb-3">
+        <label for="gamma" class="form-label">Gamma Value</label>
+        <input type="number" class="form-control" id="gamma" value="1" step="0.1">
+      </div>
+      <!-- Add other fields as needed -->
+      <button type="submit" class="btn btn-custom mt-3">Run Model</button>
+    </form>
+  </div>
+</body>
+</html>
