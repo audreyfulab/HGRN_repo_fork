@@ -129,28 +129,45 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
                                                   k=degree, 
                                                   p=sub_graph_prob/np.mean(subgraph_node_number))
             
-            subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]))
+            #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sm.edges() if u!=v]))
+            G = add_edges_to_subgraph(nx.DiGraph(), subgraph_sm.nodes, subgraph_sm.edges, 
+                                       weighted_graph = as_weighted, weighting = weight_w)
+            
+            subgraphs.append(G)
             node_list.append(top_node_g1)
             print('small world',subgraph_sm.nodes())
             print(subgraph_sm.edges())
         
         #random graph
         for top_node_g2 in top_node_g2:
-            subgraph_random = nx.gnp_random_graph(n=rd(subgraph_node_number[0], 
+            subgraph_rd = nx.gnp_random_graph(n=rd(subgraph_node_number[0], 
                                                      subgraph_node_number[1]),
                                                   p=sub_graph_prob,
                                                   directed=True)
-            subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_random.edges() if u<v]))
-            #print(node_list.append(top_node_g2))
-            print('random',subgraph_random.nodes())
-            print(subgraph_random.edges())
+            #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_rd.edges() if u<v]))
+            #check for cyclicity
+            if not nx.is_directed_acyclic_graph(subgraph_rd):
+                G = make_dag(subgraph_rd)
+                    
+            G = add_edges_to_subgraph(nx.DiGraph(), subgraph_rd.nodes, subgraph_rd.edges, 
+                                       weighted_graph = as_weighted, weighting = weight_w)
+                    
+            subgraphs.append(G)
+            node_list.append(top_node_g2)
+            print('random',subgraph_rd.nodes())
+            print(subgraph_rd.edges())
             
             
         #scale free
         for top_node_g3 in top_node_g3: 
             n = rd(subgraph_node_number[0], subgraph_node_number[1]); m = rd(2,(n-1))
             subgraph_sf = nx.barabasi_albert_graph(n,m)
-            subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sf.edges() if u!=v]))
+            
+            #subgraphs.append(nx.DiGraph([(u,v) for (u,v) in subgraph_sf.edges() if u!=v]))
+            G = add_edges_to_subgraph(nx.DiGraph(), subgraph_sf.nodes, subgraph_sf.edges, 
+                                       weighted_graph = as_weighted, weighting = weight_w)
+            
+            subgraphs.append(G)
             node_list.append(top_node_g3)
             print('scale free',subgraph_sf.nodes())
             print(subgraph_sf.edges())
