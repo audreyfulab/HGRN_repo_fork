@@ -227,7 +227,7 @@ class Comm_DenseLayer2(nn.Module):
                 self.out_norm = GraphNorm(self.out_features)
             else:
                 self.out_norm = nn.LayerNorm(self.out_features)
-            #self.last_norm = nn.LayerNorm(self.out_comms)
+            self.X_tilde_norm = nn.LayerNorm(self.in_features)
         else:
             self.out_norm = nn.Identity()
             self.last_norm = nn.Identity()
@@ -257,8 +257,8 @@ class Comm_DenseLayer2(nn.Module):
             #linear layer and activation
             M = self.transform(Z)
             M_act = self.act(M)
-            M_norm = self.out_norm(M_act)
-            H = self.Dropout_layer(M_norm)
+            H = self.out_norm(M_act)
+            #H = self.Dropout_layer(M_norm)
             
         if self.operator == 'SAGEConv':
             
@@ -278,7 +278,9 @@ class Comm_DenseLayer2(nn.Module):
         P = F.softmax(H, dim = 1)
         
         #get the centroids and layer adjacency matrix
-        X_tilde = self.act(torch.mm(Z.transpose(0,1), P)).transpose(0,1)
+        #I = F.one_hot(P.argmax(1), num_classes=H.shape[1]).to(torch.float32)
+        #X_tilde = torch.mm(I.transpose(0,1), Z)
+        X_tilde = torch.mm(torch.mm(Z.T, P), torch.diag(1/P.sum(dim = 0)+1e-8)).T
         
         #X_tilde = self.act(torch.mm(Z.transpose(0,1), P))
         A_tilde = torch.mm(P.transpose(0,1), torch.mm(A, P))
