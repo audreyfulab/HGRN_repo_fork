@@ -12,14 +12,15 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import networkx as nx
-from sklearn.metrics import normalized_mutual_info_score,homogeneity_score, completeness_score, adjusted_rand_score
+from sklearn.metrics import normalized_mutual_info_score,homogeneity_score, completeness_score, adjusted_rand_score, silhouette_score
 from sklearn.neighbors import kneighbors_graph
+from scipy.signal import find_peaks
+from sklearn.cluster import KMeans
 import scipy as spy
 import seaborn as sbn
 import matplotlib.pyplot as plt
 import pickle
 import os
-from torch_kmeans import SoftKMeans
 import matplotlib.pyplot as plt
 
 
@@ -155,25 +156,27 @@ def compute_beth_hess_comms(A: torch.Tensor):
 
 #this function computes the number of communities k by chosen method
 def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian', max_k: int = 25, save: bool = False, 
-                  PATH: str = '/path/to/directory'):
+                  PATH: str = '/path/to/directory', verbose: bool = False):
+    
+    # bethe hessian spectral approach (fine partitions only)
     if method == 'bethe_hessian':
-            kappa = compute_beth_hess_comms(A)
-            print(f'Beth Hessian estimated communities = {kappa}')
+            kappa_middle = compute_beth_hess_comms(A)
+            kappa_top = int(np.ceil(0.5*kappa_middle))
+            
+            if verbose:
+                print(f'Beth Hessian estimated communities = {kappa}')
             
     #elbow plot method
     elif method == 'elbow':
         inertias = []
         kappa_range = range(2, max_k+1)
         for i in kappa_range:
-            KMeans = SoftKMeans(n_clusters=i, max_iter=100, num_init=10, init_method='k-means++', verbose=False)
-            #kmeans = KMeans(n_clusters=i)
-            #kmeans.fit(data)
-            result = KMeans(X.unsqueeze(0))
-            inertias.append(result.inertia.sum())
+            result = KMeans(n_clusters=i, random_state=0).fit(X)
+            inertias.append(result.inertia_)
         
         
         #compute change in inertia
-        change_inertias = [float(torch.abs(inertias[i] - inertias[i-1])) if i>0 else float(inertias[i]) for i in range(0, len(inertias))]
+        change_inertias = [float(np.abs(inertias[i] - inertias[i-1])) if i>0 else float(inertias[i]) for i in range(0, len(inertias))]
         
         #construct elbow plot
         fig, ax = plt.subplots(figsize = (12, 10))
@@ -187,11 +190,41 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
             
     #silouette optimization method
     elif method == 'silouette':
-        print('do thing')
+        scores = []
+        kappa_range = range(2, max_k+1)
+        for i in kappa_range:
+            result = KMeans(n_clusters=i, random_state=0).fit(X)
+            scores.append(silhouette_score(X, result.labels_))
+        
+        #determine peaks in silouette scores
+        peaks, _ = find_peaks(scores, distance = 5)
+        #eliminate peaks less than average silouette score
+        peak_scores = [(idx, scores[idx]) for idx in peaks if scores[idx] > np.mean(scores)]
+        #select kappa values
+        kappa_top = kappa_range[peak_scores[0][0]]
+        kappa_middle = kappa_range[peak_scores[1][0]]
+        
+        #construct silouette plot
+        fig, ax = plt.subplots(figsize = (12, 10))
+        ax.plot(kappa_range, scores)
+        ax.set_xticks(kappa_range)
+        ax.set_xlabel('Number of Clusters')
+        ax.set_ylabel('Silouette Score')
+        ax.scatter([i[1]+1 for i in peak_scores], [i[1] for i in peak_scores], color = 'red')
+        ax.axvline(x=kappa_top, label = 'best score', linestyle = 'dotted', linewidth = 2, color = 'red')
+        ax.axvline(x=kappa_middle, linestyle = 'dotted', linewidth = 2, color = 'red')
+        ax.set_title('Simulated Silouette Scores')
+        #plt.show()
+        if save:
+            fig.savefig(PATH+'Silouette_scores.pdf')
+        
+        if verbose:
+            print(f'Max Silouette scores: \n s = {peak_scores[0][1]:.4f} for k = {kappa_top} \n s = {peak_scores[1][1]:.4f} for k = {kappa_middle} ')
+        
     else:
         raise ValueError(f'ERROR unrecognized value for argument method: "{method}" in compute_kappa()')
     
-    return kappa
+    return kappa_middle, kappa_top
     
 
 
@@ -668,7 +701,7 @@ def merge(list1, list2):
 
 # a simple function to plot the loss curves during training
 #----------------------------------------------------------------
-def plot_loss(epoch, layers, train_loss_history, test_loss_history, path='path/to/file', save = True):
+def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses, path='path/to/file', save = True):
     
     
     
@@ -712,6 +745,8 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, path='path/t
     #community loss using kmeans
     lines3a, lines3b = ax3[0].plot(range(0, epoch+1), np.array(clust_train), label = ['train top', 'train middle'])
     lines4a, lines4b = ax3[0].plot(range(0, epoch+1), np.array(clust_test), label = ['test top', 'test middle'], linestyle ='dashed')
+    ax3[0].axhline(y=true_losses[0], color='black', linestyle='dotted', linewidth=2)
+    ax3[0].axhline(y=true_losses[1], color='black', linestyle='dotted', linewidth=2)
     ax3[0].set_xlabel('Training Epochs')
     ax3[0].set_ylabel('Clustering Loss')
     ax3[1].axis('off')
@@ -812,6 +847,7 @@ def plot_adj(A, path, **kwargs):
 #a simple function to plot the clustering heatmaps
 #---------------------------------------------------------------- 
 def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
+    
     fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
     sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
     sbn.heatmap(A.cpu().detach().numpy(), ax = ax1[1])
