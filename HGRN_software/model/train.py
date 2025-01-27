@@ -7,6 +7,7 @@ Created on Fri Sep 29 00:22:43 2023
 
 
 import torch
+import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
@@ -270,7 +271,7 @@ def evaluate(model, X, A, k, true_labels):
     if model.method == 'bottom_up':
         S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
         S_all, S_temp, S_out = S_trace_eval
-        S_relab = [i.detach().numpy() for i in S_temp]
+        S_relab = [i.detach().numpy() for i in S_temp][::-1]
     else:
         #if any([True if max(i) > len(np.unique(i)) else False for i in S_pred]):
         gp = [torch.unique(i, sorted=True, return_inverse=True) for i in S_pred]
@@ -317,7 +318,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
     X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
     
     if model.method == 'bottom_up':
-        S_sub, S_relab, S_all = trace_comms([i.cpu().clone() for i in S_all], model.comm_sizes)
+        S_sub, S_relab, S = trace_comms([i.cpu().clone() for i in S_all], model.comm_sizes)
         #compute community detection loss components
         #modularity loss (only computed over the last k layers of community model)
         Mod_loss, Modloss_values = modlossfn([Abatch]+A_all[1], P_all, resolution)
@@ -513,6 +514,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 
             batch_iterable.set_description(f'Epoch {idx} Processing batch {"-"*15} batch loss: {total_loss:.2f} test loss: {print_loss_test}')
            
+        # P_truth_top = F.one_hot(torch.tensor(true_labels[0], dtype=torch.int64), num_classes = 5)
+        # P_truth_mid = F.one_hot(torch.tensor(true_labels[1], dtype=torch.int64), num_classes = 15)
+        # ptlt = clustering_loss_fn(lamb[0], X, [P_truth_top.to(dtype = torch.float32)], model.method)
+        # ptlm = clustering_loss_fn(lamb[0], X, [P_truth_mid.to(dtype = torch.float32)], model.method)
+        # print(f'Top loss (Truth) {float(ptlt[0])}')
+        # print(f'Middle loss (Truth) {float(ptlm[0])}')
         
         epoch_end = time.time()
         #store loss component information
@@ -576,7 +583,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                           train_loss_history = train_loss_history,
                           test_loss_history = test_loss_history,
                           path=output_path, 
-                          save = save_output)
+                          save = save_output,)
+                          #true_losses = [ptlt[0], ptlm[0]])
                 if verbose == True:
                     #plotting graphs in networkx 
                     print('plotting nx graphs ...')

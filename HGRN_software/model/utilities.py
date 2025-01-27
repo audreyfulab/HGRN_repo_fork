@@ -164,7 +164,7 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
             kappa_top = int(np.ceil(0.5*kappa_middle))
             
             if verbose:
-                print(f'Beth Hessian estimated communities = {kappa}')
+                print(f'Beth Hessian estimated communities = {kappa_middle}')
             
     #elbow plot method
     elif method == 'elbow':
@@ -701,7 +701,7 @@ def merge(list1, list2):
 
 # a simple function to plot the loss curves during training
 #----------------------------------------------------------------
-def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses, path='path/to/file', save = True):
+def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses = None, path='path/to/file', save = True):
     
     
     
@@ -745,8 +745,9 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses,
     #community loss using kmeans
     lines3a, lines3b = ax3[0].plot(range(0, epoch+1), np.array(clust_train), label = ['train top', 'train middle'])
     lines4a, lines4b = ax3[0].plot(range(0, epoch+1), np.array(clust_test), label = ['test top', 'test middle'], linestyle ='dashed')
-    ax3[0].axhline(y=true_losses[0], color='black', linestyle='dotted', linewidth=2)
-    ax3[0].axhline(y=true_losses[1], color='black', linestyle='dotted', linewidth=2)
+    if true_losses:
+        ax3[0].axhline(y=true_losses[0], color='black', linestyle='dotted', linewidth=2)
+        ax3[0].axhline(y=true_losses[1], color='black', linestyle='dotted', linewidth=2)
     ax3[0].set_xlabel('Training Epochs')
     ax3[0].set_ylabel('Clustering Loss')
     ax3[1].axis('off')

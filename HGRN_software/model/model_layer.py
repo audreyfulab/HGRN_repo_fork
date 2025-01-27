@@ -9,7 +9,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, GATv2Conv, SAGEConv, GraphNorm
 import torch_geometric.utils as pyg_utils
-            
+import seaborn as sbn
+import matplotlib.pyplot as plt
+
 
 #layer after updating using llama3
 class AE_layer(nn.Module):
@@ -147,11 +149,11 @@ class Fully_ConnectedLayer(nn.Module):
         #apply linear layer and dropout
         H = self.Linearlayer(X)
         
-        #apply LeakyReLU activation
-        H_act = self.act(H)
-        
         #normalize and return
         H_norm = self.act_norm(H_act)
+        
+        #apply LeakyReLU activation
+        H_act = self.act(H)
         
         #apply dropout
         H_out = self.Dropout_layer(H_norm)
@@ -177,8 +179,8 @@ class Comm_DenseLayer2(nn.Module):
         LeakyReLU        sqrt(2 / (1 + (-m)^2)
     """
 
-    def __init__(self, in_features, out_comms, norm = True, alpha=0.01, use_bias = True, 
-                 init_bias = 0, layer_gain = 'automatic', dropout = 0.2, heads = 1,
+    def __init__(self, in_features, out_comms, norm = True, alpha=0.2, use_bias = True, 
+                 layer_gain = 'automatic', dropout = 0.2, heads = 1,
                  operator = ['Linear', 'GATConv', 'GATv2Conv', 'SAGEConv']):
         super(Comm_DenseLayer2, self).__init__()
         #store community info
@@ -191,7 +193,7 @@ class Comm_DenseLayer2(nn.Module):
         if self.operator == 'Linear':
             
             self.transform = nn.Linear(in_features = self.in_features, 
-                                   out_features = self.out_features, 
+                                   out_features = self.in_features, 
                                    bias = use_bias)
         
             self.Dropout_layer = nn.Dropout1d(p = dropout)
@@ -200,43 +202,45 @@ class Comm_DenseLayer2(nn.Module):
         if self.operator == 'SAGEConv':
             
             self.transform = SAGEConv(in_channels = self.in_features, 
-                                  out_channels = self.out_features,
+                                  out_channels = self.in_features,
                                   aggr='mean',
                                   normalize=norm)
             
         if self.operator == 'GATConv':
             
             self.transform = GATConv(in_channels = self.in_features, 
-                                 out_channels = self.out_features,
+                                 out_channels = self.in_features,
                                  heads=heads,
+                                 negative_slope=alpha,
                                  dropout=dropout,
                                  concat = False)
         if self.operator == 'GATv2Conv':
             
             self.transform = GATv2Conv(in_channels=self.in_features,
-                                   out_channels=self.out_features,
+                                   out_channels=self.in_features,
                                    heads=heads,
+                                   negative_slope=alpha,
                                    dropout=dropout,
                                    concat = False)
+            
+        self.output_linear = nn.Linear(in_features = self.in_features, 
+                                   out_features = self.out_features, 
+                                   bias = use_bias)
             
         #self.linear = nn.Linear(in_features=self.out_features, out_features=self.out_comms)
         
         #normalize layer output
         if self.norm == True:
             if self.operator in ['GATConv', 'GraphSAGE', 'GATv2Conv']:
-                self.out_norm = GraphNorm(self.out_features)
+                self.out_norm = GraphNorm(self.in_features)
             else:
-                self.out_norm = nn.LayerNorm(self.out_features)
+                self.out_norm = nn.LayerNorm(self.in_features)
+                #self.out_norm = nn.BatchNorm1d(self.out_features)
             self.X_tilde_norm = nn.LayerNorm(self.in_features)
         else:
             self.out_norm = nn.Identity()
-            self.last_norm = nn.Identity()
+            self.X_tilde_norm = nn.Identity()
             
-        #set parameter initilization gain
-        if layer_gain == 'automatic':
-            self.gain = nn.init.calculate_gain('leaky_relu', alpha)
-        else:
-            self.gain = layer_gain
         #set layer activation
         self.act = nn.LeakyReLU(negative_slope=alpha)
 
@@ -246,8 +250,8 @@ class Comm_DenseLayer2(nn.Module):
         inputs: a list [Z, A, A_tilde, S] where 
                 Z: Node representations   N x q
                 A: Adjacency matrix   N x N
-                A_tilde: graph for connected communities
-                S: predicted class labels
+                A_tilde: graph for connected communities   ki x ki
+                S: predicted class labels   N x 1
         """
         Z=inputs[0]
         A=inputs[1]
@@ -256,26 +260,45 @@ class Comm_DenseLayer2(nn.Module):
             
             #linear layer and activation
             M = self.transform(Z)
-            M_act = self.act(M)
-            H = self.out_norm(M_act)
-            #H = self.Dropout_layer(M_norm)
+            M_norm = self.out_norm(M)
+            H = self.act(M_norm)
+            
+            # M = self.transform(Z)
+            # M_act = self.act(M)
+            # M_norm = self.out_norm(M_act)
+            # H = self.Dropout_layer(M_norm)
+            
             
         if self.operator == 'SAGEConv':
             
             ei, ea = pyg_utils.dense_to_sparse(A)
             M = self.transform(x=Z, edge_index=ei)
-            M_act = self.act(M)
-            H = self.out_norm(M_act)
+            H = self.out_norm(M)
             
         if self.operator in ['GATConv', 'GATv2Conv']:
             ei, ea = pyg_utils.dense_to_sparse(A)
             M = self.transform(x=Z, edge_index=ei)
-            M_act = self.act(M)
-            H = self.out_norm(M_act)
+            H = self.out_norm(M)
         
         #H_out = self.last_norm(self.act(self.linear(H)))
         # class prediction probabilities
-        P = F.softmax(H, dim = 1)
+        
+        OL = self.output_linear(H)
+        P = F.softmax(OL, dim = 1)
+        
+        #P = F.softmax(H, dim = 1)
+        
+        if Z.shape[0] > 200:
+            fig, (ax1, ax2) = plt.subplots(2,2)
+            sbn.heatmap(torch.corrcoef(Z).detach().numpy(), ax = ax1[0])
+            sbn.heatmap(torch.corrcoef(M).detach().numpy(), ax = ax1[1])
+            sbn.heatmap(torch.corrcoef(H).detach().numpy(), ax = ax2[0])
+            sbn.heatmap(torch.corrcoef(OL).detach().numpy(), ax = ax2[1])
+
+            ax1[0].set_title('Gate Embedding (Z))')
+            ax1[1].set_title('M')
+            ax2[0].set_title('M+Act+Norm')
+            ax2[1].set_title('Output Layer')
         
         #get the centroids and layer adjacency matrix
         #I = F.one_hot(P.argmax(1), num_classes=H.shape[1]).to(torch.float32)

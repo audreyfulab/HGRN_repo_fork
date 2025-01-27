@@ -54,13 +54,6 @@ def reorganize_labels(S1, S2_list):
         S2_reorganized[indices] = S2
 
     return S2_reorganized
-
-
-
-# def handle_partition(x, model):
-    
-    
-    
     
 
 
@@ -397,13 +390,14 @@ class HCD(nn.Module):
                     if self.use_kmeans_middle:
                         
                         # apply k softkmeans layers
-                        results = [self.MiddleModules[i](x = sub_Z.unsqueeze(0), k = min(sub_Z.shape[0], self.comm_sizes[1])) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
+                        results = [self.MiddleModules[i](x = sub_Z.unsqueeze(0), k = min(sub_Z.shape[0], self.comm_sizes[1])) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z)) if sub_Z.shape[0] > 1]
                         
                         #store results
                         X_all = []
                         A_all = []
                         P_all = [P, [i.soft_assignment.squeeze(0) for i in results]]
                         S_temp = [i.labels.squeeze(0)+index*j for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
+                        #S_temp = [i.labels.squeeze(0) for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
                         S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
                         S_all = [S[0], S_final]
                         
@@ -420,6 +414,7 @@ class HCD(nn.Module):
                         P_all = [P, [i[4][0] for i in results]]
                         #S_temp = [(i[5][0]+self.comm_sizes[1]+10) % 100 if index > 0 else i[5][0] for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])])) ]
                         S_temp = [i[5][0]+((self.comm_sizes[1]+10)*index) for index, i in enumerate(results) ]
+                        #S_temp = [i[5][0] for index, i in enumerate(results) ]
                         S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
                         S_all = [S[0], S_final]
                 
@@ -460,7 +455,244 @@ class HCD(nn.Module):
     
 
 
+class HCD_predict_only(nn.Module):
+    """
+    Hierarchical Graph Representation Network for genes
+    nodes: (integer) number of nodes in attributed graph
+    attrib: (integer) number of node-attributes (i.e features)
+    hidden_dims: (list) of integers giving the size of the hidden layers
+    comm_sizes: (list) giving the number of super nodes/communities in 
+                hierarchcial layers
+    **kwargs: Keyword arguments passed to GATE/GAT module
+    """
 
+    def __init__(self, nodes, attrib, ae_hidden_dims = [256, 128, 64], method = ['top_down', 'bottom_up'],
+                 ll_hidden_dims = [64, 64], comm_sizes = [60, 10], ae_operator = 'GATv2Conv',
+                 use_kmeans_top = False, use_kmeans_middle = False, comm_operator = 'Linear', dropout = 0.2, 
+                 use_output_layers = False, normalize_outputs = False, normalize_input = False, ae_attn_heads=1, **kwargs):
+        
+        super(HCD, self).__init__()
+        #copy and reverse decoder layer dims
+        decode_dims = ae_hidden_dims.copy()
+        decode_dims.reverse()
+        decode_dims.append(attrib)
+        self.method = method
+        self.use_output_layers = use_output_layers
+        self.use_kmeans_top = use_kmeans_top
+        self.use_kmeans_middle = use_kmeans_middle
+        self.comm_sizes = comm_sizes
+        self.ae_hidden_dims = ae_hidden_dims
+        self.ll_hidden_dims = ll_hidden_dims
+        self.normalize_outputs = normalize_outputs
+        self.comm_operator = comm_operator
+        self.ae_operator = ae_operator
+        self.dropout_rate = dropout
+        
+        #GATE
+        #set up encoder
+        self.encoder = GATE(in_nodes = nodes, 
+                            in_attrib = attrib, 
+                            hid_sizes=ae_hidden_dims, 
+                            normalize = self.normalize_outputs, 
+                            operator= self.ae_operator,
+                            attn_heads = ae_attn_heads,
+                            dropout = self.dropout_rate)
+        #set up decoder
+        self.decoder = GATE(in_nodes = nodes, 
+                            in_attrib = self.ae_hidden_dims[-1], 
+                            hid_sizes=decode_dims[1:], 
+                            normalize = self.normalize_outputs, 
+                            operator = self.ae_operator,
+                            attn_heads = ae_attn_heads,
+                            dropout = self.dropout_rate)
+        
+        #bottom up method
+        if self.method == 'bottom_up':
+            if self.use_output_layers:
+                #extra MLP layers between embedding and community detection step
+                self.fully_connected_layers = AddLearningLayers(in_nodes=nodes, 
+                                                                in_attrib=self.ae_hidden_dims[-1],
+                                                                sizes=self.ll_hidden_dims,
+                                                                normalize=self.normalize_outputs,
+                                                                dropout = self.dropout_rate)
+            
+            
+                #set up community detection module
+                self.commModule = CommunityDetectionLayers(in_nodes = nodes, 
+                                                            in_attrib = self.ll_hidden_dims[-1], 
+                                                            normalize = self.normalize_outputs, 
+                                                            comm_sizes = self.comm_sizes,
+                                                            layer_operator = self.comm_operator,
+                                                            dropout = self.dropout_rate,
+                                                            **kwargs)
+            else:
+                #set up community detection module
+                self.commModule = CommunityDetectionLayers(in_nodes = nodes, 
+                                                            in_attrib = self.ae_hidden_dims[-1], 
+                                                            normalize = self.normalize_outputs, 
+                                                            comm_sizes=self.comm_sizes,
+                                                            layer_operator = self.comm_operator,
+                                                            dropout = self.dropout_rate,
+                                                            **kwargs)
+                
+        #Top down method 
+        elif self.method == 'top_down':
+            self.comm_sizes = comm_sizes[::-1]
+            
+            if self.use_output_layers:
+                self.fully_connected_layers = AddLearningLayers(in_nodes=nodes, 
+                                                                in_attrib=self.ae_hidden_dims[-1],
+                                                                sizes=self.ll_hidden_dims,
+                                                                normalize=self.normalize_outputs,
+                                                                dropout = self.dropout_rate)
+                comm_in_dim = self.ll_hidden_dims[-1]
+            else:
+                comm_in_dim = self.ae_hidden_dims[-1]
+                
+            if self.use_kmeans_top:
+                self.TopCommModule = SoftKMeans(n_clusters=self.comm_sizes[0], max_iter=1000, num_init=10,
+                                                init_method='k-means++', verbose=False)
+            
+            else:
+                self.TopCommModule = CommunityDetectionLayers(in_nodes = nodes, 
+                                                              in_attrib = comm_in_dim, 
+                                                              normalize = self.normalize_outputs, 
+                                                              comm_sizes = [self.comm_sizes[0]],
+                                                              layer_operator = self.comm_operator,
+                                                              dropout = self.dropout_rate,
+                                                              **kwargs)
+            if len(self.comm_sizes) > 1:
+                if self.use_kmeans_middle:
+                    self.MiddleModules = [SoftKMeans(n_clusters=self.comm_sizes[1], 
+                                                     max_iter=1000, 
+                                                     num_init=10) for i in enumerate(range(0, self.comm_sizes[0]))]
+                else:
+                    #separate layers for each partition in top
+                    self.MiddleModules = [CommunityDetectionLayers(in_nodes = nodes, 
+                                                                   in_attrib = comm_in_dim, 
+                                                                   normalize = self.normalize_outputs, 
+                                                                   comm_sizes = [self.comm_sizes[1]],
+                                                                   layer_operator = self.comm_operator,
+                                                                   dropout = self.dropout_rate,
+                                                                   **kwargs) for i in range(0, self.comm_sizes[0])]
+            
+            
+            
+        else:
+            print('ERROR: method not specified!')
+            
+        
+        if normalize_input:
+            self.input_norm = nn.LayerNorm(attrib)
+        else:
+            self.input_norm = nn.Identity()
+        
+        #set dot product decoder activation to sigmoid
+        self.dpd_act = nn.Sigmoid()
+        #normalization for dpd_activation
+        self.dpd_norm = nn.Identity()
+        
+        
+    def forward(self, X, A):
+        
+        #normalize input
+        H = self.input_norm(X)
+        
+        #get embedding representation
+        Z, A, encoder_attention_weights = self.encoder(H,A)
+
+        A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))        
+        #get reconstructed adjacency
+        X_hat, A, decoder_attention_weights = self.decoder(Z, A)
+        
+        #bottom up method
+        if self.method == 'bottom_up':
+            subsets_X = []
+            subsets_A = []
+            if self.use_output_layers:
+                #Output learning layers:
+                W = self.fully_connected_layers(Z)
+            
+                #fit hierarchy
+                X_top, A_top, X_all, A_all, P_all, S_all = self.commModule(W, A)
+            else:
+                X_top, A_top, X_all, A_all, P_all, S_all = self.commModule(Z, A)
+                
+        
+        #top down method
+        if self.method == 'top_down':
+                #fit hierarchy
+                
+                #Get initial set of labels S - a list with one element (a tensor of class labels)
+                if self.use_kmeans_top:
+                    if self.use_output_layers: 
+                        W = self.fully_connected_layers(Z)
+                        result = self.TopCommModule(W.unsqueeze(0))
+                    else:
+                        result = self.TopCommModule(Z.unsqueeze(0))
+                    S = [result.labels.squeeze(0)]
+                    P = result.soft_assignment.squeeze(0)
+                else:
+                    if self.use_output_layers:
+                        #Output learning layers:
+                        W = self.fully_connected_layers(Z)
+                        X_top, A_top, X_all, A_all, P_all, S = self.TopCommModule(W, A)
+                    else:
+                        X_top, A_top, X_all, A_all, P_all, S = self.TopCommModule(Z, A)
+                        
+                    P = P_all[0]
+                 
+                
+                #Select data based on top partition i.e S
+                if self.use_output_layers:
+                    subsets_with_index = [select_class(W, S[0], k, dim=0, return_index=True) for k in torch.unique(S[0])]
+                    
+                else:
+                    subsets_with_index = [select_class(Z, S[0], k, dim=0, return_index=True) for k in torch.unique(S[0])]
+                    
+                    
+                #print(f'indices {[i[1] for i in subsets_with_index]}')
+                #positions = torch.cat([i[1] for i in subsets_with_index])
+                subsets_Z = [i[0] for i in subsets_with_index]
+                subsets_X = [select_class(X, S[0], k, dim=0) for k in torch.unique(S[0])] 
+                subsets_A = [select_subgraph(A, S[0], k) for k in torch.unique(S[0])]
+                
+                
+                if len(self.comm_sizes) > 1:
+                    if self.use_kmeans_middle:
+                        
+                        # apply k softkmeans layers
+                        results = [self.MiddleModules[i](x = sub_Z.unsqueeze(0), k = min(sub_Z.shape[0], self.comm_sizes[1])) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z)) if sub_Z.shape[0] > 1]
+                        
+                        #store results
+                        X_all = []
+                        A_all = []
+                        P_all = [P, [i.soft_assignment.squeeze(0) for i in results]]
+                        S_temp = [i.labels.squeeze(0)+index*j for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
+                        #S_temp = [i.labels.squeeze(0) for index, (i,j) in enumerate(zip(results, torch.arange(self.comm_sizes[0])[torch.unique(S[0])]))]
+                        S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
+                        S_all = [S[0], S_final]
+                        
+                        
+                    else:
+                        
+                        # apply k linear predictors
+                        results = [self.MiddleModules[i](sub_Z, sub_A) for idx, (i, sub_Z, sub_A) in enumerate(zip(torch.unique(S[0]), subsets_Z, subsets_A))]
+                        #results = [self.MiddleModules[i](sub_Z.unsqueeze(0)) for idx, (i, sub_Z) in enumerate(zip(torch.unique(S[0]), subsets_Z))]
+                    
+                        #store results
+                        X_all = [i[0] for i in results]
+                        A_all = [i[1] for i in results]
+                        P_all = [P, [i[4][0] for i in results]]
+                        #S_temp = [(i[5][0]+self.comm_sizes[1]+10) % 100 if index > 0 else i[5][0] for index, (i,j) in enumerate(zip(results, torch.arange(0, self.comm_sizes[0])[torch.unique(S[0])])) ]
+                        S_temp = [i[5][0]+((self.comm_sizes[1]+10)*index) for index, i in enumerate(results) ]
+                        #S_temp = [i[5][0] for index, i in enumerate(results) ]
+                        S_final = reorganize_labels(S1 = S[0], S2_list= S_temp)
+                        S_all = [S[0], S_final]
+                
+        A_all_final = [A]+[A_all]+[subsets_A]
+        X_all_final = [Z]+[X_all]+[subsets_X]
+        return X_hat, A_hat, X_all_final, A_all_final, P_all, S_all, {'encoder': encoder_attention_weights, 'decoder':decoder_attention_weights}
 
 
 

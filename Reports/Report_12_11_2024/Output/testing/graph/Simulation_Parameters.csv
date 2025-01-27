@@ -1,0 +1,24 @@
+,Parameter,Value
+0,connect,disc
+1,connect_prob_middle,"[0.10089029166167622, 0.11420019761359299]"
+2,connect_prob_bottom,"[0.009683441195579338, 0.005221406559045762]"
+3,toplayer_connect_prob,0.3
+4,top_layer_nodes,5
+5,subgraph_type,small world
+6,subgraph_prob,"[0.5, 0.2]"
+7,nodes_per_super2,"(3, 3)"
+8,nodes_per_super3,"(20, 20)"
+9,node_degree_middle,3
+10,node_degree_bottom,5
+11,sample_size,500
+12,layers,3
+13,SD,0.1
+14,common_dist,False
+15,seed_number,555
+16,within_edgeweights,"(0.5, 0.8)"
+17,between_edgeweights,"(0, 0.2)"
+18,use_weighted_graph,False
+19,set_seed,False
+20,force_connect,True
+21,savepath,C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/
+22,mixed_graph,False
