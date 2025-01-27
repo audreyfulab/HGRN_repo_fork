@@ -195,9 +195,6 @@ class Comm_DenseLayer2(nn.Module):
             self.transform = nn.Linear(in_features = self.in_features, 
                                    out_features = self.in_features, 
                                    bias = use_bias)
-        
-            self.Dropout_layer = nn.Dropout1d(p = dropout)
-            
             
         if self.operator == 'SAGEConv':
             
@@ -226,8 +223,6 @@ class Comm_DenseLayer2(nn.Module):
         self.output_linear = nn.Linear(in_features = self.in_features, 
                                    out_features = self.out_features, 
                                    bias = use_bias)
-            
-        #self.linear = nn.Linear(in_features=self.out_features, out_features=self.out_comms)
         
         #normalize layer output
         if self.norm == True:
@@ -235,11 +230,8 @@ class Comm_DenseLayer2(nn.Module):
                 self.out_norm = GraphNorm(self.in_features)
             else:
                 self.out_norm = nn.LayerNorm(self.in_features)
-                #self.out_norm = nn.BatchNorm1d(self.out_features)
-            self.X_tilde_norm = nn.LayerNorm(self.in_features)
         else:
             self.out_norm = nn.Identity()
-            self.X_tilde_norm = nn.Identity()
             
         #set layer activation
         self.act = nn.LeakyReLU(negative_slope=alpha)
@@ -263,12 +255,6 @@ class Comm_DenseLayer2(nn.Module):
             M_norm = self.out_norm(M)
             H = self.act(M_norm)
             
-            # M = self.transform(Z)
-            # M_act = self.act(M)
-            # M_norm = self.out_norm(M_act)
-            # H = self.Dropout_layer(M_norm)
-            
-            
         if self.operator == 'SAGEConv':
             
             ei, ea = pyg_utils.dense_to_sparse(A)
@@ -280,29 +266,23 @@ class Comm_DenseLayer2(nn.Module):
             M = self.transform(x=Z, edge_index=ei)
             H = self.out_norm(M)
         
-        #H_out = self.last_norm(self.act(self.linear(H)))
         # class prediction probabilities
-        
         OL = self.output_linear(H)
         P = F.softmax(OL, dim = 1)
         
-        #P = F.softmax(H, dim = 1)
-        
-        if Z.shape[0] > 200:
-            fig, (ax1, ax2) = plt.subplots(2,2)
-            sbn.heatmap(torch.corrcoef(Z).detach().numpy(), ax = ax1[0])
-            sbn.heatmap(torch.corrcoef(M).detach().numpy(), ax = ax1[1])
-            sbn.heatmap(torch.corrcoef(H).detach().numpy(), ax = ax2[0])
-            sbn.heatmap(torch.corrcoef(OL).detach().numpy(), ax = ax2[1])
+        # if Z.shape[0] > 200:
+        #     fig, (ax1, ax2) = plt.subplots(2,2)
+        #     sbn.heatmap(torch.corrcoef(Z).detach().numpy(), ax = ax1[0])
+        #     sbn.heatmap(torch.corrcoef(M).detach().numpy(), ax = ax1[1])
+        #     sbn.heatmap(torch.corrcoef(H).detach().numpy(), ax = ax2[0])
+        #     sbn.heatmap(torch.corrcoef(OL).detach().numpy(), ax = ax2[1])
 
-            ax1[0].set_title('Gate Embedding (Z))')
-            ax1[1].set_title('M')
-            ax2[0].set_title('M+Act+Norm')
-            ax2[1].set_title('Output Layer')
+        #     ax1[0].set_title('Gate Embedding (Z))')
+        #     ax1[1].set_title('M')
+        #     ax2[0].set_title('M+Act+Norm')
+        #     ax2[1].set_title('Output Layer')
         
         #get the centroids and layer adjacency matrix
-        #I = F.one_hot(P.argmax(1), num_classes=H.shape[1]).to(torch.float32)
-        #X_tilde = torch.mm(I.transpose(0,1), Z)
         X_tilde = torch.mm(torch.mm(Z.T, P), torch.diag(1/P.sum(dim = 0)+1e-8)).T
         
         #X_tilde = self.act(torch.mm(Z.transpose(0,1), P))
