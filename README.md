@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 import pandas as pd
+from typing import Literal
 
 # Run and Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
@@ -43,26 +44,27 @@ parser.add_argument('--use_softKMeans_top', type=bool, default=False, help='If t
 parser.add_argument('--use_softKMeans_middle', type=bool, default=False, help='If true, the middle layer is inferred with a softKMeans layer (currently broken)')
 parser.add_argument('--gamma', type=float, default=1, help='Attribute reconstruction loss hyperparameter')
 parser.add_argument('--delta', type=float, default=1, help='Modularity loss hyperparameter')
-parser.add_argument('--lambda_', nargs='+', type=float, default=[1,1], help='Clustering loss hyperparameters. First value is for middle layer, second value is for top layer')
+parser.add_argument('--lambda_', nargs='+', type=Literal[float], default=[1.0, 1.0], help='Clustering loss hyperparameters. First value is for middle layer, second value is for top layer')
 parser.add_argument('--learning_rate', type=float, default=1e-3, help='Learning rate')
 parser.add_argument('--dropout_rate', type=float, default = 0.2, help='Dropout rate')
 parser.add_argument('--use_batch_learning', type=bool, default=False, help='If true data is divided into batches for training according to batch_size')
 parser.add_argument('--batch_size', type = int, default=64, help='size of batches used when use_batch_learning == True')
 parser.add_argument('--training_epochs', type=int, default=100, help='Number of training epochs')
 parser.add_argument('--steps_between_updates', type=int, default=10, help='Number of training epochs before each update')
-parser.add_argument('--resolution', nargs='+', type=int, default=1, help='The resolution regularization parameter in the modularity loss calculation')
-parser.add_argument('--AE_hidden_size', nargs='+', type=int, default=[256, 128, 64], help='Hidden layer sizes for GATE')
-parser.add_argument('--LL_hidden_size', nargs='+', type=int, default = [64, 64], help='Sizes for additional learning layers applied to GATE embedding before inference. Only used when "')
+parser.add_argument('--resolution', nargs='+', type=Literal[int], default=None, help='The resolution regularization parameter in the modularity loss calculation')
+parser.add_argument('--AE_hidden_size', nargs='+', type=Literal[int], default=[256, 128, 64], help='Hidden layer sizes for GATE')
+parser.add_argument('--LL_hidden_size', nargs='+', type=Literal[int], default = [64, 64], help='Sizes for additional learning layers applied to GATE embedding before inference. Only used when "')
 parser.add_argument('--AE_operator', type=str, choices=['GATConv', 'GATv2Conv', 'SAGEConv'], default='GATv2Conv', help='The type of layer that should be used in the graph autoencoder architecture')
 parser.add_argument('--COMM_operator', type=str, choices=['None', 'Conv2d', 'Linear', 'GATConv', 'GATv2Conv', 'SAGEConv'], default='Linear', help='The type of layer that should be used in the community detection module')
 parser.add_argument('--use_true_communities', type=bool, default=True, help='Use true communities')
-parser.add_argument('--community_sizes', nargs='+', type=int, default=[15, 5], help='Specifies the (max) number of communities to be inferred in the middle and top layers respectively')
+parser.add_argument('--community_sizes', nargs='+', type=Literal[int], default=[15, 5], help='Specifies the (max) number of communities to be inferred in the middle and top layers respectively')
 parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'Sigmoid'], required=False, help='Activation function (ignore)')
 parser.add_argument('--use_gpu', type=bool, default=False, help='Use GPU (currently does not work_')
 parser.add_argument('--verbose', type=bool, default=True, help='when True, additional plots are output in training updates')
 parser.add_argument('--return_result', type=str, choices=['best_perf_top', 'best_perf_mid', 'best_loss'], required=False, default=True, help='When True, all model training results are returned')
 parser.add_argument('--save_results', type=bool, default=False, help='When True, results are saved to path at "sp" ')
 parser.add_argument('--set_seed', type=bool, default=True, help='Sets a random seed for training the model')
+parser.add_argument('--seed', dest='seed', type=int, default=555, help='Seed number for training model')
 parser.add_argument('--sp', type=str, default='/my/save/path/', help='Specified path to save directory')
 parser.add_argument('--plotting_node_size', type=int, default=25, help='Node size - used in plotting')
 parser.add_argument('--fs', type=int, default=10, help='Font size - used in plotting')
@@ -76,7 +78,7 @@ parser.add_argument('--normalize_input', type=bool, default=True, help='When Tru
 parser.add_argument('--split_data', type=bool, default=False, help='When True, data is split into training, testing, and validation sets (currently validation splitting doesnt work)')
 parser.add_argument('--early_stopping', type=bool, default=True, help='If True, early stopping is used during training')
 parser.add_argument('--patience', type=int, default=5, help='Number of consecutive epochs with no improvement after which training will stop (only relevant if early stopping is enabled).')
-parser.add_argument('--train_test_size', nargs='+', type=float, default = [0.8, 0.2], help='Specifies the fraction of data in training and testing sets respectively')
+parser.add_argument('--train_test_size', nargs='+', type=Literal[float], default = [0.8, 0.2], help='Specifies the fraction of data in training and testing sets respectively')
 parser.add_argument('--post_hoc_plots', type=bool, default=True, help='When True, additional plots of results are made')
 parser.add_argument('--add_output_layers', type=bool, default=False, help ='When True, extra neural layers are added between the embedding and prediction layers')
 parser.add_argument('--make_directories', type=bool, default=False, help='If true directories are created using os.makedir()')
@@ -85,8 +87,6 @@ parser.add_argument('--compute_optimal_clusters', type=bool, default=True, help=
 parser.add_argument('--kappa_method', type=str, default='bethe_hessian', choices = ['bethe_hessian', 'elbow', 'silouette'], help='Method for determining the optimal number of communities for the top and middle layers of the hierarchy (currently "elbow" method does not work)')
 parser.add_argument('--load_from_existing', type=bool, default=False, help='When --dataset = "generated" and argument is True, data is read from same directory where previous graph was saved')
 args = parser.parse_args()
-
-
 
 # Simulation arguments
 parser2 = argparse.ArgumentParser(description='Simulation Parameters')
