@@ -51,7 +51,7 @@ parser.add_argument('--use_batch_learning', type=bool, default=False, help='If t
 parser.add_argument('--batch_size', type = int, default=64, help='size of batches used when use_batch_learning == True')
 parser.add_argument('--training_epochs', type=int, default=100, help='Number of training epochs')
 parser.add_argument('--steps_between_updates', type=int, default=10, help='Number of training epochs before each update')
-parser.add_argument('--resolution', nargs='+', type=Literal[int], default=None, help='The resolution regularization parameter in the modularity loss calculation')
+parser.add_argument('--resolution', nargs='+', type=Literal[float], default=None, help='The resolution regularization parameter in the modularity loss calculation')
 parser.add_argument('--AE_hidden_size', nargs='+', type=Literal[int], default=[256, 128, 64], help='Hidden layer sizes for GATE')
 parser.add_argument('--LL_hidden_size', nargs='+', type=Literal[int], default = [64, 64], help='Sizes for additional learning layers applied to GATE embedding before inference. Only used when "')
 parser.add_argument('--AE_operator', type=str, choices=['GATConv', 'GATv2Conv', 'SAGEConv'], default='GATv2Conv', help='The type of layer that should be used in the graph autoencoder architecture')
