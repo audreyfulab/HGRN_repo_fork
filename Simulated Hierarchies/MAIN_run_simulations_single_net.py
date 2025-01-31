@@ -120,7 +120,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #randomly generate a new dataset according to argments passed from simulation_args
     elif args.dataset == 'generated':
         
-        X, A, target_labels = set_up_model_for_simulation_inplace(args, simulation_args)
+        X, A, target_labels = set_up_model_for_simulation_inplace(args, simulation_args, load_from_existing=args.load_from_existing)
         
         if args.split_data:
             train, test = split_dataset(X, A, target_labels, args.train_test_size)         
@@ -137,10 +137,9 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     nodes, attrib = X.shape
     
     
-    # estimate number of communities in top layer of hierarchy
+    # estimate number of communities k
     if args.compute_optimal_clusters:
-        comm_sizes[-1] = compute_kappa(X, A, method = args.kappa_method, save = args.save_results,
-                                       PATH = args.sp)
+        comm_sizes = compute_kappa(X, A, method = args.kappa_method, save = args.save_results, PATH = args.sp, verbose = True)
     
     #initiate model 
     print('-'*25+'setting up and fitting models'+'-'*25)
@@ -242,18 +241,21 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         
     # runs hierarchical clustering using Ward's metric on data 
     if args.run_hc:
+        
+        if args.compute_optimal_clusters:
+            hc_sizes = comm_sizes[::-1]
+        else: 
+            hc_sizes = [len(np.unique(i)) for i in target_labels]
+            
         hc_preds = run_trad_hc(args, X=X.detach().numpy(), 
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
-                                  sizes=[len(np.unique(i)) for i in target_labels])
+                                  sizes=hc_sizes)
     else:
         hc_preds = None
-    
-    
-    if args.use_method == 'bottom_up':
-        best_preds = pred_list[best_result_index][::-1]
-    else:
-        best_preds = pred_list[best_result_index]
+
+    best_preds = pred_list[best_result_index]
+
         
     #post fit plots and results
     if args.post_hoc_plots:

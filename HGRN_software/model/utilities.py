@@ -74,7 +74,6 @@ def WCSS(X, Plist, method):
     oneN = torch.ones(N, 1)
     M = torch.mm(torch.mm(X.T, P), torch.diag(1/torch.mm(oneN.T, P).flatten()))
     D = X.T - torch.mm(M, P.T)
-    #MSW = torch.trace(torch.mm(D.T, D))/N
     MSW = torch.sum(torch.sqrt(torch.diag(torch.mm(D.T, D))))
     return MSW, M
 
@@ -199,7 +198,13 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
         #determine peaks in silouette scores
         peaks, _ = find_peaks(scores, distance = 5)
         #eliminate peaks less than average silouette score
-        peak_scores = [(idx, scores[idx]) for idx in peaks if scores[idx] > np.mean(scores)]
+        score_idx = [(idx, scores[idx]) for idx in peaks]
+        #first two peaks
+        if len([score  for (idx, score) in score_idx if score > np.mean(scores)]) < 2:
+            peak_scores = [(idx, score)  for (idx, score) in score_idx][:2]
+        else:
+            peak_scores = [(idx, score) for (idx, score) in score_idx if score > np.mean(scores)]
+            
         #select kappa values
         kappa_top = kappa_range[peak_scores[0][0]]
         kappa_middle = kappa_range[peak_scores[1][0]]
@@ -210,8 +215,9 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
         ax.set_xticks(kappa_range)
         ax.set_xlabel('Number of Clusters')
         ax.set_ylabel('Silouette Score')
-        ax.scatter([i[1]+1 for i in peak_scores], [i[1] for i in peak_scores], color = 'red')
+        ax.scatter([kappa_range[i[0]] for i in peak_scores], [i[1] for i in peak_scores], color = 'red')
         ax.axvline(x=kappa_top, label = 'best score', linestyle = 'dotted', linewidth = 2, color = 'red')
+        ax.axhline(y=np.mean(scores), linestyle = '-.', linewidth = 2.5, color = 'black')
         ax.axvline(x=kappa_middle, linestyle = 'dotted', linewidth = 2, color = 'red')
         ax.set_title('Simulated Silouette Scores')
         #plt.show()

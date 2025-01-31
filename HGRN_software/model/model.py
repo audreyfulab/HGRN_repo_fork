@@ -20,8 +20,9 @@ from torchinfo import summary
 #from src.torch_kmeans.clustering.soft_kmeans import SoftKMeans
 #from torchsummary import summary
 from torch_kmeans import SoftKMeans
+from typing import Optional, Union, List,  Literal
 
-def select_class(X, labels, k, dim = 0, return_index = False):
+def select_class(X: torch.Tensor, labels: torch.Tensor, k: int, dim: int = 0, return_index: bool = False):
     #L = torch.tensor(labels)
     indices = torch.nonzero(labels == k)
     X_sub = torch.index_select(X, dim=dim, index=indices.squeeze())
@@ -32,7 +33,7 @@ def select_class(X, labels, k, dim = 0, return_index = False):
         return X_sub
 
 
-def select_subgraph(A, labels, k):
+def select_subgraph(A: torch.Tensor, labels: torch.Tensor, k: int):
     #L = torch.tensor(labels)
     indices = torch.nonzero(labels == k).squeeze()
     A_rows = torch.index_select(A, dim=0, index=indices)
@@ -41,7 +42,7 @@ def select_subgraph(A, labels, k):
     return subgraph
 
 
-def reorganize_labels(S1, S2_list):
+def reorganize_labels(S1: torch.Tensor, S2_list: torch.Tensor):
     # S1: tensor of initial class labels
     # S2_list: list of tensors, each containing predicted labels for subsets of X based on unique labels in S1
 
@@ -63,9 +64,9 @@ class GATE(nn.Module):
     
     """
 
-    def __init__(self, in_nodes, in_attrib, normalize = True, hid_sizes=[256, 128, 64], 
-                 attn_heads = 1, layer_act = nn.Identity(), dropout = 0.2, 
-                 operator = 'GATv2Conv', **kwargs):
+    def __init__(self, in_nodes: int, in_attrib: int, normalize: bool = True, hid_sizes: List[int] = [256, 128, 64], 
+                 attn_heads: int = 1, layer_act: nn.Module = nn.Identity(), dropout: float = 0.2, 
+                 operator: Literal['GATConv', 'GATv2Conv', 'SAGEConv'] = 'GATv2Conv', **kwargs):
         
         super(GATE, self).__init__()
         #store size
@@ -114,8 +115,8 @@ class AddLearningLayers(nn.Module):
     extra layers between embedding and comm prediction layers that aim
     to improve class learning
     """
-    def __init__(self, in_nodes, in_attrib, sizes = [64, 32], 
-                 normalize = True, dropout = 0.0, negative_slope = 0.2):
+    def __init__(self, in_nodes: int, in_attrib: int, sizes: List[int] = [64, 32], 
+                 normalize: bool = True, dropout: float = 0.2, negative_slope: float = 0.2):
         super(AddLearningLayers, self).__init__()
         self.nodes = in_nodes
         self.attrib = in_attrib
@@ -125,8 +126,8 @@ class AddLearningLayers(nn.Module):
         
         for idx, size in enumerate(sizes):
             #add output layers to dictionary
-            module_dict.update({f'LinearLayer_{size}_{idx}': FCL(in_dim = in_attrib, 
-                                                             out_dim = size,
+            module_dict.update({f'LinearLayer_{size}_{idx}': FCL(in_features = in_attrib, 
+                                                             out_features = size,
                                                              norm = normalize,
                                                              dropout = dropout,
                                                              alpha=negative_slope)

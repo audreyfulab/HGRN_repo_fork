@@ -975,7 +975,7 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
 
     if not isinstance(truth, type(None)):
-        fig, ax1 = plt.subplots(1,2, figsize = (12,10))
+        fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,10))
         #tsne plot
         ax1[0].scatter(TSNE_data[:,0], TSNE_data[:,1], s = 25, c = truth[0], cmap = 'plasma')
         ax1[0].set_xlabel('Dimension 1')
@@ -1003,14 +1003,14 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     #     ax2[0].scatter(TSNE_data2[:,0], TSNE_data2[:,1], s = 25, c = truth[0], cmap = 'plasma')
     #     ax2[0].set_xlabel('Dimension 1')
     #     ax2[0].set_ylabel('Dimension 2')
-    #     ax2[0].set_title(' t-SNE Embedding Comm1-projection (true_labels)')
+    #     ax2[0].set_title(' t-SNE Embedding (true_labels)')
     #     #adding node labels
         
     #     #PCA plot
     #     ax2[1].scatter(PCs2[:,0], PCs2[:,1], s = 25, c = truth[0], cmap = 'plasma')
     #     ax2[1].set_xlabel('Dimension 1')
     #     ax2[1].set_ylabel('Dimension 2')
-    #     ax2[1].set_title(' PCA Embedding Comm1-projection (true_labels)')
+    #     ax2[1].set_title(' PCA Embedding (true_labels)')
 
         if args.save_results == True:
             fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')

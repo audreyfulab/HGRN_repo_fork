@@ -77,15 +77,15 @@ parser.add_argument('--add_output_layers', type=bool, default=False, help ='shou
 parser.add_argument('--make_directories', type=bool, default=False, help='If true directors are created using os.makedir()')
 parser.add_argument('--save_model', type=bool, default=False, help='If true model is saved at args.sp as model')
 parser.add_argument('--compute_optimal_clusters', type=bool, default=True, help='If number of top layer communities should be determined via one of the methods in --kappa_method')
-parser.add_argument('--kappa_method', type=str, default='bethe_hessian', choices = ['bethe_hessian', 'elbow', 'silouette'], help='Method for determining the optimal number of communities for the top layer of the hierarchy')
+parser.add_argument('--kappa_method', type=str, default='elbow', choices = ['bethe_hessian', 'elbow', 'silouette'], help='Method for determining the optimal number of communities for the top layer of the hierarchy')
 args = parser.parse_args()
 
 
 
 parser2 = argparse.ArgumentParser(description='Simulation Parameters')
 parser2.add_argument('--connect', dest='connect', default='disc', type=str)
-parser2.add_argument('--connect_prob_middle', dest='connect_prob_middle', default='use_baseline', type=str)
-parser2.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default='use_baseline', type=str)
+parser2.add_argument('--connect_prob_middle', dest='connect_prob_middle', default=0.1, type=str)
+parser2.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default=0.01, type=str)
 parser2.add_argument('--toplayer_connect_prob', dest='toplayer_connect_prob', default=0.3, type=float)
 parser2.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int)
 parser2.add_argument('--subgraph_type', dest='subgraph_type', default='small world', type=str)
@@ -105,16 +105,18 @@ parser2.add_argument('--use_weighted_graph', dest='use_weighted_graph',default =
 parser2.add_argument('--set_seed', dest='set_seed', default=False, type=bool)
 parser2.add_argument('--force_connect', dest='force_connect', default=True, type=bool)
 parser2.add_argument('--savepath', dest='savepath', default='./', type=str)
+parser2.add_argument('--mixed_graph', dest='mixed_graph', default=False, type=str)
 sim_args = parser2.parse_args()
 
 
 
 #simulation settings
-sim_args.subgraph_type = 'small world'
-sim_args.connect = 'full'
+sim_args.subgraph_type = 'scale free'
+sim_args.connect = 'disc'
 #global simulation settings
 sim_args.top_layer_nodes = 5
 sim_args.nodes_per_super2 = (3,3)
+#sim_args.nodes_per_super3 = (50,60)
 sim_args.common_dist = False
 sim_args.force_connect = True
 sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
@@ -126,18 +128,20 @@ sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01),
 sim_args.set_seed = False
 sim_args.layers = 3
 sim_args.SD = 0.1
-
-sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
+#sim_args.mixed_graph = True
+sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/'
+#sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_3_2025/Example_graph/'
 
 #output save settings
 #args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/test/'
+#args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_3_2025/debug_results/'
 args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
-#args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_10_18_2024/Output/wo_fine_tuning_updated/'
 args.save_results = True
 args.make_directories = False
 args.save_model = False
 args.set_seed = 555
 args.read_from = 'local'
+args.load_from_existing = True
 args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
@@ -146,9 +150,9 @@ args.batch_size = 64
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
-args.AE_operator = 'SAGEConv'
+args.AE_operator = 'GATv2Conv'
 #args.COMM_operator = 'Linear'
-args.COMM_operator = 'SAGEConv'
+args.COMM_operator = 'Linear'
 args.attn_heads = 5
 args.dropout_rate = 0.2
 args.normalize_input = True
@@ -160,17 +164,17 @@ args.delta = 1
 args.lambda_ = [1, 1]
 args.learning_rate = 1e-3
 args.use_true_communities = False
-args.community_sizes = [64, 5]
-args.compute_optimal_clusters = True
-args.kappa_method = 'bethe_hessian'
+args.community_sizes = [15, 5]
+args.compute_optimal_clusters = False
+args.kappa_method = 'silouette'
 
 #training settings
 args.dataset = 'generated'
 args.parent_distribution = 'unequal'
 args.which_net = 1
-args.training_epochs = 100
+args.training_epochs = 500
 args.steps_between_updates = 20
-args.use_true_graph = True
+args.use_true_graph = False
 args.correlation_cutoff = 0.2
 args.return_result = 'best_loss'
 args.verbose = False
@@ -222,23 +226,34 @@ out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, mo
 #     results = run_single_simulation(args, return_model=False, heads = 1)
 #     bpi, bli = indices
     
-loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
-    
-X, A, target_labels, comm_sizes = set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, stats)
+args_dict = vars(args)
+simargs_dict = vars(sim_args)
+
+dfargs1 = pd.DataFrame(list(args_dict.items()), columns=['Parameter', 'Value'])
+dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'])
+
+dfargs1.to_csv(args.sp+'Model_Parameters.csv')
+dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
+
+out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
+
+X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
+
+model = torch.load(args.sp+'checkpoint.pth')
 
 #args.split_data = False
 #train, test, gene_labels = load_application_data_regulon(args)
 #X, A, [] = train
 model = torch.load(args.sp+'checkpoint.pth')
 perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_labels)
-
+                
 X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
 
 print('='*60)
 print('-'*10+'final top'+'-'*10)
-node_clust_eval(target_labels[0], S_relab[0])
+final_top_res=node_clust_eval(target_labels[0], S_relab[0], verbose = True)
 print('-'*10+'final middle'+'-'*10)
-node_clust_eval(target_labels[1], S_relab[1])
+final_middle_res=node_clust_eval(target_labels[1], S_relab[1], verbose = True)
 print('='*60)
 
 #generate graph 

@@ -14,7 +14,7 @@ from simulation_software.HGRN_hierarchicalgraph import generate_pseudo_expressio
 from simulation_software.HGRN_hierarchicalgraph import same_cluster
 from simulation_software.simulation_utilities import plot_diGraph
 from model.utilities import pickle_data, sort_labels
-from random import randint as rd   
+import random as rd  
 
 
 
@@ -31,7 +31,6 @@ def simulate_graph(args):
             connect (str): Type of connectivity between nodes ('full' for fully connected, 'disc' for disconnected).
             connect_prob_middle (str): Probability model for connections in the middle layer.
             connect_prob_bottom (str): Probability model for connections in the bottom layer.
-            toplayer_connect_prob (float): Probability of connections in the top layer graph.
             top_layer_nodes (int): Number of nodes in the top layer of the hierarchy.
             subgraph_type (str): Type of subgraph to use ('small world', etc.).
             subgraph_prob (float or list of float): Probability for subgraph connections.
