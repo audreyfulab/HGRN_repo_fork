@@ -21,17 +21,14 @@ import sys
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/')
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
 from MAIN_run_simulations_single_net import run_single_simulation
-from run_simulations_utils import set_up_model_for_simulation_inplace, plot_embeddings_heatmap, generate_attention_graph
-from model.utilities import resort_graph, node_clust_eval
+from run_simulations_utils import set_up_model_for_simulation_inplace
+from model.utilities import node_clust_eval
 from model.train import evaluate
 import os
 import matplotlib.pyplot as plt
 import torch
-import networkx as nx
 import numpy as np
-import seaborn as sbn
 import pandas as pd
-import json
 
 # Run and Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
