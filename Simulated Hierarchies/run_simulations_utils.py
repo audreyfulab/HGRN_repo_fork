@@ -563,7 +563,7 @@ def run_kmeans(args, X, labels, layers, sizes):
     
     """
     #make heatmap for louvain results and get metrics
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize = (12, 10))
     os.environ['OMP_NUM_THREADS'] = "2"
     
     
@@ -589,6 +589,9 @@ def run_kmeans(args, X, labels, layers, sizes):
                                            labels[0].tolist()]).T,
                                  columns = ['KMeans Middle', 'KMeans Top','Truth Middle','Truth Top']),
                     ax = ax)
+        
+        
+    fig.savefig(args.sp+'KMeans_results.png')
         
         
         
