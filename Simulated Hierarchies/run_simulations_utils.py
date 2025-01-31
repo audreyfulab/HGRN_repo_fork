@@ -814,13 +814,13 @@ def generate_output_table(truth, louv_pred, kmeans_pred, thc_pred, hcd_preds, ve
     
     if kmeans_pred:
         if len(truth) > 1:
-            homo_k2m, comp_k2m, nmi_k2m, ari_k2m = node_clust_eval(truth[1], 
+            homo_k2m, comp_k2m, nmi_k2m, ari_k2m = node_clust_eval(truth[0], 
                                                                    kmeans_pred[0],
                                                                    verbose = False)
         else:
             homo_k2m, comp_k2m, nmi_k2m, ari_k2m = (None,None,None,None)
             
-        homo_k2t, comp_k2t, nmi_k2t, ari_k2t =node_clust_eval(truth[0], 
+        homo_k2t, comp_k2t, nmi_k2t, ari_k2t =node_clust_eval(truth[1], 
                                                               kmeans_pred[1],
                                                               verbose = False)
     else:
