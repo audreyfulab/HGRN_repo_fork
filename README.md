@@ -88,6 +88,8 @@ parser.add_argument('--kappa_method', type=str, default='bethe_hessian', choices
 parser.add_argument('--load_from_existing', type=bool, default=False, help='When --dataset = "generated" and argument is True, data is read from same directory where previous graph was saved')
 args = parser.parse_args()
 
+
+
 # Simulation arguments
 parser2 = argparse.ArgumentParser(description='Simulation Parameters')
 parser2.add_argument('--connect', dest='connect', choices=['disc', 'full'], default='disc', type=str, help='Sets the top layer of the simulated hierarchy to be either all connected or all disconnected')
@@ -128,10 +130,10 @@ sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01),
                                 ]
 sim_args.set_seed = True
 sim_args.seed_number = 555
-sim_args.savepath = 'path/to/save/graph/directory/'
+sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/'
 
 #output save settings
-args.sp = 'path/to/save/results/directory/'
+args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
 args.save_results = True
 args.make_directories = True #this will automatically create the directories at args.sp and sim_args.savepath
 args.set_seed = 555 #sets a seed for training the model
@@ -174,7 +176,6 @@ args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
-
 #train model and generate data
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
 plt.close('all') #close any open figures to save memory
@@ -191,6 +192,9 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
 
+# disect output
+out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
+
 # reload data
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
@@ -205,7 +209,6 @@ final_top_res=node_clust_eval(target_labels[0], S_relab[0], verbose = True)
 print('-'*10+'final middle'+'-'*10)
 final_middle_res=node_clust_eval(target_labels[1], S_relab[1], verbose = True)
 print('='*60)
-
 
 
 ```
