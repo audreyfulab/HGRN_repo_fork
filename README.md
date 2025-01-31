@@ -90,7 +90,7 @@ args = parser.parse_args()
 
 # Simulation arguments
 parser2 = argparse.ArgumentParser(description='Simulation Parameters')
-parser2.add_argument('--connect', dest='connect', choices=['disc', 'full'], default='disc', type=Literal[str], help='Sets the top layer of the simulated hierarchy to be either all connected or all disconnected')
+parser2.add_argument('--connect', dest='connect', choices=['disc', 'full'], default='disc', type=str, help='Sets the top layer of the simulated hierarchy to be either all connected or all disconnected')
 parser2.add_argument('--connect_prob_middle', dest='connect_prob_middle', default=0.1, type=float, help='Sets the probability for edge creation between two nodes in the middle layer of the hierarchy')
 parser2.add_argument('--connect_prob_bottom', dest='connect_prob_bottom', default=0.01, type=float, help='Sets the probability for edge creation between two nodes in the bottom layer of the hierarchy')
 parser2.add_argument('--top_layer_nodes', dest='top_layer_nodes', default=5, type=int, help='Sets the number of nodes (i.e communities) in the top layer of the hierarchy')
