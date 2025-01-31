@@ -19,7 +19,7 @@ import argparse
 import sys
 #expose paths to necessary files
 sys.path.append('my/path/to/HGRN_software/')
-sys.path.append('my/path/to/MAIN_run_simulations_single_net/and/run_simulation_utils/)
+sys.path.append('my/path/to/MAIN_run_simulations_single_net/and/run_simulation_utils/')
 from MAIN_run_simulations_single_net import run_single_simulation
 from run_simulations_utils import set_up_model_for_simulation_inplace
 from model.utilities import node_clust_eval
