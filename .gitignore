@@ -1,2 +1,71 @@
 /Reports/Report_10_18_2024/Output
 /Reports/Report_12_11_2024/Output
+Reports/Report_12_11_2024/run_complex.py
+Reports/Report_12_11_2024/run_complex.slurm
+Reports/Report_12_11_2024/run_intermediate_both_linear.slurm
+Reports/Report_12_11_2024/run_intermediate_both_linear_DW.slurm
+Reports/Report_12_11_2024/run_intermediate_disc.py
+Reports/Report_12_11_2024/run_intermediate_disc.slurm
+Reports/Report_12_11_2024/run_intermediate_double_linear.py
+Reports/Report_12_11_2024/run_intermediate_double_linear_DW.py
+Reports/Report_12_11_2024/run_intermediate_downweighted.py
+Reports/Report_12_11_2024/run_intermediate_full.py
+Reports/Report_12_11_2024/run_intermediate_full.slurm
+Reports/Report_12_11_2024/run_regulon.py
+Reports/Report_12_11_2024/run_regulon.slurm
+Reports/Report_1_27_2025/jobs/Run_Linear/run_all_Linear.slurm
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_64_5.py
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_64_5.slurm
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_64_64.py
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_64_64.slurm
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_GT.py
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_GT.slurm
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_Opt_Clusts.py
+Reports/Report_1_27_2025/jobs/Run_Linear/run_Linear_Opt_Clusts.slurm
+Reports/Report_1_27_2025/jobs/Run_No_out/run_all_No_out.slurm
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_64_5.py
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_64_5.slurm
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_64_64.py
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_64_64.slurm
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_GT.py
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_GT.slurm
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_Opt_Clusts.py
+Reports/Report_1_27_2025/jobs/Run_No_out/run_No_out_Opt_Clusts.slurm
+/Reports/Report_1_27_2025/Output
+/Reports/Report_1_3_2025/debug_results
+/Reports/Report_1_3_2025/Example_graph
+Reports/Report_1_3_2025/Combined_revised_framework.png
+Reports/Report_1_3_2025/Combined_previous_framework.png
+Reports/Report_1_27_2025/run_intermediate_all.slurm
+Reports/Report_1_27_2025/run_intermediate_all.py
+Reports/Report_10_18_2024/graph2.html
+Reports/Report_10_18_2024/combined.xlsx
+mini_simulations/cluster_loss_calculation.R
+embed_plot.png
+/Reports/Report_1_3_2025/Output
+Reports/Report_1_3_2025/run_intermediate_GATCONV_unknown_k.py
+Reports/Report_1_3_2025/run_intermediate_linear_layers.py
+Reports/Report_1_3_2025/run_intermediate_linear_layers.slurm
+Reports/Report_1_3_2025/run_intermediate_linear_layers_both_64.py
+Reports/Report_1_3_2025/run_intermediate_linear_layers_both_64.slurm
+Reports/Report_1_3_2025/run_intermediate_linear_layers_uknown_k.py
+Reports/Report_1_3_2025/run_intermediate_only_HCD_outlayers.py
+Reports/Report_1_3_2025/run_intermediate_SAGECONV.py
+Reports/Report_1_3_2025/run_intermediate_SAGECONV.slurm
+Reports/Report_1_3_2025/run_intermediate_SAGECONV_DW.py
+Reports/Report_1_3_2025/run_intermediate_SAGECONV_DW.slurm
+Reports/Report_1_3_2025/run_intermediate_softkmeans.py
+Reports/Report_1_3_2025/run_intermediate_softkmeans.slurm
+Reports/Report_1_3_2025/run_set_1_sims.slurm
+Reports/Reports_old.zip
+Reports/Report_1_3_2025/Revised_framework Epoch 60.png
+Reports/Report_1_3_2025/Revised Framework Epoch 40.png
+Reports/Report_1_3_2025/Revised Framework Epoch 40 predictions.png
+Reports/Report_1_3_2025/Revised Framework Epoch 1.png
+Reports/Report_1_3_2025/Previous Framework Epoch 130.png
+Reports/Report_1_3_2025/Previous Framework Epoch 130 Predictions.png
+Reports/Report_1_3_2025/Previous Framework Epoch 1.png
+/Reports/Reports_old
+/Simulated Hierarchies/DATA
+Simulated Hierarchies/MASTER_results_1_10_2024.csv
+Simulated Hierarchies/run_simulation_scripts/run_complex.py
