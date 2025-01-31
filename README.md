@@ -120,34 +120,26 @@ sim_args = parser2.parse_args()
 
 #simulation settings
 sim_args.subgraph_type = 'scale free'
-sim_args.connect = 'disc'
-#global simulation settings
-sim_args.top_layer_nodes = 5
-sim_args.nodes_per_super2 = (3,3)
-#sim_args.nodes_per_super3 = (50,60)
-sim_args.common_dist = False
-sim_args.force_connect = True
+
 sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
                                 np.random.uniform(0.01, 0.15)
                                 ] 
 sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01), 
                                 np.random.uniform(0.001, 0.01)
                                 ]
-sim_args.set_seed = False
-sim_args.layers = 3
-sim_args.SD = 0.1
-#sim_args.mixed_graph = True
-sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/'
+sim_args.set_seed = True
+sim_args.seed_number = 555
+sim_args.savepath = 'path/to/save/graph/directory/'
 
 #output save settings
-
-args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
+args.sp = 'path/to/save/results/directory/'
 args.save_results = True
-args.make_directories = False
-args.save_model = False
-args.set_seed = 555
-args.read_from = 'local'
-args.load_from_existing = True
+args.make_directories = True #this will automatically create the directories at args.sp and sim_args.savepath
+args.set_seed = 555 #sets a seed for training the model
+args.load_from_existing = False #this will ensure a new graph is simulated
+args.dataset = 'generated' #sets the dataset to be simulated according arguments passed in sim_args
+
+#model set up
 args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
@@ -157,45 +149,40 @@ args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
 args.AE_operator = 'GATv2Conv'
-#args.COMM_operator = 'Linear'
-args.COMM_operator = 'Linear'
+args.COMM_operator = 'None'
 args.attn_heads = 5
 args.dropout_rate = 0.2
 args.normalize_input = True
 args.normalize_layers = True
-args.AE_hidden_size = [256, 128]
-args.LL_hidden_size = [128, 64] 
+args.AE_hidden_size = [256, 128] 
 args.gamma = 1
 args.delta = 1
 args.lambda_ = [1, 1]
 args.learning_rate = 1e-3
-args.use_true_communities = False
 args.community_sizes = [15, 5]
-args.compute_optimal_clusters = False
+args.compute_optimal_clusters = True #this overrides args.community_sizes and estimates k_middle, k_top according to "kappa_method"
 args.kappa_method = 'silouette'
 
-#training settings
-args.dataset = 'generated'
-args.parent_distribution = 'unequal'
-args.which_net = 1
-args.training_epochs = 500
-args.steps_between_updates = 20
-args.use_true_graph = False
+#training set up
+args.training_epochs = 100
+args.steps_between_updates = 10
+args.use_true_graph = False 
 args.correlation_cutoff = 0.2
 args.return_result = 'best_loss'
 args.verbose = False
 args.run_louvain = True
-args.run_kmeans = False
 args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
 
+#train model and generate data
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
-plt.close('all')
+plt.close('all') #close any open figures to save memory
 out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
 
     
+#save all arguments/parameters
 args_dict = vars(args)
 simargs_dict = vars(sim_args)
 
@@ -205,11 +192,24 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
 
+# disect output
 out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
 
+# reload data
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
+#load trained model
 model = torch.load(args.sp+'checkpoint.pth')
+perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_labels)
+
+#print final predictions
+print('='*60)
+print('-'*10+'final top'+'-'*10)
+final_top_res=node_clust_eval(target_labels[0], S_relab[0], verbose = True)
+print('-'*10+'final middle'+'-'*10)
+final_middle_res=node_clust_eval(target_labels[1], S_relab[1], verbose = True)
+print('='*60)
+
 
 
 ```
