@@ -1,4 +1,4 @@
-# HGRN_repo
+# Hierarchical Community Detection with graph embedding
 
 ![](HCD_logo_1.jpg).
 
