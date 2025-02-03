@@ -322,7 +322,7 @@ class Comm_DenseLayer2(nn.Module):
             M_norm = self.out_norm(M)
             H = self.act(M_norm)
             
-        if self.operator.lower() == ['sageconv','gatconv','gatv2conv']:
+        if self.operator.lower() in ['sageconv','gatconv','gatv2conv']:
             
             ei, ea = pyg_utils.dense_to_sparse(A)
             M = self.transform(x=Z, edge_index=ei)

@@ -163,7 +163,7 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
             kappa_top = int(np.ceil(0.5*kappa_middle))
             
             if verbose:
-                print(f'Beth Hessian estimated communities = {kappa_middle}')
+                print(f'Beth Hessian estimated communities = {kappa_top}, {kappa_middle}')
             
     #elbow plot method
     elif method == 'elbow':
