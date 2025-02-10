@@ -176,11 +176,9 @@ args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
-#train model and generate data
+#generate data and train model - returns output object of class HCD_output
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
 plt.close('all') #close any open figures to save memory
-out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
-
     
 #save all arguments/parameters
 args_dict = vars(args)
@@ -192,14 +190,13 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
 
-# disect output
-out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
-
 # reload data
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
 #load trained model
 model = torch.load(args.sp+'checkpoint.pth')
+
+#run trained model on entire dataset
 perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_labels)
 
 #print final predictions
