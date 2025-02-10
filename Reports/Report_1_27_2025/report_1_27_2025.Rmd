@@ -183,27 +183,39 @@ There are several classical approaches to estimating the number of communities, 
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-fp1 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/None_64_64_opt_clusts_False/combined_all_results_top.csv'
-fp2 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/None_64_64_opt_clusts_False/combined_all_results_middle.csv'
+fp1 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/combined_results_all_simulations.csv'
 
-dtop = read.csv(fp1)
-dmid = read.csv(fp2)
+dtab = read.csv(fp1)
 
-data = cbind.data.frame(Layer = c(rep('Top Layer', dim(dtop)[1]), 
-                                  rep('Middle Layer', dim(dmid)[1])), 
-                        rbind.data.frame(dtop, dmid))
+scene = 'BH-Linear'
+meth = 'HCD-Linear'
+subdat = subset(dtab, Scenario == scene & Method %in% c(meth, 'HC', 'Louvain'))
 
-A = ggplot(data = subset(data, connection_type == 'disc'), 
-           aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method))+
-  #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
-  #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
+newdat = cbind.data.frame(HCD = subset(subdat, Method == meth & Layer == 'Middle Layer' & connection_type == 'disc')$ARI, HC = subset(subdat, Method == 'HC' & Layer == "Middle Layer" & connection_type == 'disc')$ARI)
+
+
+A = ggplot(data = newdat, aes(x = HCD, y = HC))+
   scale_shape_manual(values=c(21:25, 21:25))+
   scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
   scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
   geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black')+
-  facet_grid(Layer~subgraph_type)+
-  #facet_wrap(~subgraph_type)+
+  geom_point(size = 3, color = 'black', alpha = 0.6)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'top')+
+  ggtitle("Clustering Performance")
+
+
+plot(A)
+
+                
+A = ggplot(data = subdat, aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
+  scale_shape_manual(values=c(21:25, 21:25))+
+  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
+  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
+  geom_abline(slope = 1, intercept = 0, size = 1.5)+
+  geom_point(size = 3, color = 'black', alpha = 0.6)+
+  facet_grid(subgraph_type~connection_type~Layer)+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90),
         legend.position = 'top')+
@@ -213,6 +225,9 @@ A = ggplot(data = subset(data, connection_type == 'disc'),
 plot(A)
 
 ```
+
+
+
 
 
 
@@ -220,220 +235,51 @@ plot(A)
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-fp1 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Linear_15_5_opt_clusts_False/combined_all_results_top.csv'
-fp2 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Linear_15_5_opt_clusts_False/combined_all_results_middle.csv'
 
-dtop = read.csv(fp1)
-dmid = read.csv(fp2)
+scen = 'BH-NOL'
+meth = 'HCD-NOL'
 
-data = cbind.data.frame(Layer = c(rep('Top Layer', dim(dtop)[1]), 
-                                  rep('Middle Layer', dim(dmid)[1])), 
-                        rbind.data.frame(dtop, dmid))
-
-A = ggplot(data = data, #subset(data, Method == 'HCD'), 
-           aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method))+
+A = ggplot(data = subset(dtab, Scenario == scen & Method %in% c(meth, 'HC', 'Louvain') & connection_type == 'full' & subgraph_type == 'small world'), 
+           aes(x = Method, y = NMI, fill = Method, linetype = as.factor(StDev)))+
   #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
-  #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black')+
-  facet_grid(Layer~subgraph_type)+
+  geom_boxplot(alpha = 0.5, linewidth = 1.2)+
+  #scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, 0.1))+
+  #geom_abline(slope = 1, intercept = 0, size = 1.5)+
+  #geom_point(size = 3, color = 'black')+
+  facet_grid(~Layer)+
   #facet_wrap(~subgraph_type)+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90),
         legend.position = 'top')+
   ggtitle("Clustering Performance")
+plot(A)
 
 
+
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+scen = 'BH-NOL'
+meth = 'HCD-NOL'
+
+A = ggplot(data = subset(dtab, Scenario == scen & Method %in% c(meth, 'HC', 'Louvain')), 
+           aes(x = avg_connect_between_top, y = NMI, fill = Method, linetype = as.factor(StDev)))+
+  #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
+  #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
+  scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, 0.1))+
+  #geom_abline(slope = 1, intercept = 0, size = 1.5)+
+  geom_point(size = 3, color = 'black')+
+  facet_grid(Layer~connection_type~subgraph_type)+
+  #facet_wrap(~subgraph_type)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'top')+
+  ggtitle("Clustering Performance")
 plot(A)
 
 ```
-
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, eval = F}
-
-fp1 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Linear_15_5_opt_clusts_False/'
-fp2 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Linear_64_5_opt_clusts_False/'
-fp3 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Linear_64_64_opt_clusts_False/'
-fp4 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/None_15_5_opt_clusts_False/'
-fp5 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/None_64_5_opt_clusts_False/'
-fp6 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/None_64_64_opt_clusts_False/'
-
-
-read_data = function(fp){
-  topres = na.omit(read.csv(paste0(fp, 'combined_all_results_top.csv')))
-  midres = na.omit(read.csv(paste0(fp, 'combined_all_results_middle.csv')))
-  statres = na.omit(read.csv(paste0(fp, 'combined_sim_results.csv')))
-  
-  return(list(data.top = topres, data.mid = midres, stats = statres))
-}
-
-
-
-
-
-
-
-
-helper1 = function(netstats){
-  
-  predcoms_top = NULL
-  predcoms_middle = NULL
-  for (i in 1:length(netstats$Number_Predicted_Comms)){
-    str = netstats$Number_Predicted_Comms[i]
-    nums <- scan(text = gsub("[\\(\\)]", "", str), sep = ",", quiet = TRUE)
-    predcoms_top[i] = nums[1]
-    predcoms_middle[i] = nums[2]
-  }
-  
-  return(list(top = mean(predcoms_top), middle = mean(predcoms_middle)))
-  
-}
-
-
-
-fill.in.avg.table = function(subtable, substats, method, gtype, stdev, ctype){
-  
-  new.colnames = c('Method', 'Homogeneity', 'Completeness', 'NMI', 'ARI', 'Subgraph Type', 'Connection Type', 'StDev',
-                 'Avg Node Degree (middle)', 'Avg WC Connections (middle)', 'Avg BC Connections (middle)', 
-                 'Avg Node Degree (bottom)', 'Avg WC Connections (bottom)', 'Avg BC Connections (bottom)',
-                 'Avg Number of Predicted Comms (top)', 'Avg Number of Predicted Comms (middle)', 'Avg Bethe-Hessian Comms')
-
-  summary.table = data.frame(matrix(ncol = length(new.colnames), nrow = 1))
-  colnames(summary.table) = new.colnames 
-  
-  
-  summary.table$Method[1] = method    
-  summary.table$ARI[1] = mean(subtable$ARI)
-  summary.table$NMI[1] = mean(subtable$NMI)
-  summary.table$Completeness[1] = mean(subtable$Completeness)
-  summary.table$Homogeneity[1] = mean(subtable$Homogeneity)
-  summary.table$`Subgraph Type`[1] = gtype
-  summary.table$`Connection Type`[1] = ctype
-  summary.table$StDev[1] = stdev
-  summary.table$`Avg Node Degree (middle)`[1] = mean(subtable$avg_node_degree_top)
-  summary.table$`Avg WC Connections (middle)`[1] = mean(subtable$avg_connect_within_top)
-  summary.table$`Avg BC Connections (middle)`[1] = mean(subtable$avg_connect_between_top)
-  summary.table$`Avg Node Degree (bottom)`[1] = mean(subtable$avg_node_degree_middle)
-  summary.table$`Avg WC Connections (bottom)`[1] = mean(subtable$avg_connect_within_middle)
-  summary.table$`Avg BC Connections (bottom)`[1] = mean(subtable$avg_connect_between_middle)
-  
-  results = helper1(substats)
-  
-  summary.table$`Avg Number of Predicted Comms (top)`[1] =results$top 
-  summary.table$`Avg Number of Predicted Comms (middle)`[1] = results$middle
-  summary.table$`Avg Bethe-Hessian Comms`[1] = mean(substats$Beth_Hessian_Comms)
-          
-  return(summary.table)
-}
-
-#debug(fill.in.avg.table)
-#debug(helper1)
-
-
-generate_summ_tables = function( flist = c(fp1, fp2, fp3, fp4, fp5, fp6)){
-  
- 
-  master = list()
-  summary.list.middle = list()
-  summary.list.top = list()
-  
-  
-  graph_types = c('small world', 'scale free', 'random graph')
-  stdevs = c(0.1, 0.5)
-  connect_type = c('disc', 'full')
-  method = c('HCD', 'HC', 'Louvain')
-  nm = c('Linear-GT', 'Linear-64-5', 'Linear-64-64', 'None-GT', 'None-64-5', 'None-64-64',)
-  all_data = vector('list', length = 7)
-  names(all_data) = nm
-  for (i in 1:length(flist)){
-  
-    data = read_data(flist[i])
-    all_data[[i]] = data
-    
-    dt = data$data.top
-    dm = data$data.mid
-    
-    dt$Method[which(dt$Method == 'HCD')] = nm[i] 
-    dm$Method[which(dm$Method == 'HCD')] = nm[i] 
-    
-    master[[i]] = rbind.data.frame(cbind.data.frame(Layer = rep('Top Layer', dim(dt)[1]), 
-                                                    Scenario = rep(nm[i], dim(dt)[1]),
-                                                    dt), 
-                                   cbind.data.frame(Layer = rep('Middle Layer', dim(dm)[1]), 
-                                                    Scenario = rep(nm[i], dim(dt)[1]),
-                                                    dm))
-    
-    for(j in 1:length(graph_types)){
-      
-      for(k in 1:length(stdevs)){
-        
-        for(q in 1:length(connect_type)){
-          
-          for(p in 1:length(method)){
-            
-            subdata.top = subset(data$data.top, 
-                                 subgraph_type == graph_types[j] & StDev == stdevs[k] & connection_type == connect_type[q] & Method == method[p])
-            
-            
-            subdata.mid = subset(data$data.mid, 
-                                 subgraph_type == graph_types[j] & StDev == stdevs[k] & connection_type == connect_type[q] & Method == method[p])
-            
-            
-            if (method[p] %in% c('HC', 'Louvain')){
-              meth = method[p]
-            }else{
-              meth = nm[i]
-            }
-            
-            
-            temptable.top = fill.in.avg.table(subtable=subdata.top, 
-                                              substats=data$stats, 
-                                              method=meth, 
-                                              gtype=graph_types[j], 
-                                              stdev=stdevs[k], 
-                                              ctype=connect_type[q])
-            
-            temptable.mid = fill.in.avg.table(subtable=subdata.mid, 
-                                              substats=data$stats, 
-                                              method=meth, 
-                                              gtype=graph_types[j], 
-                                              stdev=stdevs[k], 
-                                              ctype=connect_type[q])
-            
-            temptable.mid$Scenario = nm[i]
-            temptable.top$Scenario = nm[i]
-            
-            summary.list.top[[length(summary.list.top)+1]] = temptable.top
-            summary.list.middle[[length(summary.list.middle)+1]] = temptable.mid
-             
-          }
-        }
-      }
-    }
-  }
-  
-  
-  final.summary.top = do.call('rbind', summary.list.top)
-  final.summary.mid = do.call('rbind', summary.list.middle)
-  
-  
-  return(list(middle.tab = final.summary.mid, top.tab = final.summary.top, all.data = all_data, master = do.call('rbind', master)))
-}
-
-
-#debug(generate_summ_tables)
-
-output = generate_summ_tables()
-
-
-```
-
 
 
 
@@ -441,14 +287,7 @@ output = generate_summ_tables()
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 
-nm = c('Linear-GT', 'SoftKmeans-5-15', 'Linear-64-64', 'Linear-BH-64', 'GATCONV-BH-64', 'SAGECONV-BH-64', 'SAGECONV-BH-64-DW')
-
-
-
-# final = rbind.data.frame(cbind.data.frame(Layer = rep('top', dim(output$top.tab)[1]), output$top.tab),
-#                          cbind.data.frame(Layer = rep('middle', dim(output$top.tab)[1]), output$top.tab))
-
-A = ggplot(data = output$master, 
+A = ggplot(data = subset(dtab, connection_type == 'full' & Scenario == 'BH'), 
            aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method))+
   #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
   #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
@@ -457,7 +296,7 @@ A = ggplot(data = output$master,
   scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
   geom_abline(slope = 1, intercept = 0, size = 1.5)+
   geom_point(size = 3, color = 'black')+
-  facet_grid(Layer~Method)+
+  facet_grid(Layer~subgraph_type~Method)+
   #facet_wrap(~subgraph_type)+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90),
@@ -468,110 +307,6 @@ A = ggplot(data = output$master,
 plot(A)
 
 ```
-
-
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, eval = F}
-
-
-#nm = c('Linear-GT','Linear-64-64', 'Linear-BH-64', 'GATCONV-BH-64', 'SAGECONV-BH-64', 'SAGECONV-BH-64-DW')
-
-
-
-# final = rbind.data.frame(cbind.data.frame(Layer = rep('top', dim(output$top.tab)[1]), output$top.tab),
-#                          cbind.data.frame(Layer = rep('middle', dim(output$top.tab)[1]), output$top.tab))
-
-A = ggplot(data = subset(output$master, Layer == 'Top Layer'), 
-           aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method))+
-  #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
-  #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.4,1), breaks = seq(0.4, 1, 0.1))+
-  scale_y_continuous(limits = c(0.4,1), breaks = seq(0.4, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black')+
-  facet_grid(`connection_type`~`subgraph_type`)+
-  #facet_wrap(~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Top Layer Clustering Performance")
-
-
-plot(A)
-
-```
-
-
-
-
-
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, eval = F}
-
-A = ggplot(data = subset(output$master, subgraph_type == 'small world' & connection_type == 'disc'), 
-           aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method))+
-  #geom_bar(position = 'dodge2', stat = 'identity', alpha = 0.5, linewidth = 1.5)+
-  #geom_boxplot(alpha = 0.5, linewidth = 1.2)+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black')+
-  facet_grid(Layer~Method)+
-  #facet_wrap(~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance For Small World Networks")
-
-
-plot(A)
-
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

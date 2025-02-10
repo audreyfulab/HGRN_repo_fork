@@ -323,7 +323,7 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
         print('done')
         
         print('Simulation Complete')       
-    
+        print(f'Loading simulated data from directory: {simargs.savepath}')
     pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=simargs.savepath)
     
     #combine target labels into list
@@ -417,9 +417,10 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
     
     
     
-def handle_output(args, output, A, comm_sizes, method, labels = None):
+def handle_output(args, output, comm_sizes, method):
     
-    nodes = A.shape[0]
+    nodes = output.training_data['X_train'].shape[0]
+    A = output.training_data['A_train']
     #preallocate 
     comm_loss = []
     recon_A = []
@@ -430,9 +431,9 @@ def handle_output(args, output, A, comm_sizes, method, labels = None):
     
     #record best losses and best performances
     if args.split_data:
-        total_loss = np.array([i['Total Loss'] for i in output[-2]])
+        total_loss = np.array([i['Total Loss'] for i in output.test_loss_history])
     else:
-        total_loss = np.array([i['Total Loss'] for i in output[-3]])
+        total_loss = np.array([i['Total Loss'] for i in output.train_loss_history])
     best_loss_idx = total_loss.tolist().index(min(total_loss))
     best_perf_idx = None
     if args.return_result != 'best_loss':       
@@ -465,9 +466,9 @@ def handle_output(args, output, A, comm_sizes, method, labels = None):
         perf_mid = []
     
     #update lists
-    comm_loss.append(np.round(output[-2][best_loss_idx]['Clustering'], 4))
-    recon_A.append(np.round(output[-2][best_loss_idx]['A Reconstruction'], 4))
-    recon_X.append(np.round(output[-2][best_loss_idx]['X Reconstruction'], 4))
+    comm_loss.append(np.round(output.train_loss_history[best_loss_idx]['Clustering'], 4))
+    recon_A.append(np.round(output.train_loss_history[best_loss_idx]['A Reconstruction'], 4))
+    recon_X.append(np.round(output.train_loss_history[best_loss_idx]['X Reconstruction'], 4))
         
                 
     #compute the upper limit of communities, the beth hessian, and max modularity
@@ -477,9 +478,9 @@ def handle_output(args, output, A, comm_sizes, method, labels = None):
                 
     #output assigned labels for all layers
     if method == 'bottom_up':
-        S_sub, S_layer, S_all = trace_comms(output[6], comm_sizes)
+        S_sub, S_layer, S_all = trace_comms([i for i in list(output.predicted_train.values())], comm_sizes)
     else:
-        S_layer = output[6]
+        S_layer = [i for i in list(output.predicted_train.values())]
         S_sub, S_all = [],[]
     predicted_comms.append(tuple([len(np.unique(i)) for i in S_layer]))
     
@@ -488,20 +489,20 @@ def handle_output(args, output, A, comm_sizes, method, labels = None):
     else: 
         metric_index = best_perf_idx
         
-    if labels:
+    if output.training_data['labels_train']:
         if len(comm_sizes) == 1:
-            metrics.append({'Top': tuple(np.round(output[-1][metric_index][0], 4))})
+            metrics.append({'Top': tuple(np.round(output.performance_history[metric_index][0], 4))})
             
         else:
-            metrics.append({'Top': tuple(np.round(output[-1][metric_index][0], 4)),
-                            'Middle': tuple(np.round(output[-1][metric_index][-1], 4))})
+            metrics.append({'Top': tuple(np.round(output.performance_history[metric_index][0], 4)),
+                            'Middle': tuple(np.round(output.performance_history[metric_index][1], 4))})
     else:
         metrics.append({'Top': '', 'Middle': ''})
     
     return (beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, (best_perf_idx, best_loss_idx), metrics, predicted_comms, (S_sub, S_layer, S_all))
     
     
-def run_louvain(args, output, A, layers, savepath, best_perf_idx, labels):
+def run_louvain(args, A, labels, layers, savepath):
     
     #preallocate
     louv_mod = []
@@ -931,17 +932,15 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
         if args.save_results:
             best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.which_net}.csv'))
     
-    #unpack results
-    all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, train_loss_history, test_loss_history, perf_hist = output
-    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes, AW = all_out[bp]
+    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes, AW = output.model_output_history[bp]
      
     if args.use_method == 'bottom_up':
         P_pred_bp = P_all
     else:
-        P_pred_bp = [output[0][bp][4][0], torch.cat(output[0][bp][4][1])][::-1]
+        P_pred_bp = [output.model_output_history[bp][4][0], torch.cat(output.model_output_history[bp][4][1])][::-1]
 
     post_hoc_embedding(graph=adjacency-torch.eye(data.shape[0]), 
-                            embed_X = X_all_final[0],
+                            embed_X = output.latent_features,
                             data = data, 
                             probabilities = P_pred_bp,
                             size = 150.0,
@@ -957,9 +956,9 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
 
     plot_clust_heatmaps(A = adjacency, 
-                        A_pred = A_final-torch.eye(data.shape[0]), 
+                        A_pred = output.reconstructed_adj-torch.eye(data.shape[0]), 
                         X = data,
-                        X_pred = X_final,
+                        X_pred = output.reconstructed_features,
                         true_labels = truth, 
                         pred_labels = predicted, 
                         layers = k_layers+1, 
@@ -972,9 +971,9 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     TSNE_data=TSNE(n_components=3, 
                    learning_rate='auto',
                    init='random', 
-                   perplexity=3).fit_transform(X_all_final[0].detach().numpy())
+                   perplexity=3).fit_transform(output.latent_features.detach().numpy())
     #pca
-    PCs = PCA(n_components=3).fit_transform(X_all_final[0].detach().numpy())
+    PCs = PCA(n_components=3).fit_transform(output.latent_features.detach().numpy())
 
 
     if not isinstance(truth, type(None)):

@@ -15,9 +15,204 @@ import time
 import torch.optim as optimizers 
 from model.utilities import Modularity, WCSS
 from tqdm import tqdm
-from model.utilities import trace_comms, get_layered_performance, EarlyStopping
+from model.utilities import trace_comms, get_layered_performance
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
 import os
+from typing import Optional, Union, List,  Literal
+
+# model early stopping
+class EarlyStopping:
+    def __init__(self, patience=7, verbose=False, delta=0, path = None):
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.loss_min = float('inf')
+        self.delta = delta
+        
+        if not path:
+            self.path = os.getcwd()
+        else:
+            self.path = path
+        
+
+    def __call__(self, loss, model, _type = ['test', 'total']):
+        score = loss
+        self._type = _type
+            
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(loss, model)
+        elif score > self.best_score + self.delta:
+            self.counter += 1
+            if self.verbose:
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, loss, model):
+        
+        if self.verbose:
+            print(f'\n {self._type} loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ... \n')
+        torch.save(model, os.path.join(self.path, 'checkpoint.pth'))
+        self.loss_min = loss
+
+
+#model output class
+class HCD_output():
+    
+    """
+    A class to store the results and outputs of the HRGNgene model after training.
+
+    This class captures the model outputs, loss histories, performance metrics, 
+    clustering results, and adjacency structures for further analysis.
+
+    Attributes:
+    -----------
+    model_output_history : list
+        List containing all model outputs over training epochs.
+    attention_weights : torch.Tensor
+        Final attention weights computed by the model.
+    reconstructed_features : torch.Tensor
+        The reconstructed node features after training.
+    reconstructed_adj : torch.Tensor
+        The reconstructed adjacency matrix after training.
+    train_loss_history : list
+        Training loss history over epochs.
+    test_loss_history : list
+        Test loss history over epochs (if test data is provided).
+    performance_history : list
+        Performance metrics tracked during training.
+    latent_features : torch.Tensor
+        Extracted latent feature representations of the input data.
+    partitioned_data : torch.Tensor
+        Data partitioned into hierarchical clusters.
+    partitioned_latent_features : torch.Tensor
+        Latent feature representations of partitioned clusters.
+    training_data : dict
+        Dictionary containing:
+        - `'X_train'`: Training feature matrix.
+        - `'A_train'`: Training adjacency matrix.
+        - `'labels_train'`: Training labels (if available).
+    test_data : dict
+        Dictionary containing:
+        - `'X_test'`: Test feature matrix.
+        - `'A_test'`: Test adjacency matrix.
+        - `'labels_test'`: Test labels (if available).
+    probabilities : dict
+        Cluster membership probabilities at different levels:
+        - `'top'`: Probabilities at the top hierarchical level.
+        - `'middle'`: Probabilities at the middle hierarchical level.
+    pred_history : list
+        History of predicted cluster assignments over epochs.
+    adjacency : dict
+        Graph adjacency structures at different clustering levels:
+        - `'community_graphs'`: Middle layer within community graph for each top-layer community.
+        - `'partitioned_graphs'`: The partitions of the input graph for each top-layer community.
+    predicted_train : dict
+        Predicted hierarchical clustering assignments:
+        - `'top'`: Predictions at the top hierarchical level.
+        - `'middle'`: Predictions at the middle hierarchical level.
+    best_loss_index : int or None
+        Index corresponding to the epoch with the lowest recorded loss.
+    hierarchical_clustering_preds : dict
+        Cluster assignments using hierarchical clustering.
+    louvain_preds : dict
+        Cluster assignments using the Louvain community detection algorithm.
+    kmeans_preds : ldict
+        Cluster assignments using the K-means clustering algorithm.
+    table : pandas.DataFrame
+        A structured summary table of summary results and statistics
+    perf_table : pandas.DataFrame
+        A structured table containing performance evaluation metrics.
+
+    Methods:
+    --------
+    to_dict():
+        Converts the object into a dictionary format for easier access and storage.
+    
+    show_results():
+        Displays the performance table (`perf_table`) if available.
+    """
+    
+    def __init__(self, X, A, test_set, labels, all_output, model_output, test_history, train_history, perf_history, pred_history):
+        
+        X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model_output
+        
+        eval_X, eval_A, eval_labels = test_set
+        
+        self.model_output_history = all_output
+        self.attention_weights = AW_final
+        self.reconstructed_features = X_final
+        self.reconstructed_adj = A_final
+        self.train_loss_history = train_history
+        self.test_loss_history = test_history
+        self.performance_history = perf_history
+        self.latent_features = X_all_final[0]
+        self.partitioned_data = X_all_final[1]
+        self.partitioned_latent_features = X_all_final[2]
+        self.training_data = {'X_train': X, 'A_train': A, 'labels_train': labels}
+        self.test_data = {'X_test': eval_X, 'A_test': eval_A, 'labels_test': eval_labels}
+        self.probabiltiies = {'top': P_all_final[0], 'middle': P_all_final[1]}
+        self.pred_history = pred_history
+        self.adjacency = {'community_graphs': A_all_final[1],'partitioned_graphs': A_all_final[2]}
+        self.predicted_train = {'top': S_final[0], 'middle': S_final[1]}
+        self.best_loss_index = None
+        self.hierarchical_clustering_preds = None
+        self.louvain_preds = None
+        self.kmeans_preds = None
+        self.table = None
+        self.perf_table = None
+        
+    def to_dict(self):
+        
+        """
+        Converts the `HCD_output` object into a dictionary format for easier access, storage, and analysis.
+
+        This method creates a structured dictionary containing all key attributes of the `HCD_output` class, 
+        making it easier to store or further process the results.
+
+        Returns:
+        --------
+        dict
+        """
+        
+        return {'model_output_history': self.model_output_history,
+                'attention_weights': self.attention_weights,
+                'reconstructed_features': self.reconstructed_features,
+                'reconstructed_adj': self.reconstructed_adj,
+                'train_loss_history': self.train_loss_history,
+                'test_loss_history': self.test_loss_history,
+                'performance_history': self.performance_history,
+                'latent_features': self.latent_features,
+                'partitioned_data': self.partitioned_data,
+                'paritioned_latent_features': self.partitioned_latent_features,
+                'test_data': self.test_data,
+                'training_date': self.training_data,
+                'probabilities': self.probabiltiies,
+                'adjacency': self.adjacency,
+                'predicted_train': self.predicted_train,
+                'best_loss_index': self.best_loss_index,
+                'hierarchical_clustering_preds': self.hierarchical_clustering_preds,
+                'louvain_preds': self.louvain_preds,
+                'kmeans_preds': self.kmeans_preds,
+                'stat_table': self.table,
+                'perf_table': self.perf_table}
+        
+    def show_results(self):
+        """
+        Displays the performance table (`perf_table`) if available.
+
+        This method prints the `perf_table` attribute, which contains the model’s performance evaluation metrics. 
+        If `perf_table` is not available (None), the method does nothing.
+        """
+        print(self.perf_table)
+
 
 #------------------------------------------------------
 #custom pytorch dataset
@@ -115,10 +310,51 @@ def get_batched_data(X, A, batch_size = 64, min_batch_size = 11):
 
 
 #for train, test splitting
-def split_dataset(X, A, labels, layers, split=[0.8, 0.2]):
+def split_dataset(X: torch.Tensor, A: torch.Tensor, labels: List[torch.Tensor], split: List[int] =[0.8, 0.2]):
+    """
+        Splits the dataset into training and testing sets based on the given split ratio.
+
+        Parameters:
+        -----------
+        X : torch.Tensor
+            Feature matrix of shape (num_nodes, num_features).
+        A : torch.Tensor
+            Adjacency matrix of shape (num_nodes, num_nodes), representing graph connectivity.
+        labels : list of torch.Tensor
+            List of label tensors corresponding to each layer, with shape (num_nodes,).
+        split : list of float, optional (default = [0.8, 0.2])
+            The proportion of data to be split into training and testing sets. The first value represents the training fraction,
+            and the second value represents the testing fraction.
+
+        Returns:
+        --------
+        train_set : list
+            A list containing:
+            - train_X (torch.Tensor): Feature matrix for training nodes.
+            - train_A (torch.Tensor): Adjacency matrix for training nodes.
+            - labels_train (list of torch.Tensor): Labels for training nodes.
+
+        test_set : list
+            A list containing:
+            - test_X (torch.Tensor): Feature matrix for test nodes.
+            - test_A (torch.Tensor): Adjacency matrix for test nodes.
+            - labels_test (list of torch.Tensor): Labels for test nodes.
+
+        Notes:
+        ------
+        - This function randomly shuffles the node indices before splitting.
+        - Sorting the indices ensures consistent selection of training and testing sets.
+
+        Example:
+        --------
+        >>> X = torch.randn(100, 16)  # 100 nodes, 16 features
+        >>> A = torch.randint(0, 2, (100, 100))  # Random adjacency matrix
+        >>> labels = [torch.randint(0, 2, (100,))]  # Binary labels
+        >>> train_set, test_set = split_dataset(X, A, labels, layers=1)
+    """
     #an alternative batching approach to above
     num_nodes = X.size(0)
-    train_size = int(np.round(0.8*num_nodes))
+    train_size = int(np.round(split[0]*num_nodes))
     
     indices = torch.randperm(num_nodes)
     train_indices, test_indices = indices[:train_size], indices[train_size:]
@@ -128,10 +364,6 @@ def split_dataset(X, A, labels, layers, split=[0.8, 0.2]):
     train_A = torch.index_select(torch.index_select(A, 0, train_indices[sort_train]), 1, train_indices[sort_train])
     test_A = torch.index_select(torch.index_select(A, 0, test_indices[sort_test]), 1, test_indices[sort_test])
     
-    # if layers <= 1:
-    #     labels_train = labels[0][train_indices[sort_train]]
-    #     labels_test = labels[0][test_indices[sort_test]]
-    # else:
     labels_train = [lab[train_indices[sort_train]] for lab in labels]
     labels_test = [lab[test_indices[sort_test]] for lab in labels]
     
@@ -144,10 +376,72 @@ def split_dataset(X, A, labels, layers, split=[0.8, 0.2]):
 #-----------------------------------------------------
 #custom modularity loss function
 class ModularityLoss(nn.Module):
+    """
+        Custom Hierarchical Modularity Loss Function.
+
+        This loss function computes modularity-based clustering loss for multiple adjacency matrices
+        and assignment probability matrices. It helps optimize cluster assignments by maximizing 
+        modularity scores across hierarchical layers.
+
+        Methods:
+        --------
+        forward(all_A, all_P, resolutions=None):
+            Computes the modularity loss for given adjacency matrices and assignment probabilities.
+    """
     def __init__(self):
+        """
+            Initializes the ModularityLoss module.
+            
+            This class extends `torch.nn.Module` and implements a loss function based on modularity,
+            which is commonly used in graph-based clustering tasks.
+        """
         super(ModularityLoss, self).__init__()
         
     def forward(self, all_A, all_P, resolutions = None):
+        """
+            Computes the modularity loss for hierarchical clustering.
+
+            This function calculates the modularity score for each hierarchical level 
+            based on the provided adjacency matrices (`all_A`) and assignment probabilities (`all_P`).
+            The modularity score measures the quality of clustering, aiming to optimize
+            community detection in graphs.
+
+            Parameters:
+            -----------
+            all_A : list of torch.Tensor
+                A list of adjacency matrices, where each tensor `A` has shape `(N, N)`, 
+                representing graph connectivity at a given hierarchical level.
+            all_P : list of torch.Tensor
+                A list of assignment probability matrices, where each tensor `P` has shape `(N, k)`,
+                representing the probability of `N` nodes belonging to `k` clusters at each level.
+            resolutions : list of float, optional (default = None)
+                A list of resolution parameters for modularity computation, controlling the scale 
+                at which communities are detected. If `None`, a default resolution of `1` is used.
+
+            Returns:
+            --------
+            loss : torch.Tensor
+                The total modularity loss across all hierarchical levels.
+            loss_list : list of float
+                A list containing individual modularity loss values for each level.
+
+            Notes:
+            ------
+            - The `Modularity` function (assumed to be defined elsewhere) computes the modularity 
+            score given an adjacency matrix `A` and an assignment probability matrix `P`.
+            - Higher modularity scores indicate better clustering, but in the context of loss optimization, 
+            this function minimizes modularity-based deviation.
+
+            Example:
+            --------
+            >>> N, k, l = 100, 4, 3
+            >>> all_A = [torch.randint(0, 2, (N, N)) for _ in range(l)]
+            >>> all_P = [torch.rand(N, k) for _ in range(l)]
+            >>> resolutions = [1.0, 0.8, 0.5]
+            >>> loss_fn = ModularityLoss()
+            >>> loss, loss_list = loss_fn(all_A, all_P, resolutions)
+            >>> print(loss.item(), loss_list)
+        """
         loss = torch.Tensor([0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
@@ -165,10 +459,25 @@ class ModularityLoss(nn.Module):
  
 #------------------------------------------------------  
 class ClusterLoss(nn.Module):
+    """
+        Hierarchical Clustering Loss Module.
+
+        This loss function calculates the hierarchical Within-Cluster Sum of Squares (WCSS) loss
+        to measure the quality of hierarchical clustering. It supports both bottom-up and 
+        top-down clustering approaches.
+
+        Methods:
+        --------
+        forward(Lamb, Attributes, Probabilities, method):
+            Computes the clustering loss based on node feature assignments across hierarchical levels.
+    """
     
     def __init__(self):
         """
-        Hierarchical Clustering Loss
+            Initializes the ClusterLoss module.
+            
+            This class extends `torch.nn.Module` and implements a clustering loss function for
+            hierarchical clustering methods.
         """
         super(ClusterLoss, self).__init__()
 
@@ -177,12 +486,51 @@ class ClusterLoss(nn.Module):
     def forward(self, Lamb, Attributes, Probabilities, method):
         
         """
-        Computes forward loss for hierarchical within-cluster sum of squares loss
-        Lamb: list of lenght l corresponding to the tuning loss for l hierarchical layers
-        Attributes: Node feature matrix
-        Probabilities: a list of length l corresponding the assignment probabilities for 
-                        assigning nodes to communities in l hierarchical layers
-        Cluster_labels: list of length l containing cluster assignment labels 
+            Computes the hierarchical clustering loss.
+
+            This function calculates the Within-Cluster Sum of Squares (WCSS) loss across multiple 
+            hierarchical layers based on node feature matrices and cluster assignment probabilities.
+
+            Parameters:
+            -----------
+            Lamb : list or float
+                A list of length `l`, where each element corresponds to a weight controlling 
+                the contribution of each hierarchical layer to the total loss. If a single value 
+                is provided, it is used for all layers.
+            Attributes : torch.Tensor or list of torch.Tensor
+                The node feature matrix of shape `(N, d)`, where `N` is the number of nodes 
+                and `d` is the feature dimension. If hierarchical attributes are provided, 
+                it should be a list of `l` feature matrices.
+            Probabilities : list of torch.Tensor
+                A list of length `l`, where each tensor of shape `(N, k)` represents the 
+                assignment probabilities of `N` nodes to `k` communities at a given hierarchical layer.
+            method : str
+                Clustering method to be used:
+                - `'bottom_up'`: Aggregates assignment probabilities in a bottom-up manner.
+                - `'top_down'`: Uses independent cluster assignments at each level.
+
+            Returns:
+            --------
+            loss : torch.Tensor
+                The computed hierarchical clustering loss.
+            loss_list : list of float
+                A list containing individual WCSS loss values for each hierarchical layer.
+
+            Notes:
+            ------
+            - The function supports both single-level and multi-level hierarchical clustering.
+            - The `WCSS` function (assumed to be defined elsewhere) is used to compute the 
+            within-cluster sum of squares loss.
+
+            Example:
+            --------
+            >>> N, d, k, l = 100, 16, 4, 3
+            >>> Attributes = torch.randn(N, d)
+            >>> Probabilities = [torch.rand(N, k) for _ in range(l)]
+            >>> Lamb = [0.5, 0.3, 0.2]
+            >>> loss_fn = ClusterLoss()
+            >>> loss, loss_list = loss_fn(Lamb, Attributes, Probabilities, method='bottom_up')
+            >>> print(loss.item(), loss_list)
         """
         loss = torch.Tensor([0])
         loss_list = []
@@ -354,37 +702,105 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         verbose = True, **kwargs):
     
     """
-    Args:
-        model (torch.nn.Module): The neural network model to be trained.
-        X (array-like): Feature data used for training the model.
-        A (array-like): Additional input data, such as adjacency matrices or auxiliary features.
-        optimizer (str, optional): The optimization algorithm to use. Defaults to 'Adam'.
-        epochs (int, optional): The number of training epochs. Defaults to 100.
-        update_interval (int, optional): The interval in epochs to update certain parameters or perform evaluations. Defaults to 10.
-        lr (float, optional): Learning rate for the optimizer. Defaults to 1e-4.
-        gamma (float, optional): Weighting factor attribute reconstruction loss term. Defaults to 1.
-        delta (float, optional): Weighting factor for modularity loss term. Defaults to 1.
-        lamb (float, optional): Weighting factor for clustering loss term. Defaults to 1.
-        layer_resolutions (list of int, optional): Resolution parameters for modularity in each layer. Defaults to [1, 1].
-        k (int, optional): Parameter defining the number of hierarchical layers. Defaults to 2.
-        use_batch_learning (bool, optional): Flag to indicate whether to use batch learning. Defaults to True.
-        batch_size (int, optional): The size of each batch if batch learning is used. Defaults to 64.
-        early_stopping (bool, optional): Whether to stop training early if no improvement is observed. Defaults to False.
-        patience (int, optional): Number of epochs to wait for improvement before stopping if early stopping is enabled. Defaults to 5.
-        true_labels (array-like, optional): Ground truth labels for evaluation. Defaults to None.
-        turn_off_A_loss (bool, optional): Whether to disable the loss term related to input graph. Defaults to False.
-        validation_data (tuple, optional): Validation dataset in the form (X_val, A_val). Defaults to None.
-        test_data (tuple, optional): Test dataset in the form (X_test, A_test). Defaults to None.
-        save_output (bool, optional): Whether to save the output of the model. Defaults to False.
-        output_path (str, optional): Path to save the model output if save_output is True. Defaults to an empty string.
-        fs (int, optional): figure size for plotting. Defaults to 10.
-        ns (int, optional): node size for plotting. Defaults to 10.
-        verbose (bool, optional): Whether to print detailed logs during training. Defaults to True.
-        **kwargs: Additional keyword arguments for customization.
+    Trains the HRGNgene model on the given dataset.
+
+    This function optimizes the HRGNgene model using modularity-based and clustering-based loss terms 
+    while performing hierarchical clustering on gene regulatory networks (GRNs). It supports batch learning, 
+    early stopping, and modularity-based clustering optimization.
+
+    Parameters:
+    -----------
+    model : torch.nn.Module
+        The neural network model to be trained.
+    X : array-like (torch.Tensor)
+        Feature matrix of shape (N, F), where N is the number of samples and F is the number of features.
+    A : array-like (torch.Tensor)
+        Adjacency matrix of the input graph, representing connections between samples.
+    optimizer : str, optional (default='Adam')
+        The optimization algorithm to use for training (e.g., 'Adam', 'SGD').
+    epochs : int, optional (default=100)
+        Number of training epochs.
+    update_interval : int, optional (default=10)
+        Frequency (in epochs) at which performance metrics are updated and logged.
+    lr : float, optional (default=1e-4)
+        Learning rate for the optimizer.
+    gamma : float, optional (default=1)
+        Weighting factor for the attribute reconstruction loss term.
+    delta : float, optional (default=1)
+        Weighting factor for the modularity loss term.
+    lamb : float, optional (default=1)
+        Weighting factor for the clustering loss term.
+    layer_resolutions : list of float, optional (default=[1,1])
+        Resolution parameters for modularity calculation at different hierarchical layers.
+    k : int, optional (default=2)
+        Number of hierarchical clustering levels.
+    use_batch_learning : bool, optional (default=True)
+        Whether to use mini-batch training or full-batch training.
+    batch_size : int, optional (default=64)
+        Size of each batch if `use_batch_learning` is enabled.
+    early_stopping : bool, optional (default=False)
+        Whether to stop training early if no improvement is observed.
+    patience : int, optional (default=5)
+        Number of epochs to wait for improvement before stopping (if early stopping is enabled).
+    true_labels : array-like, optional (default=None)
+        Ground truth labels used for evaluation.
+    turn_off_A_loss : bool, optional (default=False)
+        Whether to disable the loss term related to adjacency matrix reconstruction.
+    validation_data : tuple, optional (default=None)
+        Validation dataset provided as (X_val, A_val, val_labels).
+    test_data : tuple, optional (default=None)
+        Test dataset provided as (X_test, A_test, test_labels).
+    save_output : bool, optional (default=False)
+        Whether to save the model's outputs and training history.
+    output_path : str, optional (default='')
+        Directory path for saving model output, if enabled.
+    fs : int, optional (default=10)
+        Font size for plots and visualizations.
+    ns : int, optional (default=10)
+        Node size for graph visualizations.
+    verbose : bool, optional (default=True)
+        Whether to print detailed logs and progress updates during training.
+    **kwargs : dict
+        Additional keyword arguments for customizing training behavior.
 
     Returns:
-        
+    --------
+    output : HCD_output
+        An instance of `HCD_output`, which contains:
+        - `all_model_output`: List of all model outputs over training.
+        - `attention_weights`: Attention weights from the final model.
+        - `train_loss_history`: History of training losses.
+        - `test_loss_history`: History of test losses.
+        - `performance_history`: Performance metrics over epochs.
+        - `latent_features`: Extracted latent feature representations.
+        - `partitioned_data`: Data after partitioning into hierarchical clusters.
+        - `partitioned_latent_features`: Partitioned latent features at different levels.
+        - `training_data`: Dictionary containing training feature matrix and adjacency matrix.
+        - `test_data`: Dictionary containing test feature matrix and adjacency matrix.
+        - `probabilities`: Cluster membership probabilities at different hierarchy levels.
+        - `pred_history`: Predicted cluster assignments over epochs.
+        - `adjacency`: Graph adjacency structures at different clustering levels.
+
+
+
+    Notes:
+    ------
+    - Supports early stopping based on total loss or test loss.
+    - Generates plots for loss curves, network clustering, and performance (if labels are provided)
+    - Uses the `evaluate` function to compute performance metrics at different stages.
+    - Batch learning is enabled by default but can be disabled for full-batch training.
+
+    Example:
+    --------
+    >>> from model.model import HCD
+    >>> from model.train import fit
+    >>> model = HCD()  # Initialize your model
+    >>> X = torch.rand(100, 20)  # Example feature matrix
+    >>> A = torch.randint(0, 2, (100, 100))  # Example adjacency matrix
+    >>> fit(model, X, A, epochs=50, lr=1e-3, batch_size=32, early_stopping=True, patience=5)
+
     """
+
     
     #preallocate storage
     train_loss_history=[]
@@ -648,6 +1064,18 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             print(f'Total Epoch Time: {(epoch_end - epoch_start):.2f}')
     
     #return 
-    X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model.forward(X, A)
+    final_out = model.forward(X, A)
     
-    return (all_out, X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, train_loss_history, test_loss_history, perf_hist), pred_list
+    
+    output = HCD_output(X = X, 
+                        A = A, 
+                        test_set= test_data,
+                        labels=true_labels,
+                        all_output=all_out, 
+                        model_output=final_out, 
+                        train_history=train_loss_history, 
+                        test_history=test_loss_history, 
+                        perf_history=perf_hist, 
+                        pred_history=pred_list)
+    
+    return output

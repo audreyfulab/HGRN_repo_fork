@@ -175,7 +175,7 @@ class Comm_DenseLayer2(nn.Module):
     Attributes
     ----------
     transform : torch.nn.Module
-        The main transformation layer (Linear, Conv2d, GAT, GATv2, or GraphSAGE)
+        The main transformation layer (Linear, Conv1d, GAT, GATv2, or GraphSAGE)
     output_linear : torch.nn.Linear
         Final linear layer for community assignment
     out_norm : torch.nn.Module
@@ -224,8 +224,9 @@ class Comm_DenseLayer2(nn.Module):
     """
 
     def __init__(self, in_features: int, out_comms: int, norm: bool = True, alpha: float = 0.2, use_bias: bool = True, 
-                 dropout: float = 0.2, heads: int = 1, operator: Literal['None', 'Linear', 'Conv2d', 'GATConv', 'GATv2Conv', 'SAGEConv'] = 'Linear',
-                 **kwargs):
+                 dropout: float = 0.2, heads: int = 1, operator: Literal['None', 'Linear', 'Conv1d', 'GATConv', 'GATv2Conv', 'SAGEConv'] = 'Linear',
+                 kernal_size: int = 4, stride: int = 2, padding: int = 0, **kwargs):
+        
         super(Comm_DenseLayer2, self).__init__()
         #store community info
         self.in_features = in_features
@@ -245,13 +246,13 @@ class Comm_DenseLayer2(nn.Module):
                                    out_features = self.in_features, 
                                    bias = use_bias)
             
-        elif self.operator.lower() == 'conv2d':
+        elif self.operator.lower() == 'conv1d':
         
-            self.transform = nn.Conv2d(in_channels = 1, 
-                                       out_channels = 16,
-                                       kernel_size = 16,
-                                       stride=1, 
-                                       padding=1,
+            self.transform = nn.Conv1d(in_channels = self.in_features, 
+                                       out_channels = self.in_features,
+                                       kernel_size = kernal_size,
+                                       stride=stride, 
+                                       padding=padding,
                                        **kwargs)   
             
         elif self.operator.lower() == 'sageconv':
@@ -315,7 +316,7 @@ class Comm_DenseLayer2(nn.Module):
             
             H = self.transform(Z)
         
-        if self.operator.lower() in ['linear','conv2d']:
+        if self.operator.lower() in ['linear','conv1d']:
             
             #linear layer and activation
             M = self.transform(Z)

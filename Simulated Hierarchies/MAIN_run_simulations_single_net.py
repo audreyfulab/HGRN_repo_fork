@@ -97,7 +97,6 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                                                      percent_train=train_size,
                                                      percent_test=test_size)
             X, A, target_labels = train
-            target_labels = None
             
     # read in regulon data
     elif args.dataset in ['regulon.EM', 'regulon.DM']:
@@ -186,33 +185,32 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print("*"*80)
     
     #train the model
-    out, pred_list = fit(
-                         model, X, A, 
-                         k = layers,
-                         optimizer='Adam', 
-                         epochs = args.training_epochs, 
-                         update_interval=args.steps_between_updates, 
-                         layer_resolutions=args.resolution,
-                         lr = args.learning_rate, 
-                         gamma = args.gamma, 
-                         delta = args.delta, 
-                         lamb = args.lambda_, 
-                         true_labels = target_labels, 
-                         validation_data = valid,
-                         test_data = test,
-                         early_stopping = args.early_stopping,
-                         patience = args.patience,
-                         verbose=args.verbose, 
-                         save_output=args.save_results, 
-                         output_path=savepath_main, 
-                         ns = args.plotting_node_size, 
-                         fs = args.fs,
-                         use_batch_learning = args.use_batch_learning,
-                         batch_size = args.batch_size
-                         )
+    model_output = fit(model, X, A, 
+                       k = layers,
+                       optimizer='Adam', 
+                       epochs = args.training_epochs, 
+                       update_interval=args.steps_between_updates, 
+                       layer_resolutions=args.resolution,
+                       lr = args.learning_rate, 
+                       gamma = args.gamma, 
+                       delta = args.delta, 
+                       lamb = args.lambda_, 
+                       true_labels = target_labels, 
+                       validation_data = valid,
+                       test_data = test,
+                       early_stopping = args.early_stopping,
+                       patience = args.patience,
+                       verbose=args.verbose, 
+                       save_output=args.save_results, 
+                       output_path=savepath_main, 
+                       ns = args.plotting_node_size, 
+                       fs = args.fs,
+                       use_batch_learning = args.use_batch_learning,
+                       batch_size = args.batch_size
+                       )
          
     #handle output and return relevant values               
-    results = handle_output(args, out, A, comm_sizes, args.use_method, target_labels)
+    results = handle_output(args, model_output, comm_sizes, args.use_method)
     beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, indices, metrics, preds, trace = results
     
     #choose results to return (best perf mid, top or best loss)
@@ -222,13 +220,16 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     else:
         best_result_index = bpi
     
+    model_output.best_loss_index = best_result_index
     S_sub, S_layer, S_all = trace
     
     #run louvain method on same dataset
     if args.run_louvain:
-        louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, out, A, len(comm_sizes)+1, savepath_main, best_result_index, target_labels)          
+        louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, A, target_labels, len(comm_sizes)+1, savepath_main) 
+        model_output.louvain_preds = louv_preds         
     else:
         louv_metrics, louv_mod, louv_num_comms, louv_preds = (None, None, None, None)
+        model_output.louvain_preds = None
         
     #run Kmeans on same dataset
     if args.run_kmeans:
@@ -236,8 +237,11 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
                                   sizes=[len(np.unique(i)) for i in target_labels])
+        
+        model_output.kmeans_preds = {'top': kmeans_preds[1], 'middle': kmeans_preds[0]}
     else:
         kmeans_preds = None
+        model_output.kmeans_preds = {'top': None, 'middle': None}
         
     # runs hierarchical clustering using Ward's metric on data 
     if args.run_hc:
@@ -251,16 +255,19 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
                                   sizes=hc_sizes)
+        
+        model_output.hierarchical_clustering_preds = {'top': hc_preds[1], 'middle': hc_preds[0]}
     else:
         hc_preds = None
+        model_output.hierarchical_clustering_preds = {'top': None, 'middle': None}
 
-    best_preds = pred_list[best_result_index]
+    best_preds = model_output.pred_history[best_result_index]
 
         
     #post fit plots and results
     if args.post_hoc_plots:
         pbmt=post_hoc(args, 
-                      output = out, 
+                      output = model_output, 
                       data = X, 
                       adjacency = A, 
                       predicted = best_preds,
@@ -291,10 +298,14 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print('*'*80)
     print(res_table.loc[0])
     print('*'*80)
+    
+    model_output.table = res_table
+    model_output.perf_table = pbmt
+    
     if args.save_results == True:
         res_table.to_csv(savepath_main+'Simulation_Results'+'.csv')
         with open(savepath_main+'Simulation_Results_'+'OUTPUT'+'.pkl', 'wb') as f:
-            pickle.dump(out, f)
+            pickle.dump(model_output, f)
     
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
@@ -303,10 +314,10 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print('done')
     
     if return_model:
-        return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt
+        return model_output, model
     else:
         del model
-        return out, res_table, A, X, target_labels, S_all, S_sub, louv_preds, indices, [], pbmt
+        return model_output
     
     
     
