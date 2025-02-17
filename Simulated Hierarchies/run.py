@@ -112,11 +112,11 @@ sim_args = parser2.parse_args()
 
 #simulation settings
 sim_args.subgraph_type = 'scale free'
-sim_args.connect = 'disc'
+sim_args.connect = 'full'
 #global simulation settings
 sim_args.top_layer_nodes = 5
 sim_args.nodes_per_super2 = (3,3)
-#sim_args.nodes_per_super3 = (50,60)
+#sim_args.nodes_per_super3 = (40,90)
 sim_args.common_dist = False
 sim_args.force_connect = True
 sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
@@ -128,6 +128,7 @@ sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01),
 sim_args.set_seed = False
 sim_args.layers = 3
 sim_args.SD = 0.1
+sim_args.mixed_graph = False
 #sim_args.mixed_graph = True
 sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/'
 #sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_3_2025/Example_graph/'
@@ -143,7 +144,7 @@ args.set_seed = 555
 args.read_from = 'local'
 args.load_from_existing = True
 args.early_stopping = True
-args.patience = 10
+args.patience = 5
 args.use_method = "top_down"
 args.use_batch_learning = True
 args.batch_size = 64
@@ -160,8 +161,8 @@ args.normalize_layers = True
 args.AE_hidden_size = [256, 128]
 args.LL_hidden_size = [128, 64] 
 args.gamma = 1
-args.delta = 1
-args.lambda_ = [1, 1]
+args.delta = 1e3
+args.lambda_ = [1, 1] # [top, middle]
 args.learning_rate = 1e-3
 args.use_true_communities = False
 args.community_sizes = [15, 5]
@@ -172,8 +173,8 @@ args.kappa_method = 'silouette'
 args.dataset = 'generated'
 args.parent_distribution = 'unequal'
 args.which_net = 1
-args.training_epochs = 500
-args.steps_between_updates = 20
+args.training_epochs = 100
+args.steps_between_updates = 5
 args.use_true_graph = False
 args.correlation_cutoff = 0.2
 args.return_result = 'best_loss'
@@ -191,7 +192,7 @@ args.train_test_size = [0.8, 0.2]
 # args.sp = '/'.join([mainpath, 'results/'])
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
 plt.close('all')
-out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
+
 
 # X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
@@ -234,8 +235,6 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
-
-out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
 
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
@@ -316,11 +315,11 @@ graph_data = nx.json_graph.node_link_data(new_G)
 with open(args.sp+'graph_data.json', 'w') as json_file:
     json.dump(graph_data, json_file, indent=4)
 
-embeds = [i[2][0].cpu().detach().numpy() for i in out[0]]
-atw = [i[-1] for i in out[0]]
-slist = [i[-4] for i in out[0]]
+# embeds = [i[2][0].cpu().detach().numpy() for i in out[0]]
+# atw = [i[-1] for i in out[0]]
+# slist = [i[-4] for i in out[0]]
 
-gl = [str(i) for i in range(0, Xres.shape[0])]
+# gl = [str(i) for i in range(0, Xres.shape[0])]
 # weighted_graphs = [generate_attention_graph(args, Ares, AW, gl, S, cutoff='none')[1] for index, (AW, S) in enumerate(zip(atw, slist))]
 
 

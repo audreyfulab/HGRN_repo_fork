@@ -26,7 +26,15 @@ fp14 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate
 fp15 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/GATv2Conv_64_5_opt_clusts_bethe_hessian/'
 fp16 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/GATv2Conv_64_5_opt_clusts_silouette/'
 
-flist = c(fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9, fp10, fp11, fp12, fp13, fp14, fp15, fp16)
+
+fp17 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_15_5_opt_clusts_False/'
+fp18 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_64_5_opt_clusts_False/'
+fp19 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_64_5_opt_clusts_bethe_hessian/'
+fp20 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_64_5_opt_clusts_silouette/'
+
+
+flist = c(fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9, fp10, fp11, fp12, fp13, fp14, fp15, fp16,
+          fp17, fp18, fp19, fp20)
 
 
 read_file = function(filename){
@@ -139,9 +147,11 @@ process.results = function(PATH, ol, scenario, checker){
   
   comb_temp = rbind.data.frame(data_top, data_mid)
   ft = cbind.data.frame(comb_temp, 
+                        Simulation = c(fn, fn),
                         Layer = c(rep('Top Layer', dim(data_top)[1]), 
                                   rep('Middle Layer', dim(data_mid)[1])),
-                        Scenario = rep(scenario, dim(comb_temp)[1]))
+                        Scenario = rep(scenario, dim(comb_temp)[1]),
+                        output_layer = rep(ol, dim(comb_temp)[1]))
   
   
   return(list(final.table = ft, tab.with.stats = netstats, data.middle = data_mid, data.top = data_top))
@@ -153,11 +163,13 @@ reslist = vector('list', length = length(flist))
 outlayer = c('Linear', 'Linear', 'Linear', 'Linear',
              'SAGE', 'SAGE', 'SAGE', 'SAGE',
              'NOL', 'NOL', 'NOL', 'NOL',
-             'GATv2', 'GATv2', 'GATv2','GATv2')
-scenarios = c('GT-Linear', '64-5-Linear', 'BH-Linear', 'Silouette-Linear',
-              'GT-SAGE', '64-5-SAGE', 'BH-SAGE', 'Silouette-SAGE',
-              'GT-NOL', '64-5-NOL', 'BH-NOL', 'Silouette-NOL',
-              'GT-GATv2', '64-5-GATv2', 'BH-GATv2', 'Silouette-GATv2')
+             'GATv2', 'GATv2', 'GATv2','GATv2',
+             'Kmeans-NOL', 'Kmeans-NOL', 'Kmeans-NOL','Kmeans-NOL')
+scenarios = c('GT', '64-5', 'BH', 'Silouette',
+              'GT', '64-5', 'BH', 'Silouette',
+              'GT', '64-5', 'BH', 'Silouette',
+              'GT', '64-5', 'BH', 'Silouette',
+              'GT', '64-5', 'BH', 'Silouette')
 for(sim in 1:length(flist)){
   output = process.results(PATH = flist[sim], ol = outlayer[sim], scenario = scenarios[sim], checker = 0)
   
