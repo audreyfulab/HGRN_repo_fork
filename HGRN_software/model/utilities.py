@@ -742,7 +742,7 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     ln5, = ax2[0].plot(range(0, epoch+1), recon_X_train, label = 'Train')
     ln6, = ax2[0].plot(range(0, epoch+1), recon_X_test, linestyle = 'dashed', label = 'Test')
     ax2[0].set_xlabel('Training Epochs')
-    ax2[0].set_ylabel('Attribute Reconstruction Loss')
+    ax2[0].set_ylabel('Gamma * Attribute Reconstruction Loss')
     #community loss using modularity
     lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train middle'])
     lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test middle'], linestyle = 'dashed')
