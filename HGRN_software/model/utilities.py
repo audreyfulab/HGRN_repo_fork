@@ -747,7 +747,7 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train middle'])
     lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test middle'], linestyle = 'dashed')
     ax2[1].set_xlabel('Training Epochs')
-    ax2[1].set_ylabel('Modularity')
+    ax2[1].set_ylabel('Delta * Modularity')
     #community loss using kmeans
     lines3a, lines3b = ax3[0].plot(range(0, epoch+1), np.array(clust_train), label = ['train top', 'train middle'])
     lines4a, lines4b = ax3[0].plot(range(0, epoch+1), np.array(clust_test), label = ['test top', 'test middle'], linestyle ='dashed')
@@ -755,7 +755,7 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
         ax3[0].axhline(y=true_losses[0], color='black', linestyle='dotted', linewidth=2)
         ax3[0].axhline(y=true_losses[1], color='black', linestyle='dotted', linewidth=2)
     ax3[0].set_xlabel('Training Epochs')
-    ax3[0].set_ylabel('Clustering Loss')
+    ax3[0].set_ylabel('Lambda * Clustering Loss')
     ax3[1].axis('off')
     
     ax1[0].legend(handles = [ln1, ln2], loc = 'lower right')

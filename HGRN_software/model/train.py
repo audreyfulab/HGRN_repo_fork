@@ -140,7 +140,7 @@ class HCD_output():
         Displays the performance table (`perf_table`) if available.
     """
     
-    def __init__(self, X, A, test_set, labels, all_output, model_output, test_history, train_history, perf_history, pred_history):
+    def __init__(self, X, A, test_set, labels, all_output, model_output, test_history, train_history, perf_history, pred_history, batch_indices):
         
         X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model_output
         
@@ -168,6 +168,7 @@ class HCD_output():
         self.kmeans_preds = None
         self.table = None
         self.perf_table = None
+        self.batch_indices = batch_indices
         
     def to_dict(self):
         
@@ -202,7 +203,8 @@ class HCD_output():
                 'louvain_preds': self.louvain_preds,
                 'kmeans_preds': self.kmeans_preds,
                 'stat_table': self.table,
-                'perf_table': self.perf_table}
+                'perf_table': self.perf_table,
+                'batch_indices': self.batch_indices}
         
     def show_results(self):
         """
@@ -842,11 +844,15 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             raise ValueError(f'ERROR! Batch size is larger than number of items to split features.shape[0] = {X.shape[0]}')
         X_batches, A_batches, index_batches = get_batched_data(X, A, batch_size = batch_size)
     else:
-        X_batches, A_batches = [X], [A]
+        X_batches, A_batches, index_batches = [X], [A], None
     
 
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(range(epochs)):
+        #allocate storage for train and test total epoch losses (sum of all batches)
+        train_epoch_loss_A, train_epoch_loss_X, train_epoch_loss_clust, train_epoch_loss_mod = 0,0,[0,0],[0,0]
+        test_epoch_loss_A, test_epoch_loss_X, test_epoch_loss_clust, test_epoch_loss_mod = 0,0,[0,0],[0,0]
+    
         #epoch printing
         epoch_start = time.time()
         if idx == 0:
@@ -895,6 +901,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #update total loss function
             total_loss += loss.cpu().item()
             
+            #update batch losses
+            train_epoch_loss_A += float(A_loss.detach().numpy())
+            train_epoch_loss_X += float(X_loss.detach().numpy())
+            train_epoch_loss_clust = [float(i+j) for (i,j) in zip(train_epoch_loss_clust, Clustloss_values)]
+            train_epoch_loss_mod = [float(i+j) for (i,j) in zip(train_epoch_loss_mod, Modloss_values)]
             # #--------------------------------------------------------------------
             #evaluationg test performance
             if test_data:
@@ -920,6 +931,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 
                 test_loss = (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
                 print_loss_test = f'{test_loss:.2f}'
+                #update batch losses
+                test_epoch_loss_A += float(A_loss_test)
+                test_epoch_loss_X += float(X_loss_test)
+                test_epoch_loss_clust = [float(i+j) for (i,j) in zip(test_epoch_loss_clust, Clustloss_values_test)]
+                test_epoch_loss_mod = [float(i+j) for (i,j) in zip(test_epoch_loss_mod, Modloss_values_test)]
+                
             else:
                 print_loss_test = 'No test set provided'
                 test_loss = 0
@@ -940,16 +957,16 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         epoch_end = time.time()
         #store loss component information
         train_loss_history.append({'Total Loss': total_loss,
-                                   'A Reconstruction': A_loss.cpu().detach().numpy(),
-                                   'X Reconstruction': gamma*float(X_loss.cpu().detach().numpy()),
-                                   'Modularity': delta*np.array(Modloss_values),
-                                   'Clustering': Clustloss_values})
+                                   'A Reconstruction': train_epoch_loss_A,
+                                   'X Reconstruction': gamma*train_epoch_loss_X,
+                                   'Modularity': delta*np.array(train_epoch_loss_mod),
+                                   'Clustering': np.array(train_epoch_loss_clust)})
         
         test_loss_history.append({'Total Loss': test_loss,
-                                   'A Reconstruction': A_loss_test,
-                                   'X Reconstruction': X_loss_test,
-                                   'Modularity': Modloss_values_test,
-                                   'Clustering': Clustloss_values_test})
+                                   'A Reconstruction': test_epoch_loss_A,
+                                   'X Reconstruction': test_epoch_loss_X,
+                                   'Modularity': test_epoch_loss_mod,
+                                   'Clustering': test_epoch_loss_clust})
 
             
         print(f'Epoch Time: {epoch_end - epoch_start}')
@@ -1076,6 +1093,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                         train_history=train_loss_history, 
                         test_history=test_loss_history, 
                         perf_history=perf_hist, 
-                        pred_history=pred_list)
+                        pred_history=pred_list, 
+                        batch_indices=index_batches)
     
     return output
