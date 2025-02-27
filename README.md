@@ -202,9 +202,9 @@ perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_lab
 #print final predictions
 print('='*60)
 print('-'*10+'final top'+'-'*10)
-final_top_res=node_clust_eval(target_labels[0], S_relab[0], verbose = True)
+final_top_res=node_clust_eval(target_labels[0], [i.cpu() for i in S_relab[0]], verbose = True)
 print('-'*10+'final middle'+'-'*10)
-final_middle_res=node_clust_eval(target_labels[1], S_relab[1], verbose = True)
+final_middle_res=node_clust_eval(target_labels[1], [i.cpu() for i in S_relab[1]], verbose = True)
 print('='*60)
 
 
