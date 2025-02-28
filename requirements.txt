@@ -1,0 +1,59 @@
+aiohappyeyeballs==2.4.6
+aiohttp==3.11.13
+aiosignal==1.3.2
+attrs==25.1.0
+Bottleneck @ file:///C:/b/abs_816hr2khp1/croot/bottleneck_1731058648110/work
+certifi==2025.1.31
+charset-normalizer==3.4.1
+colorama==0.4.6
+contourpy==1.3.1
+cycler==0.12.1
+filelock==3.13.1
+fonttools==4.56.0
+frozenlist==1.5.0
+fsspec==2024.6.1
+idna==3.10
+Jinja2==3.1.4
+joblib @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/joblib_1729044354027/work
+kiwisolver==1.4.8
+MarkupSafe==2.1.5
+matplotlib==3.10.1
+mkl-service==2.4.0
+mkl_fft @ file:///C:/Users/dev-admin/mkl/mkl_fft_1730824198951/work
+mkl_random @ file:///C:/Users/dev-admin/mkl/mkl_random_1730824302834/work
+mpmath==1.3.0
+multidict==6.1.0
+narwhals==1.28.0
+networkx==3.3
+numexpr @ file:///C:/Users/dev-admin/buildout/perseverance-python-buildout/croot/numexpr_1731700337214/work
+numpy @ file:///C:/b/abs_56qrev29w_/croot/numpy_and_numpy_base_1738155838326/work/dist/numpy-2.2.2-cp313-cp313-win_amd64.whl#sha256=d740a4ea626e7bf6bf00c35764dc7aa8b81bd2db69d2c126d9f0969e39f92578
+packaging==24.2
+pandas @ file:///C:/b/abs_e18w9ay4we/croot/pandas_1732735115740/work/dist/pandas-2.2.3-cp313-cp313-win_amd64.whl#sha256=89153934c68f42239148879a6c0fd8bb5004e767550db26257dc4551ad0414d7
+pillow==11.0.0
+plotly==6.0.0
+propcache==0.3.0
+psutil==7.0.0
+pyparsing==3.2.1
+python-dateutil @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-dateutil_1729038406576/work
+python-louvain==0.16
+pytz @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pytz_1729039375330/work
+requests==2.32.3
+scikit-learn @ file:///C:/b/abs_0dwalqot3o/croot/scikit-learn_1737988780693/work/dist/scikit_learn-1.6.1-cp313-cp313-win_amd64.whl#sha256=3e52b503bae0e72bc233231ad5d730537e192e1214e0ac766be348eb9dfb7cfd
+scipy @ file:///C:/b/abs_5ejjagtvrz/croot/scipy_1737132284367/work/dist/scipy-1.15.1-cp313-cp313-win_amd64.whl#sha256=fe6c280db2a1d566a65517d2352627e4a6e55f97ca2ca4672e58cecc1fb3469b
+seaborn==0.13.2
+setuptools==72.1.0
+six @ file:///tmp/build/80754af9/six_1644875935023/work
+sympy==1.13.1
+threadpoolctl @ file:///C:/b/abs_3904pspv77/croot/threadpoolctl_1731006105881/work
+torch==2.6.0+cu126
+torch-geometric==2.6.1
+torch-kmeans==0.2.0
+torchaudio==2.6.0+cu126
+torchinfo==1.8.0
+torchvision==0.21.0+cu126
+tqdm==4.67.1
+typing_extensions==4.12.2
+tzdata @ file:///croot/python-tzdata_1690578112552/work
+urllib3==2.3.0
+wheel==0.45.1
+yarl==1.18.3
