@@ -61,7 +61,7 @@ parser.add_argument('--COMM_operator', type=str, choices=['None', 'Conv2d', 'Lin
 parser.add_argument('--use_true_communities', type=bool, default=True, help='Use true communities')
 parser.add_argument('--community_sizes', nargs='+', type=Literal[int], default=[15, 5], help='Specifies the (max) number of communities to be inferred in the middle and top layers respectively')
 parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'Sigmoid'], required=False, help='Activation function (ignore)')
-parser.add_argument('--use_gpu', type=bool, default=False, help='Use GPU (currently does not work_')
+parser.add_argument('--use_gpu', type=bool, default=True, help='When True, HCD defaults to device="gpu" if torch.cuda.is_available() is True else device is set to "cpu" ')
 parser.add_argument('--verbose', type=bool, default=True, help='when True, additional plots are output in training updates')
 parser.add_argument('--return_result', type=str, choices=['best_perf_top', 'best_perf_mid', 'best_loss'], required=False, default=True, help='When True, all model training results are returned')
 parser.add_argument('--save_results', type=bool, default=False, help='When True, results are saved to path at "sp" ')
@@ -136,10 +136,11 @@ sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/
 
 #output save settings
 args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
+args.use_gpu = True
 args.save_results = True
 args.make_directories = True #this will automatically create the directories at args.sp and sim_args.savepath
 args.set_seed = 555 #sets a seed for training the model
-args.load_from_existing = False #this will ensure a new graph is simulated
+args.load_from_existing = False #this will ensure a new graph is simulated. When set to True, data retreiver looks for graph elements at directory sim_args.savepath
 args.dataset = 'generated' #sets the dataset to be simulated according arguments passed in sim_args
 
 #model set up
