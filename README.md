@@ -3,18 +3,22 @@
 ![](HCD_logo_1.jpg).
 This image was generated with Dall-E 3
 
+## About
 Code developement repo for Hierarchical Community Detection (HCD): A graph-based deep learning algorithm for detecting community structure in gene regulatory networks from gene expression data.
 
+## Instructions to run HCD 
 To run HCD, you must download the following directories/files:
 
-./HGRN_software                                            --> /my/path/local/HGRN_software
+|./HGRN_software                                            |--> /my/path/local/HGRN_software                      |
 
-./Simulated Hierarchies/MAIN_run_simulations_single_net.py --> /my/path/local/MAIN_run_simulations_single_net.py
+|./Simulated Hierarchies/MAIN_run_simulations_single_net.py |--> /my/path/local/MAIN_run_simulations_single_net.py |
 
-./Simulated Hierarchies/run_simulation_utils.py            --> /my/path/local/run_simulation_utils.py
+|./Simulated Hierarchies/run_simulation_utils.py            |--> /my/path/local/run_simulation_utils.py            |
 
-HCD was built using python 3.12.2
-See requirements.txt for dependencies
+
+## Dependencies
+HCD was built using python 3.12.2 and uses CUDA toolkit 12.6 for GPU utilization for 
+See requirements.txt for package dependencies
 
 ```python
 import argparse
