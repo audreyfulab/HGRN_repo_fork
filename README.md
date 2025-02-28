@@ -17,8 +17,8 @@ To run HCD, you must download the following directories/files:
 
 
 ## Dependencies
-HCD was built using python 3.12.2 and uses CUDA toolkit 12.6 for GPU utilization for 
-- See requirements.txt for package dependencies
+HCD was built using python `3.12.2` and uses `CUDA toolkit 12.6` for GPU utilization for 
+- See `./requirements.txt` for package dependencies
 
 
 ## Example Script
