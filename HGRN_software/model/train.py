@@ -59,7 +59,7 @@ class EarlyStopping:
         
         if self.verbose:
             print(f'\n {self._type} loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ... \n')
-        torch.save(model, os.path.join(self.path, 'checkpoint.pth'))
+        torch.save(model.cpu(), os.path.join(self.path, 'checkpoint.pth'))
         self.loss_min = loss
 
 
@@ -148,27 +148,27 @@ class HCD_output():
         
         self.model_output_history = all_output
         self.attention_weights = AW_final
-        self.reconstructed_features = X_final
-        self.reconstructed_adj = A_final
+        self.reconstructed_features = X_final.cpu()
+        self.reconstructed_adj = A_final.cpu()
         self.train_loss_history = train_history
         self.test_loss_history = test_history
         self.performance_history = perf_history
-        self.latent_features = X_all_final[0]
-        self.partitioned_data = X_all_final[1]
-        self.partitioned_latent_features = X_all_final[2]
-        self.training_data = {'X_train': X, 'A_train': A, 'labels_train': labels}
-        self.test_data = {'X_test': eval_X, 'A_test': eval_A, 'labels_test': eval_labels}
-        self.probabiltiies = {'top': P_all_final[0], 'middle': P_all_final[1]}
+        self.latent_features = X_all_final[0].cpu()
+        self.partitioned_data = [i.cpu() for i in X_all_final[1]]
+        self.partitioned_latent_features = [i.cpu() for i in X_all_final[2]]
+        self.training_data = {'X_train': X.cpu(), 'A_train': A.cpu(), 'labels_train': labels}
+        self.test_data = {'X_test': eval_X.cpu(), 'A_test': eval_A.cpu(), 'labels_test': eval_labels}
+        self.probabiltiies = {'top': P_all_final[0].cpu(), 'middle': [i.cpu() for i in P_all_final[1]]}
         self.pred_history = pred_history
-        self.adjacency = {'community_graphs': A_all_final[1],'partitioned_graphs': A_all_final[2]}
-        self.predicted_train = {'top': S_final[0], 'middle': S_final[1]}
+        self.adjacency = {'community_graphs': [i.cpu() for i in A_all_final[1]],'partitioned_graphs': [i.cpu() for i in A_all_final[2]]}
+        self.predicted_train = {'top': S_final[0].cpu(), 'middle': S_final[1].cpu()}
         self.best_loss_index = None
         self.hierarchical_clustering_preds = None
         self.louvain_preds = None
         self.kmeans_preds = None
         self.table = None
         self.perf_table = None
-        self.batch_indices = batch_indices
+        self.batch_indices = [i.cpu() for i in batch_indices]
         
     def to_dict(self):
         
@@ -360,14 +360,14 @@ def split_dataset(X: torch.Tensor, A: torch.Tensor, labels: List[torch.Tensor], 
     
     indices = torch.randperm(num_nodes)
     train_indices, test_indices = indices[:train_size], indices[train_size:]
-    sort_train, sort_test = np.argsort(train_indices), np.argsort(test_indices)
+    sort_train, sort_test = torch.argsort(train_indices), torch.argsort(test_indices)
     
     train_X, test_X = torch.index_select(X, 0, train_indices[sort_train]), torch.index_select(X, 0, test_indices[sort_test])
     train_A = torch.index_select(torch.index_select(A, 0, train_indices[sort_train]), 1, train_indices[sort_train])
     test_A = torch.index_select(torch.index_select(A, 0, test_indices[sort_test]), 1, test_indices[sort_test])
     
-    labels_train = [lab[train_indices[sort_train]] for lab in labels]
-    labels_test = [lab[test_indices[sort_test]] for lab in labels]
+    labels_train = [lab[train_indices.cpu()[sort_train.cpu()]] for lab in labels]
+    labels_test = [lab[test_indices.cpu()[sort_test.cpu()]] for lab in labels]
     
     train_set = [train_X, train_A, labels_train]
     test_set = [test_X, test_A, labels_test]
@@ -621,7 +621,7 @@ def evaluate(model, X, A, k, true_labels):
     if model.method == 'bottom_up':
         S_trace_eval = trace_comms([i.cpu().clone() for i in S_pred], model.comm_sizes)
         S_all, S_temp, S_out = S_trace_eval
-        S_relab = [i.detach().numpy() for i in S_temp][::-1]
+        S_relab = [i.cpu().detach().numpy() for i in S_temp][::-1]
     else:
         #if any([True if max(i) > len(np.unique(i)) else False for i in S_pred]):
         gp = [torch.unique(i, sorted=True, return_inverse=True) for i in S_pred]
@@ -699,9 +699,9 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
 #this function fits the HRGNgene model to data
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, use_batch_learning = True, 
-        batch_size = 64, early_stopping = False, patience = 5, true_labels = None, turn_off_A_loss = False, 
-        validation_data = None, test_data = None, save_output = False, output_path = '', fs = 10, ns = 10, 
-        verbose = True, **kwargs):
+        batch_size = 64, early_stopping = False, patience = 5, true_labels = None, validation_data = None, 
+        test_data = None, save_output = False, output_path = '', fs = 10, ns = 10, verbose = True, 
+        device = 'cpu', **kwargs):
     
     """
     Trains the HRGNgene model on the given dataset.
@@ -902,8 +902,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             total_loss += loss.cpu().item()
             
             #update batch losses
-            train_epoch_loss_A += float(A_loss.detach().numpy())
-            train_epoch_loss_X += float(X_loss.detach().numpy())
+            train_epoch_loss_A += float(A_loss.cpu().detach().numpy())
+            train_epoch_loss_X += float(X_loss.cpu().detach().numpy())
             train_epoch_loss_clust = [float(i+j) for (i,j) in zip(train_epoch_loss_clust, Clustloss_values)]
             train_epoch_loss_mod = [float(i+j) for (i,j) in zip(train_epoch_loss_mod, Modloss_values)]
             # #--------------------------------------------------------------------
@@ -1039,12 +1039,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                     
                 
                 print('plotting heatmaps ...')
-                plot_clust_heatmaps(A = A, 
-                                    A_pred = A_eval, 
-                                    X = X,
-                                    X_pred = X_eval,
+                plot_clust_heatmaps(A = A.cpu(), 
+                                    A_pred = A_eval.cpu(), 
+                                    X = X.cpu(),
+                                    X_pred = X_eval.cpu(),
                                     true_labels = true_labels, 
-                                    pred_labels = S_eval, 
+                                    pred_labels = [i.cpu() for i in S_eval], 
                                     layers = k+1, 
                                     epoch = epoch+1, 
                                     save_plot = save_output, 

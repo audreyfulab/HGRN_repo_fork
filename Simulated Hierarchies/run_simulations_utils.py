@@ -32,7 +32,7 @@ from sklearn.model_selection import train_test_split
 from colorama import Fore, Style
 import plotly.graph_objects as go
 import os
-
+from typing import Optional, Union, List,  Literal
 
 
 #function which splits training and testing data
@@ -145,7 +145,7 @@ def format_regulon_data(args, data, nodes):
     X = torch.Tensor(data)
     
     
-    in_graph, in_adj = get_input_graph(X = X, 
+    in_graph, in_adj = get_input_graph(X = X.cpu().detach().numpy(), 
                                        method = 'Correlation', 
                                        r_cutoff = args.correlation_cutoff)
     
@@ -417,7 +417,7 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
     
     
     
-def handle_output(args, output, comm_sizes, method):
+def handle_output(args, output, comm_sizes):
     
     nodes = output.training_data['X_train'].shape[0]
     A = output.training_data['A_train']
@@ -472,12 +472,12 @@ def handle_output(args, output, comm_sizes, method):
         
                 
     #compute the upper limit of communities, the beth hessian, and max modularity
-    upper_limit = torch.sqrt(torch.sum(A-torch.eye(nodes)))
-    beth_hessian = compute_beth_hess_comms((A-torch.eye(nodes)).cpu().detach().numpy())
+    upper_limit = torch.sqrt(torch.sum(A-torch.eye(nodes).cpu()))
+    beth_hessian = compute_beth_hess_comms((A-torch.eye(nodes).cpu()).detach().numpy())
     max_mod = 1 - (2/upper_limit)
                 
     #output assigned labels for all layers
-    if method == 'bottom_up':
+    if args.use_method == 'bottom_up':
         S_sub, S_layer, S_all = trace_comms([i for i in list(output.predicted_train.values())], comm_sizes)
     else:
         S_layer = [i for i in list(output.predicted_train.values())]
@@ -918,9 +918,12 @@ def generate_output_table(truth, louv_pred, kmeans_pred, thc_pred, hcd_preds, ve
 
 
 
-def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
+def post_hoc(args, output, k_layers, truth, bp, louv_pred,
              kmeans_pred, thc_pred, predicted, verbose = True):
     
+    data = output.training_data['X_train']
+    adjacency = output.training_data['A_train']
+    I = torch.eye(data.shape[0]).cpu()
     
     if truth:
         best_iter_metrics = generate_output_table(truth, 
@@ -937,9 +940,9 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
     if args.use_method == 'bottom_up':
         P_pred_bp = P_all
     else:
-        P_pred_bp = [output.model_output_history[bp][4][0], torch.cat(output.model_output_history[bp][4][1])][::-1]
+        P_pred_bp = [P_all[0].cpu(), torch.cat(P_all[1]).cpu()][::-1]
 
-    post_hoc_embedding(graph=adjacency-torch.eye(data.shape[0]), 
+    post_hoc_embedding(graph=adjacency-I, #subtract out self loops
                             embed_X = output.latent_features,
                             data = data, 
                             probabilities = P_pred_bp,
@@ -956,7 +959,7 @@ def post_hoc(args, output, data, adjacency, k_layers, truth, bp, louv_pred,
 
 
     plot_clust_heatmaps(A = adjacency, 
-                        A_pred = output.reconstructed_adj-torch.eye(data.shape[0]), 
+                        A_pred = output.reconstructed_adj - I, #subtract out self loops 
                         X = data,
                         X_pred = output.reconstructed_features,
                         true_labels = truth, 
@@ -1104,30 +1107,68 @@ def plot_embeddings_heatmap(embeddings_list, use_correlations = False, verbose =
     
     
     
-def generate_attention_graph(args, A, AW, gene_labels, S_all, cutoff = 'mean'):
-    G = nx.from_numpy_array(A.detach().numpy())
+def generate_attention_graph(args: object, A: torch.Tensor, AW: dict, gene_labels: list, S_all: list, 
+                             cutoff: Optional[Union[str, float]] = 'mean'):
+    
+    """
+    Generates a graph from attention weights of a fitted HCD model.
+
+    Parameters
+    ----------
+    args : object
+        An object containing arguments, including `sp` (save path) and `save_results` (a boolean flag).
+    A : torch.Tensor
+        The adjacency matrix of the original graph.
+    AW : dict
+        A dictionary containing attention weights. It should have an 'encoder' key with a value that is a list of tuples,
+        where each tuple contains two tensors representing the source and target node indices, and another tensor representing
+        the attention weights between these nodes.
+    gene_labels : list
+        A list of labels for the genes (nodes) in the graph.
+    S_all : list
+        A list of tensors representing top and middle labels for the genes.
+    cutoff : str or float, optional
+        The threshold value to filter attention weights. If 'mean', the mean of the attention weights is used as the threshold.
+        If a float, this value is used directly as the threshold. Defaults to 'mean'.
+
+    Returns
+    -------
+    new_G : nx.Graph
+        The generated attention graph with weighted edges.
+    weighted_adj : np.ndarray
+        The adjacency matrix of the generated attention graph.
+
+    Notes
+    -----
+    This function saves a histogram of attention weights and the generated graph (if `save_results` is True) to files named
+    'histogram_attent_weights.pdf' and 'gene_network.gexf', respectively, in the directory specified by `args.sp`.
+    """
+    G = nx.from_numpy_array(A.cpu().detach().numpy())
     new_G = nx.Graph()
 
     edgelist = []
     nodelist = []
 
     attent_weights = AW['encoder'][0][1].mean(dim=1)
-    atn_edges = [(i,j) for idx, (i,j) in enumerate(zip(AW['encoder'][0][0][0].detach().numpy(), AW['encoder'][0][0][1].detach().numpy()))]
+    atn_edges = [(i,j) for idx, (i,j) in enumerate(zip(AW['encoder'][0][0][0].cpu().detach().numpy(), AW['encoder'][0][0][1].cpu().detach().numpy()))]
 
     fig, ax = plt.subplots(1,1, figsize = (12, 10))
-    ax.hist(attent_weights.detach().numpy())
+    ax.hist(attent_weights.cpu().detach().numpy())
     ax.set_title('Histogram of attention weights')
     fig.savefig(args.sp+'histogram_attent_weights.pdf')
     
-    if cutoff == 'mean':
-        ct = float(attent_weights.mean())
+    if cutoff:
+        if cutoff == 'mean':
+            ct = float(attent_weights.mean())
+        else: 
+            ct = cutoff
     else: 
         ct = float(attent_weights.min())
 
 
     for index, edge in enumerate(atn_edges):
         if edge[0] != edge[1]:
-            attn_weight = attent_weights[index].detach().numpy()
+            attn_weight = attent_weights[index].cpu().detach().numpy()
             if attn_weight >= ct:
                 edgelist.append([(gene_labels[edge[0]], gene_labels[edge[1]]), attn_weight])
                 

@@ -422,7 +422,7 @@ class HCD(nn.Module):
                 
         A_all_final = [A]+[A_all]+[subsets_A]
         X_all_final = [Z]+[X_all]+[subsets_X]
-        return X_hat, A_hat, X_all_final, A_all_final, P_all, S_all, {'encoder': encoder_attention_weights, 'decoder':decoder_attention_weights}
+        return X_hat, A_hat, X_all_final, A_all_final, P_all, S_all, {'encoder': [[i.cpu() for i in j] for j in encoder_attention_weights], 'decoder': [[i.cpu() for i in j] for j in decoder_attention_weights]}
     
     
     

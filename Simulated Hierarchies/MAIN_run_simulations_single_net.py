@@ -61,6 +61,11 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #check for local GPU
     print(f'***** GPU AVAILABLE: {torch.cuda.is_available()} ******')
     device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
+    if 'cuda' in device:
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+    else:
+        torch.set_default_tensor_type('torch.FloatTensor')
     print('***** Using device {} ********'.format(device))
     
     
@@ -206,11 +211,14 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                        ns = args.plotting_node_size, 
                        fs = args.fs,
                        use_batch_learning = args.use_batch_learning,
-                       batch_size = args.batch_size
+                       batch_size = args.batch_size,
+                       device = device
                        )
          
     #handle output and return relevant values               
-    results = handle_output(args, model_output, comm_sizes, args.use_method)
+    results = handle_output(args = args, 
+                            output = model_output, 
+                            comm_sizes=comm_sizes)
     beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, indices, metrics, preds, trace = results
     
     #choose results to return (best perf mid, top or best loss)
@@ -233,10 +241,16 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         
     #run Kmeans on same dataset
     if args.run_kmeans:
+        
+        if args.compute_optimal_clusters:
+            km_sizes = comm_sizes[::-1]
+        else: 
+            km_sizes = [len(np.unique(i)) for i in target_labels]
+            
         kmeans_preds = run_kmeans(args, X=X.detach().numpy(), 
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
-                                  sizes=[len(np.unique(i)) for i in target_labels])
+                                  sizes=km_sizes)
         
         model_output.kmeans_preds = {'top': kmeans_preds[1], 'middle': kmeans_preds[0]}
     else:
@@ -251,7 +265,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         else: 
             hc_sizes = [len(np.unique(i)) for i in target_labels]
             
-        hc_preds = run_trad_hc(args, X=X.detach().numpy(), 
+        hc_preds = run_trad_hc(args, X=X.cpu().detach().numpy(), 
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
                                   sizes=hc_sizes)
@@ -261,15 +275,13 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         hc_preds = None
         model_output.hierarchical_clustering_preds = {'top': None, 'middle': None}
 
-    best_preds = model_output.pred_history[best_result_index]
+    best_preds = [i.cpu() for i in model_output.pred_history[best_result_index]]
 
         
     #post fit plots and results
     if args.post_hoc_plots:
         pbmt=post_hoc(args, 
                       output = model_output, 
-                      data = X, 
-                      adjacency = A, 
                       predicted = best_preds,
                       truth = target_labels,
                       louv_pred = louv_preds,
@@ -309,7 +321,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
-        torch.save(model, savepath_main+'MODEL.pth')
+        torch.save(model.cpu(), savepath_main+'MODEL.pth')
         
     print('done')
     

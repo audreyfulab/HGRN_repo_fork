@@ -903,7 +903,7 @@ def get_layered_performance(k, S_relab, true_labels):
     perf_layers = []
     for i in range(0, k):
         eval_metrics = node_clust_eval(true_labels=true_labels[i],
-                                       pred_labels=S_relab[i], 
+                                       pred_labels=S_relab[i].cpu(), 
                                        verbose=False)
         perf_layers.append(eval_metrics.tolist())
     
