@@ -8,12 +8,12 @@ Code developement repo for Hierarchical Community Detection (HCD): A graph-based
 
 ## Instructions to run HCD 
 To run HCD, you must download the following directories/files:
+| Original Path                                             | Mapped Path                                         |
+|----------------------------------------------------------|-----------------------------------------------------|
+| `./HGRN_software`                                        | `--> /my/path/local/HGRN_software`                 |
+| `./Simulated Hierarchies/MAIN_run_simulations_single_net.py` | `--> /my/path/local/MAIN_run_simulations_single_net.py` |
+| `./Simulated Hierarchies/run_simulation_utils.py`        | `--> /my/path/local/run_simulation_utils.py`       |
 
-|./HGRN_software                                            |--> /my/path/local/HGRN_software                      |
-
-|./Simulated Hierarchies/MAIN_run_simulations_single_net.py |--> /my/path/local/MAIN_run_simulations_single_net.py |
-
-|./Simulated Hierarchies/run_simulation_utils.py            |--> /my/path/local/run_simulation_utils.py            |
 
 
 ## Dependencies
