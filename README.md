@@ -7,7 +7,7 @@ This image was generated with Dall-E 3
 Code developement repo for Hierarchical Community Detection (HCD): A graph-based deep learning algorithm for detecting community structure in gene regulatory networks from gene expression data.
 
 ## Instructions to run HCD 
-To run HCD, you must download the following directories/files from this repository:
+To run `HCD`, you must download the following directories/files from this repository:
 | Original Path                                             | Mapped Path                                         |
 |----------------------------------------------------------|-----------------------------------------------------|
 | `./HGRN_software`                                        | `--> /my/path/local/HGRN_software`                 |
@@ -17,7 +17,7 @@ To run HCD, you must download the following directories/files from this reposito
 
 
 ## Dependencies
-HCD was built using python `3.12.2` and uses `CUDA toolkit 12.6` for GPU utilization
+`HCD` was built using python `3.12.2` and uses `CUDA toolkit 12.6` for GPU utilization
 - See `./requirements.txt` for package dependencies
 
 
@@ -223,7 +223,7 @@ print('='*60)
 
 ## Detecting Transcription Factor Modules Regulating Hepatocyte Differentiation
 
-Apply HCD to indentify transcription factor modules from co-regulatory activity matrix of 244 transcription factor regulons identified by [Liang et al 2023 - *Genome Biology*](https://github.com/Wangxiaoyue-lab/OSCAR "--> visit OSCAR repo") to be associated with hepatocyte cell differentiation. Results are compared to the 5 regulon modules previously identified.
+Apply `HCD` to indentify transcription factor modules from co-regulatory activity matrix of 244 transcription factor regulons identified by [Liang et al 2023 - *Genome Biology*](https://github.com/Wangxiaoyue-lab/OSCAR "--> visit OSCAR repo") to be associated with hepatocyte cell differentiation. Results are compared to the 5 regulon modules previously identified.
 
 - <cite>Liang, Junbo, et al. "In-organoid single-cell CRISPR screening reveals determinants of hepatocyte differentiation and maturation." Genome Biology 24.1 (2023): 251.</cite>
 
