@@ -230,7 +230,7 @@ Apply HCD to indentify transcription factor modules from co-regulatory activity 
 
 
  
-```
+```python
 #output save settings
 args.sp = 'path/to/output/'
 args.save_results = True
