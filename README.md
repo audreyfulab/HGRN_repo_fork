@@ -229,7 +229,7 @@ Apply `HCD` to indentify transcription factor modules from co-regulatory activit
 
 #### Datasets
 
-data is deposited in National Genomics Data Center [acession # `NGDC: PRJCA014442`](https://ngdc.cncb.ac.cn/gsa/browse/CRA009688 "--> visit NDGC") 
+data was deposited by <cite> Liang et al 2023 *Genome Biology* </cite> in National Genomics Data Center [acession # `NGDC: PRJCA014442`](https://ngdc.cncb.ac.cn/gsa/browse/CRA009688 "--> visit NDGC") 
 
 |    Type           |     size (rows x columns)    |      arg name       |
 |-------------------|------------------------------|---------------------|
