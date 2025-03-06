@@ -32,6 +32,7 @@ import pandas as pd
 import json
 from itertools import product
 from tqdm import tqdm
+import time
 
 # Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
@@ -129,7 +130,7 @@ args.early_stopping = True
 args.patience = 20
 args.use_method = "top_down"
 args.use_batch_learning = True
-args.batch_size = 128
+args.batch_size = 64
 args.load_from_existing = False
 
 #Adjusted Parameters
@@ -137,7 +138,7 @@ args.use_softKMeans_top = False
 args.COMM_operator = 'None'
 args.community_sizes = [64, 5]
 args.compute_optimal_clusters = True
-args.kappa_method = 'bethe_hessian'
+args.kappa_method = 'silouette'
 
 #Unchanged Parameters
 args.use_softKMeans_middle = False
@@ -147,7 +148,7 @@ args.attn_heads = 5
 args.dropout_rate = 0.2
 args.normalize_input = True
 args.normalize_layers = True
-args.AE_hidden_size = [512, 256]
+args.AE_hidden_size = [256, 128]
 args.LL_hidden_size = [128, 64] 
 args.gamma = 1
 args.delta = 1
@@ -166,7 +167,7 @@ args.verbose = False
 args.run_louvain = True
 args.run_kmeans = False
 args.run_hc = True
-args.use_gpu = False
+args.use_gpu = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
@@ -178,7 +179,7 @@ sim_args.common_dist = False
 sim_args.force_connect = True
 sim_args.set_seed = False
 sim_args.layers = 3 
-sim_args.sample_size = 1000
+sim_args.sample_size = 500
 
 
 #PATH to redirect output
@@ -186,7 +187,7 @@ mainpath = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Complex_
 cnames = ['Method', 'Homogeneity', 'Completeness', 'NMI', 'ARI']
 
 #simulated networks
-iters = range(0, 25)
+iters = range(0, 10)
 graph_types = ['small world','scale free', 'random graph']
 stdev = [0.1, 0.5]
 connect_types = ['full', 'disc']
@@ -197,6 +198,7 @@ else:
     mp = '/'.join([mainpath, '_'.join(['complex', args.COMM_operator, '_'.join([str(i) for i in args.community_sizes]), 'opt_clusts', str(args.compute_optimal_clusters)])])
     
 
+time_data = []
 
 for _type in graph_types:
     
@@ -206,11 +208,11 @@ for _type in graph_types:
         
         sim_args.SD = sd
         
-        sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
-                                        np.random.uniform(0.01, 0.15)
+        sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.1), 
+                                        np.random.uniform(0.01, 0.1)
                                         ] 
-        sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01), 
-                                        np.random.uniform(0.001, 0.01)
+        sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.005), 
+                                        np.random.uniform(0.001, 0.005)
                                         ]
         for connect in connect_types:
             
@@ -222,7 +224,11 @@ for _type in graph_types:
                 sim_args.savepath = '/'.join([mainpath, 'graphs', dirname])+'/'
                 args.sp = '/'.join([mp, dirname])+'/'
                 
+                start_time = time.time()
                 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
+                end_time = time.time()
+                
+                time_data.append(end_time - start_time)
                 plt.close('all')
                 
                 #save parameters
@@ -235,10 +241,6 @@ for _type in graph_types:
                 print('Saving simulation and model parameters ...')
                 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
                 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
-                
-                out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, pbmt = results
-                
-                del out, res_table, Ares, Xres, target_labels, S_all, S_sub, louv_preds, indices, model, results
                 
                 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
                 
@@ -263,7 +265,7 @@ for _type in graph_types:
                 gstat_rep = pd.DataFrame(np.concatenate([np.array(gstats)]*6),
                                         columns = gstat_columns).iloc[:, 1:]
                 
-                npres = np.array(pbmt)
+                npres = np.array(results.perf_table)
                 combined_results = pd.DataFrame([['Louvain Middle']+npres[0,:].tolist(), 
                                                 ['Louvain Top']+npres[1,:].tolist(), 
                                                 ['HC Middle']+npres[4,:].tolist(), 
@@ -347,13 +349,14 @@ for _type in graph_types:
                                         'torch', 'plot_embeddings_heatmap', 'generate_attention_graph',
                                         'resort_graph', 'node_clust_eval', 'evaluate', 'nx', 'np', 'sbn',
                                         'pd', 'json', 'cnames', 'graph_types', 'stdev', 'sd', 'connect', 'connect_types',
-                                        '_iterable', 'index2', 'mp', 'm_m', 'kmi', 'o_s', 'coc']]
+                                        '_iterable', 'index2', 'mp', 'm_m', 'kmi', 'o_s', 'coc', 'time_data']]
 
                 for var in to_delete:
                     del locals()[var]
     
         
 
-
+tdf = pd.DataFrame(time_data)
+tdf.to_csv(args.sp + 'Time to compute.csv')
 
 

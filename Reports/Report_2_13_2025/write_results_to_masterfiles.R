@@ -32,9 +32,17 @@ fp18 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate
 fp19 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_64_5_opt_clusts_bethe_hessian/'
 fp20 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/SET_MASTER/Kmeans_None_64_5_opt_clusts_silouette/'
 
+fp21 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/mixed_None_64_5_opt_clusts_True/'
+fp22 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/mixed_unbalanced_None_64_5_opt_clusts_True/'
+fp23 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/nobatch_None_15_5_opt_clusts_True/'
+fp24 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/reg_unbalanced_None_15_5_opt_clusts_True/'
+fp25 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/upmod_None_15_5_opt_clusts_True/'
+
+
+
 
 flist = c(fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9, fp10, fp11, fp12, fp13, fp14, fp15, fp16,
-          fp17, fp18, fp19, fp20)
+          fp17, fp18, fp19, fp20, fp21, fp22, fp23, fp24, fp25)
 
 
 read_file = function(filename){
@@ -49,7 +57,7 @@ read_file_stats = function(filename, case){
   return(file)
 }
 
-process.results = function(PATH, ol, scenario, checker){
+process.results = function(PATH, ol, scenario, data.scenario, checker){
   
     
   fp = PATH
@@ -151,6 +159,7 @@ process.results = function(PATH, ol, scenario, checker){
                         Layer = c(rep('Top Layer', dim(data_top)[1]), 
                                   rep('Middle Layer', dim(data_mid)[1])),
                         Scenario = rep(scenario, dim(comb_temp)[1]),
+                        Data.Scenario = rep(data.scenario, dim(comb_temp)[1]),
                         output_layer = rep(ol, dim(comb_temp)[1]))
   
   
@@ -164,14 +173,32 @@ outlayer = c('Linear', 'Linear', 'Linear', 'Linear',
              'SAGE', 'SAGE', 'SAGE', 'SAGE',
              'NOL', 'NOL', 'NOL', 'NOL',
              'GATv2', 'GATv2', 'GATv2','GATv2',
-             'Kmeans-NOL', 'Kmeans-NOL', 'Kmeans-NOL','Kmeans-NOL')
+             'Kmeans-NOL', 'Kmeans-NOL', 'Kmeans-NOL','Kmeans-NOL',
+             'NOL', 'NOL', 'NOL', 'NOL', 'NOL-UM')
 scenarios = c('GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
-              'GT', '64-5', 'BH', 'Silouette')
+              'GT', '64-5', 'BH', 'Silouette',
+              'BH', 'BH', 'BH-Nobatch', 'BH', 'BH')
+
+
+data.scenario = c('Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  'Mixed-Balanced', 'Mixed-Unbalanced', 'Reg-Balanced', 
+                  'Reg-Unbalanced', 'Reg-Balanced')
+
+
+
 for(sim in 1:length(flist)){
-  output = process.results(PATH = flist[sim], ol = outlayer[sim], scenario = scenarios[sim], checker = 0)
+  output = process.results(PATH = flist[sim], 
+                           ol = outlayer[sim], 
+                           scenario = scenarios[sim],  
+                           data.scenario = data.scenario[sim],
+                           checker = 0)
   
   reslist[[sim]] = output$final.table
 }
@@ -179,4 +206,4 @@ for(sim in 1:length(flist)){
 final.combined.all = do.call('rbind', reslist)
 
 write.csv(final.combined.all, 
-          file = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/combined_results_all_simulations.csv')
+          file = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/combined_results_all_simulations.csv')

@@ -61,12 +61,12 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #check for local GPU
     print(f'***** GPU AVAILABLE: {torch.cuda.is_available()} ******')
     device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
+    torch.set_default_device(device)
+    torch.set_default_dtype(torch.float64)
     if 'cuda' in device:
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-    else:
-        torch.set_default_tensor_type('torch.FloatTensor')
-    print('***** Using device {} ********'.format(device))
+        
+    print(f'***** Using device {device} ********')
     
     
     savepath_main = args.sp
@@ -104,13 +104,22 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
             X, A, target_labels = train
             
     # read in regulon data
-    elif args.dataset in ['regulon.EM', 'regulon.DM']:
+    elif args.dataset in ['regulon.EM', 'regulon.DM.sc', 'regulon.DM.activity']:
         
-        train, test, gene_names = load_application_data_regulon(args)
-        target_labels = None
+        X, A, gene_names, gt = load_application_data_regulon(args)
+        if gt is not None:
+            target_labels = [np.array(gt['regulon_kmeans'].tolist()), np.array(gt['regulon_kmeans'].tolist())]
+        else: 
+            target_labels = None
+        
+        if args.split_data:
+            train, test = split_dataset(X, A, target_labels, args.train_test_size)         
+            
+            X, A, target_labels = train
+        else:
+            test = None
+            
         valid = None
-        
-        X, A, [] = train
         
     # read in Dream5 data
     elif args.dataset in ['Dream5.'+i for i in ['E_coli', 'in_silico', 'S_aureus', 'S_cerevisiae']]:
@@ -143,7 +152,12 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     # estimate number of communities k
     if args.compute_optimal_clusters:
-        comm_sizes = compute_kappa(X, A, method = args.kappa_method, save = args.save_results, PATH = args.sp, verbose = True)
+        comm_sizes = compute_kappa(X.cpu().detach().numpy(), 
+                                   A, 
+                                   method = args.kappa_method, 
+                                   save = args.save_results, 
+                                   PATH = args.sp, 
+                                   verbose = True)
     
     #initiate model 
     print('-'*25+'setting up and fitting models'+'-'*25)
@@ -162,8 +176,9 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                 ae_attn_heads = args.attn_heads, 
                 dropout = args.dropout_rate,
                 use_output_layers = args.add_output_layers,
+                device = device,
                 **kwargs
-                ).to(device)
+                )
     
     X = X.to(device)
     A = A.to(device)
@@ -193,6 +208,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     model_output = fit(model, X, A, 
                        k = layers,
                        optimizer='Adam', 
+                       mse_method = args.mse_method,
                        epochs = args.training_epochs, 
                        update_interval=args.steps_between_updates, 
                        layer_resolutions=args.resolution,
@@ -247,7 +263,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         else: 
             km_sizes = [len(np.unique(i)) for i in target_labels]
             
-        kmeans_preds = run_kmeans(args, X=X.detach().numpy(), 
+        kmeans_preds = run_kmeans(args, X=X.cpu().detach().numpy(), 
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
                                   sizes=km_sizes)

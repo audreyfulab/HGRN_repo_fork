@@ -33,7 +33,7 @@ knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.pos = 'H')
 ### Simulating networks {-}
 We adopt a top-down approach to simulate hierarchical networks, considering various simulation parameters such as graph sparsity, noise, and the architecture of the super-level graph(s), including small-world, scale-free, and random graph networks [@watts1998collective; @barabasi2003scale].
 
-Our simulations focus on basic hierarchies comprising one or two hierarchical layers. Two-layer networks mirror classical community detection on graphs, where our aim is to recover the true community labels from a given graph. Meanwhile, three-layer networks present a more intricate scenario, where the bottom layer of the hierarchy contains two levels of community structure. Here, the top level corresponds to the nodes at the uppermost layer of the hierarchy, and the middle level consists of communities nested within the top-level communities. The objective with these networks is to identify both sets of community partitions.
+Our simulations focus on basic hierarchies comprising three hierarchical layers. Two-layer networks mirror classical community detection on graphs, where our aim is to recover the true community labels from a given graph. Meanwhile, three-layer networks present a more intricate scenario, where the bottom layer of the hierarchy contains two levels of community structure. Here, the top level corresponds to the nodes at the uppermost layer of the hierarchy, and the middle level consists of communities nested within the top-level communities. The objective with these networks is to identify both sets of community partitions.
 	
 In each hierarchy, for fully connected networks, we initiate by simulating $N_{\text{top}}$ top-level nodes, adhering to a directed small-world, random graph, or scale-free network architecture [@watts1998collective; @barabasi2003scale]. In cases where the network is disconnected, we simply simulate $N_{\text{top}}$ disconnected nodes. For networks with three hierarchical layers, we then generate a subnetwork of $N_{\text{middle}}$ nodes from each top-layer node, adhering to the network structure utilized at the top level. If the network is fully connected, we apply a probability $p_\text{between}$ to the nodes from different top-level communities being connected. 
 
@@ -174,31 +174,81 @@ There are several classical approaches to estimating the number of communities, 
 - **Bethe Hessian**:  
   The Bethe Hessian is a graph-based method for estimating the number of communities in a network. It involves constructing the Bethe Hessian matrix ${\bf B}_\eta = (\eta^2 - 1){\bf I} + {\bf D} - \eta {\bf A}$, where $A$ is the adjacency matrix, $D$ is the degree matrix, and $\eta$ is a regularization parameter. The number of negative eigenvalues of $H(r)$ provides an estimate of the number of communities. This approach leverages spectral properties of the graph to identify structural groupings. According to [@schaub2023hierarchical], the Bethe Hessian consistently estimates the finest possible detectable partition. Based on this, we propose using this estimate to determine the number of communities in the middle layer of the hierarchy and setting the number of partitions in the top layer to either half or one-third of this value.
   
+
+
+## Scenarios
+
+In this set of simulations we investigate the following scenarios and data types:
+
+- (i) When the hierarchical communities have imbalance in group membership
+
+- (ii) When the hierarchy is simulated under a mixed graph topology (see Section Data Simulation)
+
+- (iii) When the hierarchy is simulated under a mixed topology with class imbalance
+
+- (iv) When HCD is run without batch learning (but still uses data splitting)
+
+- (v) When HCD is run with the modularity component of the loss function upweighted so it is similar in magnitude as the clustering component(s) and therefore prioritized equivalently in training.
+
+In each of the aforementioned scenarios HCD is run with two encoder and two decoder layers (256, 128) and no output layer. 
+
+
+  
+
 ## Results
 
-- HCD demonstrates superior performance on the middle layer in fully connected networks.
-- HCD achieves performance comparable to Hierarchical Clustering on the top layer across all scenarios.
-- HCD-NOL performs comparably or better to more complex configurations like HCD-Linear, HCD-SAGE, or HCD-GAT suggesting the additional embedding processing step is unnecessary. 
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="", fig.height=10, fig.width=12}
+
+
+fp2 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/K_estim_all_graphs.csv'
+
+
+ktab = read.csv(fp2)
+
+r <- nrow(ktab)
+c <- ncol(ktab)
+
+newktab = cbind.data.frame(Layer = c(rep('Middle Layer', r), rep('Top Layer', r)),
+                           GT = c(rep(15, r), rep(5, r)),
+                           K = c(ktab$k_middle, ktab$k_top),
+                           rbind.data.frame(ktab[,-c(1,5)], ktab[,-c(1,5)]))
+
+
+A = ggplot(data = newktab, aes(x = method, y = K, fill = method, linetype = connect_type))+
+  geom_boxplot()+
+  geom_hline(aes(yintercept = GT), colour = 'red', linetype = 'dashed', linewidth = 1.5)+
+  facet_grid(Layer ~ graph_type)+
+  theme_bw()+
+  theme(legend.position = 'top',
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 12))
+plot(A)
+
+```
+
+
+
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the middle hierarchcial layer across all simulated networks, where the number of communities is estimated using the Bethe Hessian estimate. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
-fp1 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/Output/Intermediate_applications/combined_results_all_simulations.csv'
 
-
+fp1 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/combined_results_all_simulations.csv'
 
 dtab = read.csv(fp1)
 dtab$StDev = as.factor(dtab$StDev)
 
-scene = 'GT'
-meth = 'HCD-NOL'
-subdat = subset(dtab, Scenario == scene & Method %in% c(meth, 'HC', 'Louvain'))
+meth = 'HCD-NOL-UM'
+dtype = 'Reg-Balanced'
+subdat = subset(dtab, Method %in% c(meth, 'HC', 'Louvain') & Data.Scenario == dtype)
 HCtruth = subset(dtab, Scenario == 'GT' & Method =='HC' & output_layer == 'NOL')
 HCtruth$Method = recode(HCtruth$Method, "HC" = "HC-truth" )
 
 ft = rbind.data.frame(subdat, HCtruth)
 
-                
-A = ggplot(data = subset(subdat, Layer == 'Middle Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
+A = ggplot(data = subset(ft, Layer == 'Middle Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
   scale_shape_manual(values=c(21:25, 21:25))+
   scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
   scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
@@ -208,16 +258,41 @@ A = ggplot(data = subset(subdat, Layer == 'Middle Layer'), aes(x = Homogeneity, 
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90),
         legend.position = 'top')+
-  ggtitle("Clustering Performance Middle Layer (Ground Truth)")
+  ggtitle("Clustering Performance Middle Layer")
 
 
 plot(A)
+
+
+
+meth2 = 'HCD-NOL'
+dtype2 = 'BH-Nobatch'
+subdat2 = subset(dtab, Method %in% c(meth2, 'HC', 'Louvain') & Data.Scenario == dtype2)
+HCtruth2 = subset(dtab, Scenario == 'GT' & Method =='HC' & output_layer == 'NOL')
+HCtruth$Method = recode(HCtruth$Method, "HC" = "HC-truth" )
+
+ft2 = rbind.data.frame(subdat2, HCtruth2)
+
+B = ggplot(data = subset(ft2, Layer == 'Middle Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
+  scale_shape_manual(values=c(21:25, 21:25))+
+  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
+  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
+  geom_abline(slope = 1, intercept = 0, size = 1.5)+
+  geom_point(size = 3, color = 'black', alpha = 0.6)+
+  facet_grid(StDev~connection_type~subgraph_type)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'top')+
+  ggtitle("Clustering Performance Middle Layer")
+
+
+plot(B)
 ```
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the top hierarchical layer across all simulated networks, where the number of communities is estimated using the Bethe Hessian estimate. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
 
-A = ggplot(data = subset(subdat, Layer == 'Top Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
+A = ggplot(data = subset(ft, Layer == 'Top Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
   scale_shape_manual(values=c(21:25, 21:25))+
   scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
   scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
@@ -247,336 +322,4 @@ plot(A)
 
 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the middle hierarchcial layer across all simulated networks, where the number of communities is estimated using the Bethe Hessian estimates. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
-
-
-scene = 'BH'
-meth = 'HCD-NOL'
-subdat2 = subset(dtab, Scenario == scene & Method %in% c(meth, 'HC', 'Louvain'))
-
-ft2 = rbind.data.frame(subdat2, HCtruth)
-
-
-               
-A = ggplot(data = subset(ft2, Layer == 'Middle Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black', alpha = 0.6)+
-  facet_grid(StDev~connection_type~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance Middle Layer (Bethe Hessian)")
-
-
-plot(A)
-```
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the top hierarchical layer across all simulated networks, where the number of communities is estimated using the Bethe Hessian estimates. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
-
-A = ggplot(data = subset(ft2, Layer == 'Top Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black', alpha = 0.6)+
-  facet_grid(StDev~connection_type~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance Top Layer (Bethe Hessian)")
-
-
-plot(A)
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the middle hierarchcial layer across all simulated networks, where the number of communities is estimated using the Silouette estimates. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
-
-
-scene = 'Silouette'
-meth = 'HCD-NOL'
-subdat3 = subset(dtab, Scenario == scene & Method %in% c(meth, 'HC', 'Louvain'))
-
-ft3 = rbind.data.frame(subdat3, HCtruth)
-
-
-               
-A = ggplot(data = subset(ft3, Layer == 'Middle Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black', alpha = 0.6)+
-  facet_grid(StDev~connection_type~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance Middle Layer (Silouette)")
-
-
-plot(A)
-```
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance of HCD, Louvain, and Hierarchical Clustering for the top hierarchical layer across all simulated networks, where the number of communities is estimated using the Silouette estimates. \"HC-truth\" represents hierarchical clustering performance when the ground-truth partition of 15 communities is used, serving as a baseline for comparison. In this figure, HCD is evaluated using the No Output Layer scenario, where the learned embedding is directly assigned to clusters via softmax without additional processing.", fig.height=10, fig.width=12}
-
-A = ggplot(data = subset(ft3, Layer == 'Top Layer'), aes(x = Homogeneity, y = Completeness, fill = Method, shape = Method, color = Method ))+
-  scale_shape_manual(values=c(21:25, 21:25))+
-  scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_abline(slope = 1, intercept = 0, size = 1.5)+
-  geom_point(size = 3, color = 'black', alpha = 0.6)+
-  facet_grid(StDev~connection_type~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance Top Layer (Silouette)")
-
-
-plot(A)
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance, measured by the Adjusted Rand Index (ARI), for all HCD variants, Hierarchical Clustering, and Louvain on fully connected networks, where the number of communities is estimated using the Bethe Hessian. This scenario leverages the spectral properties of the network to detect the finest possible partition, providing a principled estimate of the community structure. The results highlight how different clustering methods perform when the number of clusters is inferred rather than known a priori.", fig.height=10, fig.width=12}
-
-A = ggplot(data = subset(dtab, Scenario == 'BH' & connection_type == 'full'), aes(x = Method, y = ARI, fill = Method, linetype = StDev))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_boxplot()+
-  facet_grid(Layer~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance (ARI) For Fully Connected Networks")
-
-
-plot(A)
-
-
-```
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering performance, measured by the Adjusted Rand Index (ARI), for all HCD variants, Hierarchical Clustering, and Louvain on disconnected networks, where the number of communities is estimated using the Bethe Hessian. This scenario leverages the spectral properties of the network to detect the finest possible partition, providing a principled estimate of the community structure. The results highlight how different clustering methods perform when the number of clusters is inferred rather than known a priori.", fig.height=10, fig.width=12}
-
-A = ggplot(data = subset(dtab, Scenario == 'BH' & connection_type == 'disc'), aes(x = Method, y = ARI, fill = Method, linetype = StDev))+
-  scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1))+
-  geom_boxplot()+
-  facet_grid(Layer~subgraph_type)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90),
-        legend.position = 'top')+
-  ggtitle("Clustering Performance")
-
-
-plot(A)
-
-
-```
-
-
-
-## An example of an easy network
-
-The following is an example of a network that is easy to infer for both HCD, HC, and the louvain method. This example is a small world disconnected network with standard deviation $\sigma = 0.1$. 
-
-
-<!-- ![correlations on data (left) and heatmap of the true adjacency matrix for the above example of a small world disconnected std = 0.1 network](C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/easy case/small_world_disc_01_Case_10/heatmaps.png) -->
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering Performance for HCD using no output layer, Hierarchcial Clustering and the Louvain method on an easy to infer small world network. Results are shown when the output size is the ground truth and when it is inferred using bethe hessian or silouette techniques.", fig.height=10, fig.width=12}
-
-data = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/easy case/small_world_disc_01_Case_10.csv')
-
-data2 = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/easy case/BHcase.csv')
-
-data3 = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/easy case/Silcase.csv')
-
-
-# rdat = cbind.data.frame(Metric = c(rep('Homorgeneity', 6), rep('Completeness', 6), rep('NMI', 6), rep('ARI', 6)),
-#                         Score = c(data$Homogeneity, data$Completeness, data$NMI, data$ARI),
-#                         Layer = rep(rep(c('Middle', 'Top'),3), 4),
-#                         Method = rep(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD', 'HCD'), 4))
-
-
-rdat1 = cbind.data.frame(Homogeneity = data$Homogeneity, 
-                        Completeness = data$Completeness,
-                        NMI = data$NMI,
-                        ARI = data$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-
-rdat2 = cbind.data.frame(Homogeneity = data2$Homogeneity, 
-                        Completeness = data2$Completeness,
-                        NMI = data2$NMI,
-                        ARI = data2$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-rdat3 = cbind.data.frame(Homogeneity = data3$Homogeneity, 
-                        Completeness = data3$Completeness,
-                        NMI = data3$NMI,
-                        ARI = data3$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-rdat.final = cbind.data.frame(rbind.data.frame(rdat1, rdat2, rdat3), 
-                              Scenario = c(rep('Ground Truth', 6), 
-                                           rep('Bethe Hessian', 6),
-                                           rep('Silouette', 6)))
-
-
-A = ggplot(data = rdat.final, aes(x = Homogeneity, y = Completeness, fill = Scenario, color = Scenario, shape = Method)) +
-  scale_shape_manual(values=c('HCD-NOL' = 21, 'HC' = 22, 'Louvain' = 23)) +
-  #scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1)) +
-  #scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1)) +
-  geom_abline(slope = 1, intercept = 0, size = 1.5) +
-  geom_point(size = 6, stroke = 1, color = "black", alpha = 0.8) +  # Removed color = 'black'
-  facet_grid(~Layer) +
-  #scale_fill_manual(values = c('Ground Truth' = 'red', 'Bethe Hessian' = 'cyan')) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90),
-        axis.text = element_text(size = 14),
-        legend.position = 'top') +
-  ggtitle("Clustering Performance")+
-  guides(
-    fill = guide_legend(override.aes = list(shape = 21, size = 6, color = 'black')),
-    shape = guide_legend(override.aes = list(
-      fill = "white",  # Using white fill to make shapes distinct
-      size = 6, 
-      color = 'black',
-      stroke = 1
-    ))
-  )
-plot(A)
-  
-
-
-```
-
-
-
-
-
-![correlations on the embeddings and data](C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/easy case/small_world_disc_01_Case_10/data_and_probs.png)
-
-
-
-
-## An example of a difficult network
-
-The following is an example of a network that is difficult to infer. This example is a small world fully connected network with standard deviation $\sigma = 0.5$. 
-
-
-<!-- ![correlations on data (left) and heatmap of the true adjacency matrix for the above example of a small world fully connected std = 0.1 network](C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/tough_case/small_world_full_01_Case_4/heatmaps.png) -->
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Clustering Performance for HCD using no output layer, Hierarchcial Clustering and the Louvain method on a small world fully connected network that is difficult to infer. Results are shown when the output size is the ground truth and when it is inferred using bethe hessian or silouette techniques.", fig.height=10, fig.width=12}
-
-data = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/tough_case/small_world_full_01_Case_18.csv')
-
-data2 = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/tough_case/BHcase.csv')
-
-data3 = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/tough_case/Silcase.csv')
-
-
-# rdat = cbind.data.frame(Metric = c(rep('Homorgeneity', 6), rep('Completeness', 6), rep('NMI', 6), rep('ARI', 6)),
-#                         Score = c(data$Homogeneity, data$Completeness, data$NMI, data$ARI),
-#                         Layer = rep(rep(c('Middle', 'Top'),3), 4),
-#                         Method = rep(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD', 'HCD'), 4))
-
-
-rdat1 = cbind.data.frame(Homogeneity = data$Homogeneity, 
-                        Completeness = data$Completeness,
-                        NMI = data$NMI,
-                        ARI = data$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-
-rdat2 = cbind.data.frame(Homogeneity = data2$Homogeneity, 
-                        Completeness = data2$Completeness,
-                        NMI = data2$NMI,
-                        ARI = data2$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-rdat3 = cbind.data.frame(Homogeneity = data3$Homogeneity, 
-                        Completeness = data3$Completeness,
-                        NMI = data3$NMI,
-                        ARI = data3$ARI,
-                        Layer = rep(c('Middle', 'Top'),3),
-                        Method = as.factor(c('Louvain', 'Louvain', 'HC', 'HC', 'HCD-NOL', 'HCD-NOL')))
-
-
-rdat.final = cbind.data.frame(rbind.data.frame(rdat1, rdat2, rdat3), 
-                              Scenario = c(rep('Ground Truth', 6), 
-                                           rep('Bethe Hessian', 6),
-                                           rep('Silouette', 6)))
-
-
-A = ggplot(data = rdat.final, aes(x = Homogeneity, y = Completeness, fill = Scenario, color = Scenario, shape = Method)) +
-  scale_shape_manual(values=c('HCD-NOL' = 21, 'HC' = 22, 'Louvain' = 23)) +
-  #scale_x_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1)) +
-  #scale_y_continuous(limits = c(0.5,1), breaks = seq(0.5, 1, 0.1)) +
-  geom_abline(slope = 1, intercept = 0, size = 1.5) +
-  geom_point(size = 6, stroke = 1, color = "black", alpha = 0.8) +  # Removed color = 'black'
-  facet_grid(~Layer) +
-  #scale_fill_manual(values = c('Ground Truth' = 'red', 'Bethe Hessian' = 'cyan')) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90),
-        axis.text = element_text(size = 14),
-        legend.position = 'top') +
-  ggtitle("Clustering Performance")+
-  guides(
-    fill = guide_legend(override.aes = list(shape = 21, size = 6, color = 'black')),
-    shape = guide_legend(override.aes = list(
-      fill = "white",  # Using white fill to make shapes distinct
-      size = 6, 
-      color = 'black',
-      stroke = 1
-    ))
-  )
-plot(A)
-  
-
-
-```
-
-
-![correlations on the embeddings and data](C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_extras/tough_case/small_world_full_01_Case_18/data_and_probs.png)
-
-## References
+##References

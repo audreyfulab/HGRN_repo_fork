@@ -56,7 +56,7 @@ class ModularityLoss(nn.Module):
         super(ModularityLoss, self).__init__()
         
     def forward(self, all_A, all_P, resolutions):
-        loss = torch.Tensor([0])
+        loss = torch.tensor([0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
             mod = Modularity(A, P, resolutions[index])
@@ -90,7 +90,7 @@ class ClusterLoss(nn.Module):
         Cluster_labels: list of length l containing cluster assignment labels 
         """
         N = Attributes.shape[0]
-        loss = torch.Tensor([0])
+        loss = torch.tensor([0])
         loss_list = []
         ptensor_list = [torch.eye(N)]+Probabilities
         for idx, labels in enumerate(Cluster_labels):
@@ -124,7 +124,7 @@ class ClusterLoss(nn.Module):
     #     """
     
     #     #N = Attributes[0].shape[0]
-    #     loss = torch.Tensor([0])
+    #     loss = torch.tensor([0])
     #     loss_list = []
     #     #problist = [torch.eye(N)]+Probabilities
     #     #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]

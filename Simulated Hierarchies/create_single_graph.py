@@ -127,8 +127,8 @@ def run_simulations(args, use_gpu = False):
     indices_top, indices_mid, labels_df, sorted_true_labels_top, sorted_true_labels_middle = sort_labels(nodelabs)
 
 
-    #C = F.one_hot(torch.Tensor(sorted_true_labels_top).to(torch.int64)).to(torch.float32)
-    #X = torch.Tensor(pe_sorted).requires_grad_()
+    #C = F.one_hot(torch.tensor(sorted_true_labels_top).to(torch.int64)).to(torch.float32)
+    #X = torch.tensor(pe_sorted).requires_grad_()
     
     
     origin_nodes = [i[0] for i in orin]

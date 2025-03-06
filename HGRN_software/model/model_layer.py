@@ -73,7 +73,7 @@ class AE_layer(nn.Module):
         
         #self.final_linear = nn.Linear(out_features * heads, out_features, bias = use_bias)
         
-    def forward(self, inputs):
+    def forward(self, inputs: List):
         """
         Forward pass for the GAT layer.
         """
@@ -127,7 +127,7 @@ class Fully_ConnectedLayer(nn.Module):
             self.act_norm = nn.Identity()
             
             
-    def forward(self, X):
+    def forward(self, X: torch.Tensor):
         
         #apply linear layer and dropout
         H = self.Linearlayer(X)
@@ -191,11 +191,11 @@ class Comm_DenseLayer2(nn.Module):
         
         Args:
             inputs (list): 5 elements Contains [Z, A, X_tilde, A_tilde, S] where:
-                - Z (torch.Tensor): Node representations (N x q)
-                - A (torch.Tensor): Adjacency matrix (N x N)
+                - Z (torch.tensor): Node representations (N x q)
+                - A (torch.tensor): Adjacency matrix (N x N)
                 - X_tilde: Centroid matrix   (ki x q) can be an empty list
-                - A_tilde (torch.Tensor): Graph for connected communities (ki x ki) - can be an empty list
-                - S (torch.Tensor): Predicted class labels (N x 1) - can be an empty list
+                - A_tilde (torch.tensor): Graph for connected communities (ki x ki) - can be an empty list
+                - S (torch.tensor): Predicted class labels (N x 1) - can be an empty list
         
         Returns:
             list: Updated inputs containing:
@@ -300,7 +300,7 @@ class Comm_DenseLayer2(nn.Module):
         self.act = nn.LeakyReLU(negative_slope=alpha)
 
     
-    def forward(self, inputs):
+    def forward(self, inputs: List):
         """
         inputs: a list of size elements [Z, A, X_tilde, A_tilde, S] where 
                 Z: Node representations   N x q

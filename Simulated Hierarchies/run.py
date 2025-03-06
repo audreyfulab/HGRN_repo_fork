@@ -13,7 +13,7 @@ sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hi
 sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/HGRN_software/')
 #sys.path.append('C:/Users/Bruin/OneDrive/Documents/GitHub/torch_kmeans/')
 from MAIN_run_simulations_single_net import run_single_simulation
-from run_simulations_utils import set_up_model_for_simulation_inplace, plot_embeddings_heatmap, generate_attention_graph
+from run_simulations_utils import set_up_model_for_simulation_inplace, plot_embeddings_heatmap, generate_attention_graph, load_application_data_regulon
 from model.utilities import resort_graph, node_clust_eval
 from model.train import evaluate
 import os
@@ -33,6 +33,7 @@ parser.add_argument('--read_from', type=str, default='local', choices = ['local'
 parser.add_argument('--which_net', type=int, default=0, help='Network selection')
 parser.add_argument('--use_true_graph', type=bool, default=True, help='Sets the input graph to be the true topology')
 parser.add_argument('--correlation_cutoff', type=float, default=0.5, help='Use true graph or float giving graph with specified correlation cutoff')
+parser.add_argument('--mse_method', type=str, default='mse', choices=['mse', 'msenz'], help='Method for computing attribute reconstruction loss mse is classic Mean squared Error, while msenz is MSE computed over all nonzero values (recommended for sparse datasets such as scRNA)')
 parser.add_argument('--use_method', type=str, default='top_down', choices=['top_down','bottom_up'], help='method for uncovering the hierarchy')
 parser.add_argument('--use_softKMeans_top', type=bool, default=False, help='If true, the top layer is inferred with a softKMeans layer')
 parser.add_argument('--use_softKMeans_middle', type=bool, default=False, help='If true, the middle layer is inferred with a softKMeans layer')
@@ -111,7 +112,7 @@ sim_args = parser2.parse_args()
 
 
 #simulation settings
-sim_args.subgraph_type = 'scale free'
+sim_args.subgraph_type = 'random graph'
 sim_args.connect = 'full'
 #global simulation settings
 sim_args.top_layer_nodes = 5
@@ -122,29 +123,31 @@ sim_args.force_connect = True
 sim_args.connect_prob_middle = [np.random.uniform(0.01, 0.15), 
                                 np.random.uniform(0.01, 0.15)
                                 ] 
-sim_args.connect_prob_bottom = [np.random.uniform(0.001, 0.01), 
-                                np.random.uniform(0.001, 0.01)
+sim_args.connect_prob_bottom = [np.random.uniform(0.01, 0.1), 
+                                np.random.uniform(0.01, 0.1)
                                 ]
 sim_args.set_seed = False
 sim_args.layers = 3
-sim_args.SD = 0.1
+sim_args.SD = 0.5
 sim_args.mixed_graph = False
 #sim_args.mixed_graph = True
-sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/graph/'
+sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/jobs/testing/graph/'
 #sim_args.savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_3_2025/Example_graph/'
 
 #output save settings
 #args.sp = 'C:/Users/Bruin/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/benchmarks/test/'
 #args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_3_2025/debug_results/'
-args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_12_11_2024/Output/testing/'
+args.sp = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/jobs/testing/'
 args.save_results = True
 args.make_directories = False
+args.use_gpu = False
 args.save_model = False
 args.set_seed = 555
 args.read_from = 'local'
+args.mse_method = 'mse'
 args.load_from_existing = True
 args.early_stopping = True
-args.patience = 5
+args.patience = 20
 args.use_method = "top_down"
 args.use_batch_learning = True
 args.batch_size = 64
@@ -153,30 +156,30 @@ args.use_softKMeans_middle = False
 args.add_output_layers = False
 args.AE_operator = 'GATv2Conv'
 #args.COMM_operator = 'Linear'
-args.COMM_operator = 'Linear'
-args.attn_heads = 5
+args.COMM_operator = 'None'
+args.attn_heads = 1
 args.dropout_rate = 0.2
 args.normalize_input = True
 args.normalize_layers = True
-args.AE_hidden_size = [256, 128]
+args.AE_hidden_size = [32]
 args.LL_hidden_size = [128, 64] 
 args.gamma = 1
-args.delta = 1e3
+args.delta = 1
 args.lambda_ = [1, 1] # [top, middle]
 args.learning_rate = 1e-3
 args.use_true_communities = False
 args.community_sizes = [15, 5]
-args.compute_optimal_clusters = False
-args.kappa_method = 'silouette'
+args.compute_optimal_clusters = True
+args.kappa_method = 'bethe_hessian'
 
 #training settings
-args.dataset = 'generated'
+args.dataset = 'regulon.DM.activity'
 args.parent_distribution = 'unequal'
 args.which_net = 1
-args.training_epochs = 100
-args.steps_between_updates = 5
+args.training_epochs = 500
+args.steps_between_updates = 10
 args.use_true_graph = False
-args.correlation_cutoff = 0.2
+args.correlation_cutoff = 0.35
 args.return_result = 'best_loss'
 args.verbose = False
 args.run_louvain = True
@@ -190,7 +193,15 @@ args.train_test_size = [0.8, 0.2]
 # #dirname = sim_args.subgraph_type.replace(' ', '_')+'_'+sim_args.connect+str(sim_args.SD).replace('.', '')+'_Case_'+str(0)
 # sim_args.savepath = '/'.join([mainpath, 'graph/'])
 # args.sp = '/'.join([mainpath, 'results/'])
+import time
+
+device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
+
+start = time.time()
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
+end = time.time()
+
+print(f'TOTAL TIME {end-start}')
 plt.close('all')
 
 
@@ -236,23 +247,27 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
 
-X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
+#args.split_data = False
+#X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
 
-model = torch.load(args.sp+'checkpoint.pth')
-
+args.split_data = False
+X, A, gene_labels, gt = load_application_data_regulon(args)
+target_labels = [np.array(gt['regulon_kmeans'].tolist()), np.array(gt['regulon_kmeans'].tolist())]
 #args.split_data = False
 #train, test, gene_labels = load_application_data_regulon(args)
 #X, A, [] = train
-model = torch.load(args.sp+'checkpoint.pth')
-perf_layers, output, S_relab = evaluate(model, X, A, 2, true_labels = target_labels)
+model = torch.load(args.sp+'checkpoint.pth', weights_only=False)
+perf_layers, output, S_relab = evaluate(model.to(device), X, A, 2, true_labels = target_labels)
                 
 X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
 
+S_all = [i.cpu() for i in S_all]
+
 print('='*60)
 print('-'*10+'final top'+'-'*10)
-final_top_res=node_clust_eval(target_labels[0], S_relab[0], verbose = True)
+final_top_res=node_clust_eval(target_labels[0], [i.cpu() for i in S_relab[0]], verbose = True)
 print('-'*10+'final middle'+'-'*10)
-final_middle_res=node_clust_eval(target_labels[1], S_relab[1], verbose = True)
+final_middle_res=node_clust_eval(target_labels[1], [i.cpu() for i in S_relab[1]], verbose = True)
 print('='*60)
 
 #generate graph 
@@ -292,11 +307,11 @@ df = pd.DataFrame(np.array([stripped_labels[top_sort], S_all[0][top_sort].detach
 
 df.to_csv(args.sp+'gene_data.csv')
 
-top_resorted_X = X[top_sort,:].detach().numpy()
-top_resorted_A = resort_graph(A, top_sort).detach().numpy()
+top_resorted_X = X[top_sort,:].cpu().detach().numpy()
+top_resorted_A = resort_graph(A, top_sort).cpu().detach().numpy()
 
-mid_resorted_X = X[mid_sort,:].detach().numpy()
-mid_resorted_A = resort_graph(A, mid_sort).detach().numpy()
+mid_resorted_X = X[mid_sort,:].cpu().detach().numpy()
+mid_resorted_A = resort_graph(A, mid_sort).cpu().detach().numpy()
 
 fig, (ax1, ax2) = plt.subplots(2,2, figsize = (12,12))
 

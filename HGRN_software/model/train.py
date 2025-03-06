@@ -22,7 +22,7 @@ from typing import Optional, Union, List,  Literal
 
 # model early stopping
 class EarlyStopping:
-    def __init__(self, patience=7, verbose=False, delta=0, path = None):
+    def __init__(self, device, patience=7, verbose=False, delta=0, path = None):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -30,6 +30,7 @@ class EarlyStopping:
         self.early_stop = False
         self.loss_min = float('inf')
         self.delta = delta
+        self.device = device
         
         if not path:
             self.path = os.getcwd()
@@ -61,6 +62,7 @@ class EarlyStopping:
             print(f'\n {self._type} loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ... \n')
         torch.save(model.cpu(), os.path.join(self.path, 'checkpoint.pth'))
         self.loss_min = loss
+        model.to(self.device)
 
 
 #model output class
@@ -168,7 +170,7 @@ class HCD_output():
         self.kmeans_preds = None
         self.table = None
         self.perf_table = None
-        self.batch_indices = [i.cpu() for i in batch_indices]
+        self.batch_indices = [i.cpu() for i in batch_indices if i is not None]
         
     def to_dict(self):
         
@@ -444,7 +446,7 @@ class ModularityLoss(nn.Module):
             >>> loss, loss_list = loss_fn(all_A, all_P, resolutions)
             >>> print(loss.item(), loss_list)
         """
-        loss = torch.Tensor([0])
+        loss = torch.tensor([0.0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
             if resolutions:
@@ -456,7 +458,31 @@ class ModularityLoss(nn.Module):
         return loss, loss_list
  
     
- 
+
+
+class MSEnzLoss(nn.Module):
+    def __init__(self):
+        super(MSEnzLoss, self).__init__()
+    
+    def forward(self, xhat, x):
+        # Create a mask of non-zero values
+        mask = (x != 0).float()
+        
+        masked_xhat = xhat * mask
+        # Compute squared error only for non-zero values
+        #square_err = torch.square(x - xhat)
+        #square_err_nz = torch.sum(square_err * omega, dim=1)
+        
+        # Compute mean squared error over non-zero elements per row
+        #mean_square_err_nz = square_err_nz / torch.sum(omega, dim=1)
+        
+        mean_square_err_nz = F.mse_loss(masked_xhat, x, reduction ='mean')
+        
+        return mean_square_err_nz  # Return the mean loss over all samples
+
+
+
+
 
  
 #------------------------------------------------------  
@@ -534,7 +560,7 @@ class ClusterLoss(nn.Module):
             >>> loss, loss_list = loss_fn(Lamb, Attributes, Probabilities, method='bottom_up')
             >>> print(loss.item(), loss_list)
         """
-        loss = torch.Tensor([0])
+        loss = torch.tensor([0.0])
         loss_list = []
         if not isinstance(Attributes, list):
             N = Attributes.shape[0]
@@ -585,7 +611,7 @@ class ClusterLoss(nn.Module):
     #     """
     
     #     #N = Attributes[0].shape[0]
-    #     loss = torch.Tensor([0])
+    #     loss = torch.tensor([0])
     #     loss_list = []
     #     #problist = [torch.eye(N)]+Probabilities
     #     #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
@@ -681,7 +707,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
         top_mod_loss, values_top = modlossfn([A_all[0]], [P_all[0]], resolution)
         middle_mod_loss, values_mid = modlossfn(A_all[-1], P_all[1], resolution)
         Mod_loss = top_mod_loss+middle_mod_loss
-        Modloss_values = values_top+[torch.mean(torch.tensor(values_mid)).detach().tolist()]
+        Modloss_values = values_top+[torch.sum(torch.tensor(values_mid)).detach().tolist()]
         #Compute clustering loss
         #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         Clust_loss_top, Clustloss_values_top = clustlossfn(lamb[0], Xbatch, [P_all[0]], model.method)
@@ -697,7 +723,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
 
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
-def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
+def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, use_batch_learning = True, 
         batch_size = 64, early_stopping = False, patience = 5, true_labels = None, validation_data = None, 
         test_data = None, save_output = False, output_path = '', fs = 10, ns = 10, verbose = True, 
@@ -815,10 +841,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     pred_list = []
     all_out = []
     test_loss_history = []
-    test_loss = 0
         
     if early_stopping:
-        early_stop = EarlyStopping(patience=patience, verbose=True,  path = output_path)
+        early_stop = EarlyStopping(device=device, patience=patience, verbose=True,  path = output_path)
     
     
     #set optimizer Adam
@@ -832,7 +857,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     #A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
     A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
-    X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
+    if mse_method == 'mse':
+        X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
+    elif mse_method == 'msenz':
+        X_recon_loss = MSEnzLoss()
+    else:
+        raise ValueError(f'Error: got {mse_method} for mse_method. Expected one of either "mse" or "msenz"')
 
     #initiate custom loss functions
     modularity_loss_fn = ModularityLoss()
@@ -844,7 +874,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             raise ValueError(f'ERROR! Batch size is larger than number of items to split features.shape[0] = {X.shape[0]}')
         X_batches, A_batches, index_batches = get_batched_data(X, A, batch_size = batch_size)
     else:
-        X_batches, A_batches, index_batches = [X], [A], None
+        X_batches, A_batches, index_batches = [X], [A], [None]
     
 
     #------------------begin training epochs----------------------------
@@ -862,6 +892,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             print('=' * 55+'\n')
         
         total_loss = 0
+        test_loss = 0
         
         
         batch_iterable = tqdm(zip(X_batches, A_batches), ascii=False, ncols=75)
@@ -925,11 +956,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 
                 Mod_loss_test, Modloss_values_test, Clust_loss_test, Clustloss_values_test = get_test_output[:4]
                 #compute loss
+                
                 X_loss_test = gamma*(X_recon_loss(X_hat_test, eval_X)).cpu().detach().numpy()
                 A_loss_test = (A_recon_loss(A_hat_test, eval_A)).cpu().detach().numpy()
                 mod_weighted = delta*Mod_loss_test
                 
-                test_loss = (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
+                test_loss += (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
                 print_loss_test = f'{test_loss:.2f}'
                 #update batch losses
                 test_epoch_loss_A += float(A_loss_test)

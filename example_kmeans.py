@@ -89,7 +89,7 @@ def my_kmeans(X, Niter, k, tol = 0.001):
     
     
     
-my_kmeans(torch.Tensor(pe), 150, 5, tol = 0.0001)   
+my_kmeans(torch.tensor(pe), 150, 5, tol = 0.0001)   
     
     
     

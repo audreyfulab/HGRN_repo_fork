@@ -112,7 +112,7 @@ def plot_diGraph(fig, ax, G, layer = 0, color_labels = None,
 #labels
 def compute_modularity(Adj, sort_labels):
     A_tensor = torch.tensor(Adj).to(torch.float64)
-    labels_tensor = torch.Tensor(sort_labels).to(torch.int64)
+    labels_tensor = torch.tensor(sort_labels).to(torch.int64)
     P = F.one_hot(labels_tensor).to(torch.float64)
     mod = Modularity(A_tensor, P)
     

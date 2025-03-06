@@ -45,7 +45,7 @@ attrib = pe.shape[1]
 # decoder = GATE(in_nodes = nodes, in_attrib = 64, hid_sizes=[128, 256, attrib], attention_act='Sigmoid')
 
 
-# Z, A = encoder.forward(torch.Tensor(pe), torch.Tensor(in_adj))
+# Z, A = encoder.forward(torch.tensor(pe), torch.tensor(in_adj))
 
 # X_hat, A = decoder.forward(Z, A)
 
@@ -58,8 +58,8 @@ comm_sizes = [10]
 HCD_model = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
 
 #convert data to tensors and allow self loops in graph
-X = torch.Tensor(pe).requires_grad_()
-A = torch.Tensor(in_adj).requires_grad_()+torch.eye(nodes)
+X = torch.tensor(pe).requires_grad_()
+A = torch.tensor(in_adj).requires_grad_()+torch.eye(nodes)
 
 
 

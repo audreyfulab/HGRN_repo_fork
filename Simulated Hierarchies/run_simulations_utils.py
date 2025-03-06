@@ -42,9 +42,8 @@ def train_test(dataset, prop_train):
     train, test = torch.utils.data.random_split(dataset, [train_size, test_size])
     return train, test, train_size, test_size
 
-
-
-
+    
+    
 
 
 
@@ -139,17 +138,17 @@ def load_simulated_data(args):
 
 
 
-def format_regulon_data(args, data, nodes):
+def format_regulon_data(args, data):
     
     #filter out Zero columns
-    X = torch.Tensor(data)
+    X = torch.tensor(data)
     
     
-    in_graph, in_adj = get_input_graph(X = X.cpu().detach().numpy(), 
+    in_graph, in_adj = get_input_graph(X = data, 
                                        method = 'Correlation', 
                                        r_cutoff = args.correlation_cutoff)
     
-    A = torch.Tensor(in_adj)+torch.eye(X.shape[0])
+    A = torch.tensor(in_adj)+torch.eye(data.shape[0])
     
     return X, A
 
@@ -160,48 +159,68 @@ def load_application_data_regulon(args):
         readpath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/'
     elif args.read_from == 'cluster':
         readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
-        
-    data = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DMEM_organoid.csv'))
+    
+    if args.dataset == 'regulon.DM.sc':    
+        data = pd.read_csv(os.path.join(readpath+'Applications/Crop Liver/expression_crop_liver.csv'))
+    elif args.dataset == 'regulon.DM.activity':
+        data = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DMEM_organoid.csv'))
+        gt = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DM_groups.csv'))
+    else:
+        raise ValueError(f'ERROR {args.dataset} is not a valid dataset name.')
 
-    nodes, samples = data.shape
-    gene_labels = data['Unnamed: 0'].tolist() 
+    data.columns = ['GENE']+data.columns.tolist()[1:]
+    gene_labels = data['GENE'].tolist() 
+    stripped_labels = [i.strip('(+)') for i in gene_labels]
+    data['GENE'] = stripped_labels
     
-    
-    if args.dataset == 'regulon.EM':
+    if 'EM' in args.dataset:
         EM_index = [idx for idx, i in enumerate(data.columns) if "EM" in i]
-        regulon_data = data.to_numpy()[:, EM_index].astype('float64')
+        regulon_data = data[data['GENE'].isin(gt['TF_gene'].tolist())].iloc[:, EM_index]
         
-    if args.dataset == 'regulon.DM':
+    elif 'DM' in args.dataset:
         DM_index = [idx for idx, i in enumerate(data.columns) if "DM" in i]
-        regulon_data = data.to_numpy()[:, DM_index].astype('float64')
+        if 'activity' in args.dataset:
+            regulon_data = data[data['GENE'].isin(gt['TF_gene'].tolist())].iloc[:, [0]+DM_index]
+        else:
+            regulon_data = data.iloc[:, [0]+DM_index]
+    else:
+        raise ValueError(f'ERROR {args.dataset} is not a valid dataset name.')
+        
+        
+    nodes, samples = regulon_data.shape
+    print(f'Loaded {args.dataset} data with dimension {nodes}x{samples}')
         
     #nonzero_cols = [idx for idx, i in enumerate((regulon_data > 0.0).sum(0)) if i > 80]
-    nonzero_rows = [idx for idx, i in enumerate((regulon_data > 0.0).sum(1)) if i > 40]
-    
     #X_temp = regulon_data[:, nonzero_cols]
-    X_reduced = regulon_data[nonzero_rows, :]
     
-    if args.split_data:
-        x_train, x_test = train_test_split(X_reduced, 
-                                           train_size=args.train_test_size[0],
-                                           test_size=args.train_test_size[1],
-                                           shuffle=True)
-        
-        X_train, A_train = format_regulon_data(args, x_train, x_train.shape[0]) 
-        X_test, A_test = format_regulon_data(args, x_test, x_test.shape[0])
-        
-        test = [X_test, A_test, []]
-    else:
-        
-        X_train, A_train = format_regulon_data(args, data = X_reduced, nodes = nodes)
-        test = None
-                
-    train = [X_train, A_train, []]
     
-    gene_labels_final = np.array(gene_labels)[nonzero_rows]
+    if args.dataset == 'regulon.DM.sc':
+        DM_array = regulon_data.iloc[:, 1:].to_numpy()
+        kept_rows = [idx for idx, i in enumerate((DM_array > 0.0).sum(1)) if i/DM_array.shape[1] > 0.05]
+        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] > 0.25]
+        X_bad_gene_removed = regulon_data.iloc[kept_rows, :]
+        gene_labels = X_bad_gene_removed['GENE']
+        X_processed = X_bad_gene_removed.iloc[:, kept_cols].to_numpy()
+        gt_final = []
+        
+    elif args.dataset == 'regulon.DM.activity':
+        X_reduced = regulon_data.iloc[:, :]
+        gt_final = gt[gt['TF_gene'].isin(X_reduced['GENE'].tolist())]
+        X_sorted = X_reduced.set_index('GENE').reindex(gt_final['TF_gene']).reset_index()
+        X_processed = np.corrcoef(X_sorted.iloc[:, 1:].to_numpy())
+        gene_labels = X_sorted['TF_gene'].tolist()
+    
+    fnodes, fsamples = X_processed.shape
+    print(f'Finished processing {args.dataset} data --> final dimension {fnodes}x{fsamples}')
+    
+    X, A = format_regulon_data(args=args, 
+                               data=X_processed) 
    
+    fig, ax = plt.subplots(figsize=(12,12))
+    sbn.heatmap(X.cpu().detach().numpy(), cmap = 'PRGn', yticklabels=gene_labels)
+    fig.savefig(args.sp+'OSCAR_HEATMAP.pdf')
     
-    return train, test, gene_labels_final
+    return X, A, gene_labels, gt_final
 
 
 
@@ -340,16 +359,16 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
      
     #nodes and attributes
     nodes, attrib = pe.shape
-    X = torch.Tensor(pe_sorted)
+    X = torch.tensor(pe_sorted)
     #generate input graphs
     if args.use_true_graph:
-        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
+        A = (torch.tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
     else:    
         in_graph, in_adj = get_input_graph(X = pe_sorted, 
                                            method = 'Correlation', 
                                            r_cutoff = args.correlation_cutoff)
 
-        A = torch.Tensor(in_adj)+torch.eye(nodes)
+        A = torch.tensor(in_adj)+torch.eye(nodes)
             
     return X, A, target_labels
     
@@ -398,16 +417,16 @@ def set_up_model_for_simulated_data(args, loadpath_main, grid1, grid2, grid3, st
      
     #nodes and attributes
     nodes, attrib = pe.shape
-    X = torch.Tensor(pe_sorted)
+    X = torch.tensor(pe_sorted)
     #generate input graphs
     if args.use_true_graph:
-        A = (torch.Tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
+        A = (torch.tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
     else:    
         in_graph, in_adj = get_input_graph(X = pe_sorted, 
                                            method = 'Correlation', 
                                            r_cutoff = args.correlation_cutoff)
 
-        A = torch.Tensor(in_adj)+torch.eye(nodes)
+        A = torch.tensor(in_adj)+torch.eye(nodes)
             
     return X, A, target_labels, comm_sizes
     
@@ -565,7 +584,7 @@ def run_kmeans(args, X, labels, layers, sizes):
     """
     #make heatmap for louvain results and get metrics
     fig, ax = plt.subplots(figsize = (12, 10))
-    os.environ['OMP_NUM_THREADS'] = "2"
+    os.environ["OMP_NUM_THREADS"] = "1"
     
     
     if layers == 2:
@@ -776,7 +795,7 @@ def format_data(args, data):
     sort_indices = np.argsort(label_array)
     labels = [label_array[sort_indices].tolist()]
     feature_matrix = data['x'].detach().numpy()[sort_indices,:]
-    X = torch.Tensor(feature_matrix)
+    X = torch.tensor(feature_matrix)
     #in_adj = resort_graph(to_dense_adj(data['edge_index'])[0], sort_indices)
     in_adj = resort_graph(data['adjacency_matrix'], sort_indices)
     nodes = in_adj.shape[0]
@@ -788,9 +807,9 @@ def format_data(args, data):
                                            method = 'Correlation', 
                                            r_cutoff = args.correlation_cutoff)
         if args.correlation_cutoff == 1:
-            A = torch.Tensor(in_adj)
+            A = torch.tensor(in_adj)
         else:
-            A = torch.Tensor(in_adj)+torch.eye(nodes)
+            A = torch.tensor(in_adj)+torch.eye(nodes)
             
     if args.use_true_communities == True:
         comm_sizes = [len(np.unique(labels))]

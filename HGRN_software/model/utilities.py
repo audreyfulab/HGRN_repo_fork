@@ -189,6 +189,9 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
             
     #silouette optimization method
     elif method == 'silouette':
+        os.environ["OMP_NUM_THREADS"] = "1"
+        
+        print(f'OMP_NUM_THREADS = {os.getenv("OMP_NUM_THREADS")}')
         scores = []
         kappa_range = range(2, max_k+1)
         for i in kappa_range:
@@ -744,8 +747,8 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     ax2[0].set_xlabel('Training Epochs')
     ax2[0].set_ylabel('Gamma * Attribute Reconstruction Loss')
     #community loss using modularity
-    lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train middle'])
-    lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test middle'], linestyle = 'dashed')
+    lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train (total) middle'])
+    lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test (total) middle'], linestyle = 'dashed')
     ax2[1].set_xlabel('Training Epochs')
     ax2[1].set_ylabel('Delta * Modularity')
     #community loss using kmeans
