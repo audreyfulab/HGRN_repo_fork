@@ -33,7 +33,7 @@ from colorama import Fore, Style
 import plotly.graph_objects as go
 import os
 from typing import Optional, Union, List,  Literal
-
+import csv
 
 #function which splits training and testing data
 def train_test(dataset, prop_train):
@@ -44,6 +44,25 @@ def train_test(dataset, prop_train):
 
     
     
+
+def read_csv_fast(filepath, first_row_header = True):
+    
+    csv_rows = []
+    with open(filepath, 'r') as file:
+        reader = csv.reader(file)
+        for index, row in enumerate(reader):
+            if first_row_header and index == 0:
+                clnm = row
+            else:
+                csv_rows.append(row)
+        
+    print(f'read in csv of size {len(csv_rows)} x {len(csv_rows[0])}')
+    print('Converting to dataframe ...')
+    df = pd.DataFrame(csv_rows, columns=clnm)
+    print('done!')
+    print(df.head())
+    return df
+
 
 
 
@@ -160,11 +179,14 @@ def load_application_data_regulon(args):
     elif args.read_from == 'cluster':
         readpath = '/mnt/ceph/jarredk/HGRN_repo/Simulated_Hierarchies/DATA/'
     
-    if args.dataset == 'regulon.DM.sc':    
-        data = pd.read_csv(os.path.join(readpath+'Applications/Crop Liver/expression_crop_liver.csv'))
+    
+    print(f'Reading in {args.dataset} dataset ... this may take time')
+    if args.dataset == 'regulon.DM.sc':
+        data = read_csv_fast(filepath=os.path.join(readpath,'Applications/Crop Liver/expression_crop_liver.csv'))
+        gt = None
     elif args.dataset == 'regulon.DM.activity':
-        data = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DMEM_organoid.csv'))
-        gt = pd.read_csv(os.path.join(readpath+'Applications/Regulon_DM_groups.csv'))
+        data = pd.read_csv(os.path.join(readpath,'Applications/Regulon_DMEM_organoid.csv'))
+        gt = pd.read_csv(os.path.join(readpath,'Applications/Regulon_DM_groups.csv'))
     else:
         raise ValueError(f'ERROR {args.dataset} is not a valid dataset name.')
 
@@ -188,26 +210,23 @@ def load_application_data_regulon(args):
         
         
     nodes, samples = regulon_data.shape
-    print(f'Loaded {args.dataset} data with dimension {nodes}x{samples}')
-        
-    #nonzero_cols = [idx for idx, i in enumerate((regulon_data > 0.0).sum(0)) if i > 80]
-    #X_temp = regulon_data[:, nonzero_cols]
+    print(f'Loaded {args.dataset} data with dimension genes: {nodes} x samples: {samples}')
     
-    
+    print('Processing data ... ')
     if args.dataset == 'regulon.DM.sc':
-        DM_array = regulon_data.iloc[:, 1:].to_numpy()
-        kept_rows = [idx for idx, i in enumerate((DM_array > 0.0).sum(1)) if i/DM_array.shape[1] > 0.05]
-        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] > 0.25]
+        DM_array = regulon_data.iloc[:, 1:].to_numpy().astype(float)
+        kept_rows = [idx for idx, i in enumerate((DM_array > 0.0).sum(1)) if i/DM_array.shape[1] > 0.05] #remove genes represented in < 5% of cells
+        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] > 0.1] # remove columns represented in < 10% of genes
         X_bad_gene_removed = regulon_data.iloc[kept_rows, :]
-        gene_labels = X_bad_gene_removed['GENE']
-        X_processed = X_bad_gene_removed.iloc[:, kept_cols].to_numpy()
+        gene_labels = X_bad_gene_removed['GENE'].tolist()
+        X_processed = X_bad_gene_removed.iloc[:, kept_cols].to_numpy().astype(float)
         gt_final = []
         
     elif args.dataset == 'regulon.DM.activity':
         X_reduced = regulon_data.iloc[:, :]
         gt_final = gt[gt['TF_gene'].isin(X_reduced['GENE'].tolist())]
         X_sorted = X_reduced.set_index('GENE').reindex(gt_final['TF_gene']).reset_index()
-        X_processed = np.corrcoef(X_sorted.iloc[:, 1:].to_numpy())
+        X_processed = np.corrcoef(X_sorted.iloc[:, 1:].to_numpy(np.float32))
         gene_labels = X_sorted['TF_gene'].tolist()
     
     fnodes, fsamples = X_processed.shape
@@ -1178,11 +1197,11 @@ def generate_attention_graph(args: object, A: torch.Tensor, AW: dict, gene_label
     
     if cutoff:
         if cutoff == 'mean':
-            ct = float(attent_weights.mean())
+            ct = float(attent_weights.mean()+2*attent_weights.std())
         else: 
             ct = cutoff
     else: 
-        ct = float(attent_weights.min())
+        ct = float(attent_weights.median())
 
 
     for index, edge in enumerate(atn_edges):

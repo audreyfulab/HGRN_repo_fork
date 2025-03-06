@@ -1,30 +1,167 @@
 ---
-title: "Untitled"
-author: "Jarred M. Kvamme"
-date: "`r Sys.Date()`"
-output: html_document
+title: "Identifying Transcription Factor Regulatory Programs Driving Hepatocyte Cell Differentiation "
+author: "Audrey Fu Lab"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+always_allow_html: true
+bibliography: C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_1_27_2025/report_refs.bib
+number_sections: false
 ---
 
 ```{r setup, include=FALSE}
+
+library(ggplot2)
+library(ggthemes)
+library(ggpubr)
+library(latex2exp)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(data.table)
+library(corrplot)
+library(pheatmap)
+library(RColorBrewer)
+library(NMI)
+library(ggsci)
+
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.pos = 'H')
+
+
+path_raa = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM/'
+path_rsca = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM_SC/'
+
+
+stdata = read.csv(paste0(path_raa, 'data_top_sorted.csv'))
+smdata = read.csv(paste0(path_raa, 'data_mid_sorted.csv'))
+
+#rcdata = read.csv(paste0(path_rsca, 'data_top_sorted.csv'))
+
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+# groups_top = list()
+# for(i in 1:length(unique(smdata$Cluster))){
+#   groups_top[[i]] = subset(smdata, Cluster == (i-1))
+#   cm = cor(groups_top[[i]][,-c(1:2)])
+#   pheatmap(cm, cluster_rows = F, cluster_cols = F, color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100))
+# }
+# 
+# Calculate correlation matrix
+cm = cor(stdata[,-c(1:3)])
+
+# Create annotation data frames
+row_annotation = data.frame(Regulon = paste('TF Group', stdata$Cluster+1))
+rownames(row_annotation) = rownames(cm)  # This is the critical fix
+
+
+#clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
+clust.cols = pal_jco()(length(unique(stdata$Cluster)))
+names(clust.cols) = paste('TF Group', 1:length(unique(stdata$Cluster)))
+# Define colors for clusters
+annotation_colors = list(Regulon = clust.cols)
+
+# Create heatmap with annotations
+pheatmap(
+  cm,
+  cluster_rows = FALSE, 
+  cluster_cols = FALSE,
+  color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
+  #annotation_row = row_annotation,
+  annotation_col = row_annotation,
+  annotation_colors = annotation_colors,
+  show_rownames = FALSE,  # Hide row labels
+  show_colnames = FALSE,  # Hide column labels
+  legend_labels = 16,
+  fontsize = 12,
+  annotation_legend = T,
+  annotation_legend_side = "right",
+  width = 14, 
+  height = 14,
+  main = "Identified Regulon Super Modules Regulating Hepatocyte Differention"
+)
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+
+
+
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+```
+
+
+

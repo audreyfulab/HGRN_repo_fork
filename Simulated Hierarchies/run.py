@@ -173,7 +173,7 @@ args.compute_optimal_clusters = True
 args.kappa_method = 'bethe_hessian'
 
 #training settings
-args.dataset = 'regulon.DM.activity'
+args.dataset = 'regulon.DM.sc'
 args.parent_distribution = 'unequal'
 args.which_net = 1
 args.training_epochs = 500
