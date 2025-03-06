@@ -223,7 +223,7 @@ print('='*60)
 
 ## Detecting Transcription Factor Modules Regulating Hepatocyte Differentiation
 
-Input data consists of 244 transcription factor regulons identified by <cite> Liang et al 2023 - Genome Biology</cite>
+Apply HCD to indentify transcription factor modules from co-regulatory activity matrix of 244 transcription factor regulons identified by <cite> Liang et al 2023 - Genome Biology</cite> to be associated with hepatocyte cell differentiation. Results are compared to the 5 regulon modules previously identified.
 
 - <cite>Liang, Junbo, et al. "In-organoid single-cell CRISPR screening reveals determinants of hepatocyte differentiation and maturation." Genome Biology 24.1 (2023): 251.</cite>
 
@@ -231,5 +231,145 @@ Input data consists of 244 transcription factor regulons identified by <cite> Li
 
  
 ```
+#output save settings
+args.sp = 'path/to/output/'
+args.save_results = True
+args.make_directories = True 
+args.set_seed = 555 
+args.dataset = 'regulon.DM.activity'
+args.mse_method = 'mse'
+args.read_from = 'local'
+
+#model set up
+args.early_stopping = True
+args.patience = 20
+args.use_method = "top_down"
+args.use_batch_learning = True
+args.batch_size = 64
+args.AE_operator = 'GATv2Conv'
+args.COMM_operator = 'None'
+args.attn_heads = 5
+args.dropout_rate = 0.2
+args.normalize_input = True
+args.normalize_layers = True
+args.AE_hidden_size = [128, 64] 
+args.gamma = 1
+args.delta = 1
+args.lambda_ = [1, 1]
+args.learning_rate = 1e-3
+args.compute_optimal_clusters = True
+args.kappa_method = 'silouette'
+
+#training set up
+args.training_epochs = 200
+args.steps_between_updates = 10
+args.correlation_cutoff = 0.35
+args.return_result = 'best_loss'
+args.split_data = True
+args.train_test_size = [0.8, 0.2]
+
+
+device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
+
+#train_model
+results = run_single_simulation(args, return_model = False, heads = 1)
+
+# reload data and fitted model and predict on entire dataset
+args.split_data = False
+X, A, gene_labels, gt = load_application_data_regulon(args)
+stripped_labels = np.array([i.strip('(+)') for i in gene_labels])
+# these are labels corresponding to the previously identified regulon modules from Liang et al 2023 - Genome Biology
+target_labels = [np.array(gt['regulon_kmeans'].tolist()), np.array(gt['regulon_kmeans'].tolist())]
+
+# load model
+model_trained = torch.load(args.sp+'checkpoint.pth', weights_only=False)
+model_trained.to(device)
+model_trained.eval()
+#predict
+output = model_trained.forward(X, A)
+
+#parse output
+X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
+preds = [i.cpu().detach().numpy() for i in S_all]
+
+# compare with previous results
+print('='*60)
+print('-'*10+'final top'+'-'*10)
+final_top_res=node_clust_eval(target_labels[0], preds[0], verbose = True)
+print('-'*10+'final middle'+'-'*10)
+final_middle_res=node_clust_eval(target_labels[1], preds[1], verbose = True)
+print('='*60)
+
+#generate attention graph 
+node_lookup_dict = {name: index for index, name in enumerate(gene_labels)}
+new_G, weighted_adj = generate_attention_graph(args, A, AW, gene_labels, S_all)
+
+
+# plot attention graph
+fig, ax = plt.subplots(figsize=(12, 10))
+sbn.heatmap(weighted_adj, xticklabels=np.array(gene_labels), 
+            yticklabels=np.array(gene_labels), ax = ax)
+ax.set_title('Heatmap of Attention Coefficients')
+ax.tick_params(axis='both', which='major', labelsize=5)
+ax.tick_params(axis='both', which='minor', labelsize=5)
+fig.savefig(args.sp+'attention_weights.pdf')
+
+
+# get indices for sorted clusters
+top_sort = np.argsort(preds[0])
+mid_sort = np.argsort(preds[1])
+
+# save cluster labels as df to output
+df = pd.DataFrame([stripped_labels[top_sort], S_all[0][top_sort].detach().tolist(), S_all[1][top_sort].detach().tolist()])
+df = df.T
+df.columns = ['TF_gene', 'Top Assignment', 'Middle Assignment']
+df.to_csv(args.sp+'gene_data.csv')
+
+# plot groups
+fig, ax = plt.subplots(figsize=(10, 15))
+sbn.heatmap(df.iloc[:, 1:].to_numpy(np.float32), yticklabels=df['TF_gene'].tolist(), ax = ax, cmap = 'viridis')
+ax.tick_params(axis='both', which='major', labelsize=5)
+fig.savefig(args.sp+'final_predicted_labels.pdf')
+
+# resort data according to identified groups
+top_resorted_X = X[top_sort,:].cpu().detach().numpy()
+top_resorted_A = resort_graph(A, top_sort).cpu().detach().numpy()
+
+mid_resorted_X = X[mid_sort,:].cpu().detach().numpy()
+mid_resorted_A = resort_graph(A, mid_sort).cpu().detach().numpy()
+
+# convert to dataframe
+pd.DataFrame(np.array([np.array(gene_labels)[top_sort].tolist()]+[preds[0][top_sort].tolist()]+top_resorted_X.tolist()).T,             
+             columns = ['Gene Label', 'Cluster']+gene_labels).to_csv(args.sp +'data_top_sorted.csv')
+
+pd.DataFrame(np.array([np.array(gene_labels)[mid_sort].tolist()]+[preds[1][mid_sort].tolist()]+mid_resorted_X.tolist()).T,             
+             columns = ['Gene Label', 'Cluster']+gene_labels).to_csv(args.sp +'data_mid_sorted.csv')
+
+# plot correlation matrix sorted by predicted groups to reveal co-regulatory modules
+# for the top layer
+fig, ax1 = plt.subplots(1,2, figsize = (14,12))
+sbn.heatmap(np.corrcoef(top_resorted_X), ax = ax1[0], yticklabels=gene_labels, xticklabels=gene_labels,
+            cmap = 'PRGn')
+sbn.heatmap(top_resorted_A, ax = ax1[1], yticklabels=gene_labels, xticklabels=gene_labels)
+ax1[0].set_title('Top layer correlation matrix and graph (sorted)')
+fig.savefig(args.sp+'sorted_correlation_matrices_top.pdf')
+
+# for the middle layer 
+fig, ax2 = plt.subplots(1,2, figsize = (14,12))
+sbn.heatmap(np.corrcoef(mid_resorted_X), ax = ax2[0], yticklabels=gene_labels, xticklabels=gene_labels,
+            cmap = 'PRGn')
+sbn.heatmap(mid_resorted_A, ax = ax2[1], yticklabels=gene_labels, xticklabels=gene_labels)
+ax2[0].set_title('Middle layer correlation matrix and graph (sorted)')
+fig.savefig(args.sp+'sorted_correlation_matrices_middle.pdf')
+
+plt.close('all')
+
+#convert graph data to .json file
+graph_data = nx.json_graph.node_link_data(new_G)
+
+#dump
+with open(args.sp+'graph_data.json', 'w') as json_file:
+    json.dump(graph_data, json_file, indent=4)
+
 
 ```
