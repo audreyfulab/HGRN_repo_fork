@@ -46,6 +46,7 @@ parser.add_argument('--parent_distribution', type=str, choices=['same_for_all', 
 parser.add_argument('--read_from', type=str, default='local', choices = ['local','cluster'], help='Path to read data from. if "local" data is read from the "path/to/repo/Simulated Hierarchies/DATA/')
 parser.add_argument('--which_net', type=int, default=0, help='Network selection. Used for pre-generated datasets only')
 parser.add_argument('--use_true_graph', type=bool, default=True, help='Sets the input graph to be the true graph')
+parser.add_argument('--mse_method', type=str, default='mse', choices=['mse', 'msenz'], help='Method for computing attribute reconstruction loss mse is classic Mean squared Error, while msenz is MSE computed over all nonzero values (recommended for sparse datasets such as scRNA)')
 parser.add_argument('--correlation_cutoff', type=float, default=0.2, help='The minimum correlation required for an edge to be added between two nodes')
 parser.add_argument('--use_method', type=str, default='top_down', choices=['top_down','bottom_up'], help='method for uncovering the hierarchy. "top_down" = divisive clustering while "bottom_up" = additive clustering' )
 parser.add_argument('--use_softKMeans_top', type=bool, default=False, help='If true, the top layer is inferred with a softKMeans layer')
@@ -152,6 +153,7 @@ args.dataset = 'generated' #sets the dataset to be simulated according arguments
 #model set up
 args.early_stopping = True
 args.patience = 10
+args.mse_method = 'mse'
 args.use_method = "top_down"
 args.use_batch_learning = True
 args.batch_size = 64
