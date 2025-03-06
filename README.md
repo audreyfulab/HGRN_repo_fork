@@ -229,9 +229,12 @@ Apply HCD to indentify transcription factor modules from co-regulatory activity 
 
 #### Datasets
 
-|    Type           |     size (rows x columns)    |      filename         |      arg name       |
-|-------------------|------------------------------|-----------------------|---------------------|
-| Crop Seq
+data is deposited in National Genomics Data Center [acession # `NGDC: PRJCA014442`](https://ngdc.cncb.ac.cn/gsa/browse/CRA009688) 
+
+|    Type           |     size (rows x columns)    |      arg name       |
+|-------------------|------------------------------|---------------------|
+|     Crop Seq      |  17444 genes x 30218 cells   |  `regulon.DM.sc`    |
+|   AUCell Activity correlations |    244 x 244    |  `regulon.DM.activity`|   
  
 ```python
 #output save settings
