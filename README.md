@@ -7,7 +7,7 @@ This image was generated with Dall-E 3
 Code developement repo for Hierarchical Community Detection (HCD): A graph-based deep learning algorithm for detecting community structure in gene regulatory networks from gene expression data.
 
 ## Instructions to run HCD 
-To run HCD, you must download the following directories/files:
+To run HCD, you must download the following directories/files from this repository:
 | Original Path                                             | Mapped Path                                         |
 |----------------------------------------------------------|-----------------------------------------------------|
 | `./HGRN_software`                                        | `--> /my/path/local/HGRN_software`                 |
