@@ -217,6 +217,19 @@ final_top_res=node_clust_eval(target_labels[0], [i.cpu() for i in S_relab[0]], v
 print('-'*10+'final middle'+'-'*10)
 final_middle_res=node_clust_eval(target_labels[1], [i.cpu() for i in S_relab[1]], verbose = True)
 print('='*60)
+```
 
+
+
+## Detecting Transcription Factor Modules Regulating Hepatocyte Differentiation
+
+Input data consists of 244 transcription factor regulons identified by <cite> Liang et al 2023 - Genome Biology</cite>
+
+- <cite>Liang, Junbo, et al. "In-organoid single-cell CRISPR screening reveals determinants of hepatocyte differentiation and maturation." Genome Biology 24.1 (2023): 251.</cite>
+
+
+
+ 
+```
 
 ```
