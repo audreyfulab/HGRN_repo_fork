@@ -227,8 +227,11 @@ Apply HCD to indentify transcription factor modules from co-regulatory activity 
 
 - <cite>Liang, Junbo, et al. "In-organoid single-cell CRISPR screening reveals determinants of hepatocyte differentiation and maturation." Genome Biology 24.1 (2023): 251.</cite>
 
+#### Datasets
 
-
+|    Type           |     size (rows x columns)    |      filename         |      arg name       |
+|-------------------|------------------------------|-----------------------|---------------------|
+| Crop Seq
  
 ```python
 #output save settings
