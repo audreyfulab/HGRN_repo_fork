@@ -223,7 +223,7 @@ print('='*60)
 
 ## Detecting Transcription Factor Modules Regulating Hepatocyte Differentiation
 
-Apply HCD to indentify transcription factor modules from co-regulatory activity matrix of 244 transcription factor regulons identified by <cite> Liang et al 2023 - Genome Biology</cite> to be associated with hepatocyte cell differentiation. Results are compared to the 5 regulon modules previously identified.
+Apply HCD to indentify transcription factor modules from co-regulatory activity matrix of 244 transcription factor regulons identified by [Liang et al 2023 - *Genome Biology*](https://github.com/Wangxiaoyue-lab/OSCAR) to be associated with hepatocyte cell differentiation. Results are compared to the 5 regulon modules previously identified.
 
 - <cite>Liang, Junbo, et al. "In-organoid single-cell CRISPR screening reveals determinants of hepatocyte differentiation and maturation." Genome Biology 24.1 (2023): 251.</cite>
 
