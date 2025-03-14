@@ -32,13 +32,22 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.pos = 'H')
 
 
-path_raa = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM/'
-path_rsca = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM_SC/'
+#path_raa = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM/'
+path_raa2 = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM/'
+#path_rsca = 'C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Reports/Report_2_13_2025/Output/applications/REGULON_DM_SC/'
+
+savepath = 'C:/Users/Bruin/OneDrive/Documents/GitHub/Doctoral_Thesis/Figures/hcd/'
+
+#regulon_activity = read.csv('C:/Users/Bruin/OneDrive/Documents/GitHub/HGRN_repo/Simulated Hierarchies/DATA/Applications/Regulon_DMcells_filtered80.csv')
+
+#stdata = read.csv(paste0(path_raa, 'data_top_sorted.csv'))
+#smdata = read.csv(paste0(path_raa, 'data_mid_sorted.csv'))
+
+stdata.corr = read.csv(paste0(path_raa2, 'data_top_sorted.csv'))
+smdata.corr = read.csv(paste0(path_raa2, 'data_mid_sorted.csv'))
 
 
-stdata = read.csv(paste0(path_raa, 'data_top_sorted.csv'))
-smdata = read.csv(paste0(path_raa, 'data_mid_sorted.csv'))
-
+gl = read.csv(paste0(path_raa2, 'gene_data.csv'))
 #rcdata = read.csv(paste0(path_rsca, 'data_top_sorted.csv'))
 
 ```
@@ -61,16 +70,18 @@ smdata = read.csv(paste0(path_raa, 'data_mid_sorted.csv'))
 # }
 # 
 # Calculate correlation matrix
-cm = cor(stdata[,-c(1:3)])
+cm = cor(t(stdata.corr[,-c(1:3)]), method = 'spearman')
+rownames(cm) = stdata.corr$Gene.Label
+colnames(cm) = stdata.corr$Gene.Label
 
 # Create annotation data frames
-row_annotation = data.frame(Regulon = paste('TF Group', stdata$Cluster+1))
-rownames(row_annotation) = rownames(cm)  # This is the critical fix
+row_annotation = data.frame(Regulon = paste(paste('TF Group', stdata.corr$Cluster+1), ' '))
+rownames(row_annotation) = stdata.corr$Gene.Label  # This is the critical fix
 
 
 #clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
-clust.cols = pal_jco()(length(unique(stdata$Cluster)))
-names(clust.cols) = paste('TF Group', 1:length(unique(stdata$Cluster)))
+clust.cols = pal_jco()(length(unique(stdata.corr$Cluster+1)))
+names(clust.cols) = paste(paste('TF Group', 1:length(unique(stdata.corr$Cluster+1))), ' ')
 # Define colors for clusters
 annotation_colors = list(Regulon = clust.cols)
 
@@ -80,18 +91,81 @@ pheatmap(
   cluster_rows = FALSE, 
   cluster_cols = FALSE,
   color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
-  #annotation_row = row_annotation,
+  annotation_row = row_annotation,
   annotation_col = row_annotation,
   annotation_colors = annotation_colors,
+  annotation_names_col = FALSE,
+  annotation_names_row = FALSE,
   show_rownames = FALSE,  # Hide row labels
   show_colnames = FALSE,  # Hide column labels
-  legend_labels = 16,
-  fontsize = 12,
+  fontsize = 30,
   annotation_legend = T,
-  annotation_legend_side = "right",
-  width = 14, 
+  border_color = NA,
+  annotation_legend_side = "left",
+  width = 16, 
   height = 14,
-  main = "Identified Regulon Super Modules Regulating Hepatocyte Differention"
+  angle_col = 90,
+  fontsize_col = 18,
+  fontsize_row = 12,
+  main = 'Regulon Activity Correlation Matrix',
+  filename = paste0(savepath, 'pheatmap_top_layer_DMcorr.pdf')
+)
+
+```
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+# groups_top = list()
+# for(i in 1:length(unique(smdata$Cluster))){
+#   groups_top[[i]] = subset(smdata, Cluster == (i-1))
+#   cm = cor(groups_top[[i]][,-c(1:2)])
+#   pheatmap(cm, cluster_rows = F, cluster_cols = F, color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100))
+# }
+# 
+# Calculate correlation matrix
+cm = cor(t(smdata.corr[,-c(1:3)]), method = 'spearman')
+rownames(cm) = smdata.corr$Gene.Label
+colnames(cm) = smdata.corr$Gene.Label
+
+# Create annotation data frames
+row_annotation = data.frame(Regulon = paste(paste('TF Group', smdata.corr$Cluster+1), ' '))
+rownames(row_annotation) = smdata.corr$Gene.Label  # This is the critical fix
+
+
+#clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
+clust.cols = rainbow(length(unique(smdata.corr$Cluster)))
+names(clust.cols) = paste(paste('TF Group', unique(smdata.corr$Cluster)+1), ' ')
+# Define colors for clusters
+annotation_colors = list(Regulon = clust.cols)
+
+# Create heatmap with annotations
+pheatmap(
+  cm,
+  cluster_rows = FALSE, 
+  cluster_cols = FALSE,
+  color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
+  annotation_row = row_annotation,
+  annotation_col = row_annotation,
+  annotation_colors = annotation_colors,
+  annotation_names_col = FALSE,
+  annotation_names_row = FALSE,
+  show_rownames = FALSE,  # Hide row labels
+  show_colnames = FALSE,  # Hide column labels
+  fontsize = 30,
+  annotation_legend = T,
+  border_color = NA,
+  annotation_legend_side = "left",
+  width = 16, 
+  height = 14,
+  angle_col = 90,
+  fontsize_col = 18,
+  fontsize_row = 12,
+  main = 'Regulon Activity Correlation Matrix',
+  filename = paste0(savepath, 'pheatmap_mid_layer_DMcorr.pdf')
 )
 
 ```
@@ -102,12 +176,63 @@ pheatmap(
 
 
 
-
-
-
-
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
+
+# Calculate correlation matrix
+cm = cor(stdata.corr[,-c(1:3)])
+
+
+result = pheatmap(cm, color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100), 
+                  cluster_cols = F, 
+                  cluster_rows = T, 
+                  kmeans_k = 5)
+
+clusts = result$kmeans$cluster
+
+idx = sort(clusts, index.return = T)$ix
+
+dat = cm[idx, idx]
+colnames(dat) = stdata.corr$Gene.Label[idx]
+row.names(dat) = stdata.corr$Gene.Label[idx]
+
+Cluster = clusts[idx]
+
+# Create annotation data frames
+row_annotation = data.frame(Regulon = paste(paste('TF Group', Cluster), ' '))
+rownames(row_annotation) = stdata.corr$Gene.Label[idx]  # This is the critical fix
+
+
+#clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
+clust.cols = pal_jco()(length(unique(Cluster)))
+names(clust.cols) = paste(paste('TF Group', 1:length(unique(Cluster))), ' ')
+# Define colors for clusters
+annotation_colors = list(Regulon = clust.cols)
+
+# Create heatmap with annotations
+pheatmap(
+  dat,
+  cluster_rows = FALSE, 
+  cluster_cols = FALSE,
+  color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
+  annotation_row = row_annotation,
+  annotation_col = row_annotation,
+  annotation_colors = annotation_colors,
+  annotation_names_col = FALSE,
+  annotation_names_row = FALSE,
+  show_rownames = FALSE,  # Hide row labels
+  show_colnames = FALSE,  # Hide column labels
+  fontsize = 30,
+  annotation_legend = T,
+  border_color = NA,
+  annotation_legend_side = "left",
+  width = 16, 
+  height = 14,
+  angle_col = 90,
+  fontsize_col = 18,
+  fontsize_row = 12,
+  main = 'Regulon activity correlation matrix: Kmeans Clustering',
+  filename = paste0(savepath, 'pheatmap_kmeans_top_layer_DMcorr.pdf')
+)
 
 ```
 
@@ -117,7 +242,63 @@ pheatmap(
 
 
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = ''}
 
+# Calculate correlation matrix
+cm = cor(stdata.corr[,-c(1:3)])
+
+
+h = hclust(dist(cm, method = 'euclidean'), method = 'ward.D')
+
+clusts <- cutree(h, k = 5)
+
+idx = sort(clusts, index.return = T)$ix
+
+dat = cm[idx, idx]
+colnames(dat) = stdata.corr$Gene.Label[idx]
+row.names(dat) = stdata.corr$Gene.Label[idx]
+
+Cluster = clusts[idx]
+
+# Create annotation data frames
+row_annotation = data.frame(Regulon = paste(paste('TF Group', Cluster), ' '))
+rownames(row_annotation) = stdata.corr$Gene.Label[idx]  # This is the critical fix
+
+
+#clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
+clust.cols = pal_jco()(length(unique(Cluster)))
+names(clust.cols) = paste(paste('TF Group', 1:length(unique(Cluster))), ' ')
+# Define colors for clusters
+annotation_colors = list(Regulon = clust.cols)
+
+# Create heatmap with annotations
+pheatmap(
+  dat,
+  cluster_rows = FALSE, 
+  cluster_cols = FALSE,
+  color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
+  annotation_row = row_annotation,
+  annotation_col = row_annotation,
+  annotation_colors = annotation_colors,
+  annotation_names_col = FALSE,
+  annotation_names_row = FALSE,
+  show_rownames = FALSE,  # Hide row labels
+  show_colnames = FALSE,  # Hide column labels
+  fontsize = 30,
+  annotation_legend = T,
+  border_color = NA,
+  annotation_legend_side = "left",
+  width = 16, 
+  height = 14,
+  angle_col = 90,
+  fontsize_col = 18,
+  fontsize_row = 12,
+  main = 'Regulon activity correlation matrix: Hierarchical Clustering',
+  filename = paste0(savepath, 'pheatmap_HC_top_layer_DMcorr.pdf')
+  
+)
+
+```
 
 
 
