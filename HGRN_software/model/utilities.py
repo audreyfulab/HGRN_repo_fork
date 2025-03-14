@@ -770,6 +770,8 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
         
+    plt.close('all')
+        
     
 
 
@@ -802,6 +804,8 @@ def plot_perf(update_time, performance_hist, valid_hist, epoch, path='path/to/fi
         if save == True:
             fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'.pdf')
             
+    plt.close('all')
+            
             
             
 #A simple wrapper to plot and save the networkx graph
@@ -828,6 +832,8 @@ def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = Fals
                          cmap = 'plasma', **kwargs)
     if save == True:    
         fig.savefig(path+'.pdf')
+        
+    plt.close('all')
     
   
     
@@ -841,6 +847,8 @@ def plot_adj(A, path, **kwargs):
     fig, ax = plt.subplots()
     sbn.heatmap(A, ax = ax, **kwargs)
     fig.savefig(path+'.png', dpi = 300)
+    
+    plt.close('all')
     
     
     
@@ -898,6 +906,8 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
     if save_plot == True:
         fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)
         fig2.savefig(sp+'epoch_'+str(epoch)+'_heatmaps.png', dpi = 300) 
+        
+    plt.close('all')
         
 
 
