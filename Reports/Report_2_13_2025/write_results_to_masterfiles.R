@@ -39,10 +39,17 @@ fp24 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate
 fp25 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/upmod_None_15_5_opt_clusts_True/'
 
 
+fp26 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/reg_corr_unbalanced_None_15_5_opt_clusts_True/'
+fp27 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/reg_corr_None_15_5_opt_clusts_True/'
+fp28 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/mixed_corr_unbalanced_None_64_5_opt_clusts_True/'
+fp29 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Intermediate_applications/SET_SPECIAL/mixed_corr_None_64_5_opt_clusts_True/'
+fp30 = '/mnt/ceph/jarredk/HGRN_repo/Reports/Report_2_13_2025/Output/Complex_applications/complex_corr_None_64_5_opt_clusts_True/'
+
+
 
 
 flist = c(fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9, fp10, fp11, fp12, fp13, fp14, fp15, fp16,
-          fp17, fp18, fp19, fp20, fp21, fp22, fp23, fp24, fp25)
+          fp17, fp18, fp19, fp20, fp21, fp22, fp23, fp24, fp25, fp26, fp27, fp28, fp29, fp30)
 
 
 read_file = function(filename){
@@ -57,7 +64,7 @@ read_file_stats = function(filename, case){
   return(file)
 }
 
-process.results = function(PATH, ol, scenario, data.scenario, checker){
+process.results = function(PATH, ol, scenario, data.scenario, input.type, checker, sit = 'intermediate'){
   
     
   fp = PATH
@@ -65,7 +72,14 @@ process.results = function(PATH, ol, scenario, data.scenario, checker){
   connect = c('disc', 'full')
   case = 'Case'
   sd = c('01', '05')
-  case.num = as.character(c(0:24))
+  
+  if(sit == 'intermediate'){
+    case.num = as.character(c(0:24))
+  }else{
+    case.num = as.character(c(0:9))
+  }
+  
+  print(case.num)
   
   fns = expand.grid(graphs, connect, sd, case, case.num)
   
@@ -121,13 +135,35 @@ process.results = function(PATH, ol, scenario, data.scenario, checker){
     })
   }
     
+  #print(tables_mid)
+  
+  midind=ifelse(any(which(is.na(tables_mid))), TRUE, FALSE)
+  topind=ifelse(any(which(is.na(tables_mid))), TRUE, FALSE)
+  
+  print(paste0(rep('=',40), collapse = ''))
+  
+  if(isTRUE(midind) || isTRUE(topind)){
     
-  data_mid = do.call('rbind', tables_mid)
-  data_top = do.call('rbind', tables_top)
+    ixmid=which(is.na(tables_mid))
+    ixtop=which(is.na(tables_mid))
+    
+    print(paste('The following tables are missing/unreadable:'))
+    print(paste(fn[ixmid], sep = '\n'))
+    print('-----------------------------------------------')
+    print(paste(fn[ixtop], sep = '\n'))
+    
+    data_mid = do.call('rbind', tables_mid[[-ixmid]])
+    data_top = do.call('rbind', tables_top[[-ixtop]])
+  }else{
+    data_mid = do.call('rbind', tables_mid)
+    data_top = do.call('rbind', tables_top)
+  }
   
-  data_mid = do.call('rbind', tables_mid)
-  data_top = do.call('rbind', tables_top)
   
+  print(paste('size of top data ', as.character(dim(data_mid))))
+  print(paste('size of mid data ', as.character(dim(data_top))))
+  
+  print('relabeling factors ... ')
   
   data_top$subgraph_type = as.factor(data_top$subgraph_type)
   data_top$Method = as.factor(data_top$Method)
@@ -145,21 +181,28 @@ process.results = function(PATH, ol, scenario, data.scenario, checker){
                             "HCD Middle" = paste0("HCD-", ol),
                             "HC Middle" = "HC" )
   
+  print('done!')
   data_top$StDev = as.factor(data_top$StDev)
   data_mid$StDev = as.factor(data_mid$StDev)
   
   netstats_final = do.call('rbind', netstats)
+  
+  print('writing temporary files ...')
   write.csv(data_top, file = paste0(fp, 'combined_all_results_top.csv'))
   write.csv(data_mid, file = paste0(fp, 'combined_all_results_middle.csv'))
   write.csv(netstats_final, paste0(fp, 'combined_sim_results.csv'))
+  print('done!')
   
   comb_temp = rbind.data.frame(data_top, data_mid)
+  
+  print(paste('shape of combined data ', as.character(dim(comb_temp))))
   ft = cbind.data.frame(comb_temp, 
                         Simulation = c(fn, fn),
                         Layer = c(rep('Top Layer', dim(data_top)[1]), 
                                   rep('Middle Layer', dim(data_mid)[1])),
                         Scenario = rep(scenario, dim(comb_temp)[1]),
                         Data.Scenario = rep(data.scenario, dim(comb_temp)[1]),
+                        Input.Type =  rep(input.type, dim(comb_temp)[1]),
                         output_layer = rep(ol, dim(comb_temp)[1]))
   
   
@@ -174,13 +217,16 @@ outlayer = c('Linear', 'Linear', 'Linear', 'Linear',
              'NOL', 'NOL', 'NOL', 'NOL',
              'GATv2', 'GATv2', 'GATv2','GATv2',
              'Kmeans-NOL', 'Kmeans-NOL', 'Kmeans-NOL','Kmeans-NOL',
-             'NOL', 'NOL', 'NOL', 'NOL', 'NOL-UM')
+             'NOL', 'NOL', 'NOL', 'NOL', 'NOL-UM',
+             'NOL', 'NOL', 'NOL', 'NOL', 'NOL')
+
 scenarios = c('GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
               'GT', '64-5', 'BH', 'Silouette',
-              'BH', 'BH', 'BH-Nobatch', 'BH', 'BH')
+              'BH', 'BH', 'BH-Nobatch', 'BH', 'BH',
+              'BH', 'BH', 'BH', 'BH', 'BH')
 
 
 data.scenario = c('Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
@@ -188,20 +234,52 @@ data.scenario = c('Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced'
                   'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
                   'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
                   'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced', 'Reg-Balanced',
+                  
                   'Mixed-Balanced', 'Mixed-Unbalanced', 'Reg-Balanced', 
-                  'Reg-Unbalanced', 'Reg-Balanced')
+                  'Reg-Unbalanced', 'Reg-Balanced', 
+                  
+                  'Reg-Unbalanced', 'Reg-Balanced',
+                  'Mixed-Unbalanced', 'Mixed-Balanced', 'Complex-Reg-Balanced')
 
+input.type = c('feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               'feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               'feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               'feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               'feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               
+               'feature matrix', 'feature matrix', 'feature matrix', 'feature matrix',
+               'feature matrix',
+               
+               'correlation matrix', 'correlation matrix',
+               'correlation matrix','correlation matrix', 'correlation matrix')
 
+print(paste0('found files to read', length(flist)))
 
 for(sim in 1:length(flist)){
+  
+  
+ 
+  situation = ifelse(sim < 30, 'intermediate', 'complex')
+  print(paste(rep('*',40), collapse = ''))
+  print(paste0('reading: ', flist[sim]))
+  print(paste0('index ', situation))
+  print(paste0(rep('*',40), collapse = ''))
+  
   output = process.results(PATH = flist[sim], 
                            ol = outlayer[sim], 
                            scenario = scenarios[sim],  
                            data.scenario = data.scenario[sim],
-                           checker = 0)
+                           input.type = input.type[sim],
+                           checker = 0,
+                           sit = situation)
   
   reslist[[sim]] = output$final.table
+  print(paste0(rep('*',40), collapse = ''))
+  print(paste0(rep('*',40), collapse = ''))
+  print(paste0(rep('*',40), collapse = ''))
 }
+
+warnings()
 
 final.combined.all = do.call('rbind', reslist)
 
