@@ -185,7 +185,7 @@ def load_application_data_regulon(args):
         data = read_csv_fast(filepath=os.path.join(readpath,'Applications/Crop Liver/expression_crop_liver.csv'))
         gt = None
     elif args.dataset == 'regulon.DM.activity':
-        data = pd.read_csv(os.path.join(readpath,'Applications/Regulon_DMEM_organoid.csv'))
+        data = read_csv_fast(os.path.join(readpath,'Applications/Regulon_DMEM_organoid.csv'))
         gt = pd.read_csv(os.path.join(readpath,'Applications/Regulon_DM_groups.csv'))
     else:
         raise ValueError(f'ERROR {args.dataset} is not a valid dataset name.')
@@ -213,10 +213,10 @@ def load_application_data_regulon(args):
     print(f'Loaded {args.dataset} data with dimension genes: {nodes} x samples: {samples}')
     
     print('Processing data ... ')
+    DM_array = regulon_data.iloc[:, 1:].to_numpy().astype(float)
     if args.dataset == 'regulon.DM.sc':
-        DM_array = regulon_data.iloc[:, 1:].to_numpy().astype(float)
         kept_rows = [idx for idx, i in enumerate((DM_array > 0.0).sum(1)) if i/DM_array.shape[1] > 0.05] #remove genes represented in < 5% of cells
-        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] > 0.1] # remove columns represented in < 10% of genes
+        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] > 0.2] # remove columns represented in < 20% of genes
         X_bad_gene_removed = regulon_data.iloc[kept_rows, :]
         gene_labels = X_bad_gene_removed['GENE'].tolist()
         X_processed = X_bad_gene_removed.iloc[:, kept_cols].to_numpy().astype(float)
@@ -226,17 +226,24 @@ def load_application_data_regulon(args):
         X_reduced = regulon_data.iloc[:, :]
         gt_final = gt[gt['TF_gene'].isin(X_reduced['GENE'].tolist())]
         X_sorted = X_reduced.set_index('GENE').reindex(gt_final['TF_gene']).reset_index()
-        X_processed = np.corrcoef(X_sorted.iloc[:, 1:].to_numpy(np.float32))
+        kept_cols = [idx+1 for idx, i in enumerate((DM_array > 0.0).sum(0)) if i/DM_array.shape[0] >= 0.5] # remove columns represented in < 80% of genes
+        #X_processed = np.corrcoef(X_sorted.iloc[:, 1:].to_numpy(np.float32))
+        #fdf = X_sorted.iloc[:, kept_cols]
+        #fdf.to_csv(os.path.join(readpath,'Applications/Regulon_DMcells_filtered80.csv'))
+        X_processed = X_sorted.iloc[:, kept_cols].to_numpy().astype(float)
         gene_labels = X_sorted['TF_gene'].tolist()
     
     fnodes, fsamples = X_processed.shape
     print(f'Finished processing {args.dataset} data --> final dimension {fnodes}x{fsamples}')
     
+    if args.use_gene_correlations:
+        X_processed = np.corrcoef(X_processed)
+        
     X, A = format_regulon_data(args=args, 
                                data=X_processed) 
    
     fig, ax = plt.subplots(figsize=(12,12))
-    sbn.heatmap(X.cpu().detach().numpy(), cmap = 'PRGn', yticklabels=gene_labels)
+    sbn.heatmap(np.corrcoef(X.cpu().detach().numpy()), cmap = 'PRGn', yticklabels=gene_labels)
     fig.savefig(args.sp+'OSCAR_HEATMAP.pdf')
     
     return X, A, gene_labels, gt_final
@@ -362,6 +369,7 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
         
         print('Simulation Complete')       
         print(f'Loading simulated data from directory: {simargs.savepath}')
+        
     pe, true_adj_undi, indices_top, indices_middle, new_true_labels, sorted_true_labels_top, sorted_true_labels_middle = LoadData(filename=simargs.savepath)
     
     #combine target labels into list
@@ -378,7 +386,12 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
      
     #nodes and attributes
     nodes, attrib = pe.shape
-    X = torch.tensor(pe_sorted)
+    
+    if args.use_gene_correlations:
+        X = torch.tensor(np.corrcoef(pe_sorted))
+    else:
+        X = torch.tensor(pe_sorted)
+        
     #generate input graphs
     if args.use_true_graph:
         A = (torch.tensor(true_adj_undi[:nodes,:nodes])+torch.eye(nodes))
@@ -587,7 +600,8 @@ def run_louvain(args, A, labels, layers, savepath):
                    font_size = args.fs, 
                    add_labels = True,
                    save = True)
-        
+    
+    plt.close('all')
         
     return louv_metrics, louv_mod, louv_num_comms, louv_preds
     
@@ -632,7 +646,7 @@ def run_kmeans(args, X, labels, layers, sizes):
         
     fig.savefig(args.sp+'KMeans_results.png')
         
-        
+    plt.close('all')
         
     return [mid_labels, top_labels]
 
@@ -716,6 +730,8 @@ def run_trad_hc(args, X, labels, layers, sizes):
     if args.save_results:
         fig.savefig(args.sp+'Classical_hierarchical_result.pdf')
         fig.savefig(args.sp+'Classical_hierarchical_result.png', dpi = 500)
+        
+    plt.close('all')
         
     return [mid_labels, top_labels]
     
@@ -1058,6 +1074,8 @@ def post_hoc(args, output, k_layers, truth, bp, louv_pred,
         if args.save_results == True:
             fig.savefig(args.sp+'topclusters_plotted_on_embeds.pdf')
             
+        plt.close('all')
+            
     if truth:
         return best_iter_metrics
 
@@ -1140,6 +1158,7 @@ def plot_embeddings_heatmap(embeddings_list, use_correlations = False, verbose =
     if verbose:
         fig.show()
     
+    plt.close('all')
     return fig
 
     
@@ -1226,5 +1245,7 @@ def generate_attention_graph(args: object, A: torch.Tensor, AW: dict, gene_label
         nx.write_gexf(new_G, args.sp+"gene_network.gexf")
 
     weighted_adj = nx.to_numpy_array(new_G)
+    
+    plt.close('all')
     
     return new_G, weighted_adj
