@@ -40,6 +40,44 @@ result = pheatmap(rgc, color = colorRampPalette(brewer.pal(n = 10, name ="PRGn")
                   kmeans_k = 5)
 
 
+Cluster = result$kmeans$cluster
+# Create annotation data frames
+row_annotation = data.frame(Regulon = paste(paste('TF Group', Cluster), ' '))
+rownames(row_annotation) = rownames(cm)  # This is the critical fix
+
+
+#clust.cols = colorRampPalette(brewer.pal(n = 10, name =""))
+clust.cols = pal_jco()(length(unique(Cluster)))
+names(clust.cols) = paste(paste('TF Group', 1:length(unique(Cluster))), ' ')
+# Define colors for clusters
+annotation_colors = list(Regulon = clust.cols)
+
+# Create heatmap with annotations
+pheatmap(
+  rgc,
+  cluster_rows = FALSE, 
+  cluster_cols = FALSE,
+  color = colorRampPalette(brewer.pal(n = 10, name ="PRGn"))(100),  # Fixed color palette syntax
+  annotation_row = row_annotation,
+  annotation_col = row_annotation,
+  annotation_colors = annotation_colors,
+  annotation_names_col = FALSE,
+  annotation_names_row = FALSE,
+  show_rownames = FALSE,  # Hide row labels
+  show_colnames = FALSE,  # Hide column labels
+  fontsize = 30,
+  annotation_legend = T,
+  border_color = NA,
+  annotation_legend_side = "left",
+  width = 16, 
+  height = 14,
+  angle_col = 90,
+  fontsize_col = 18,
+  fontsize_row = 12,
+  main = 'Regulon Activity Correlation Matrix'
+)
+
+
 nmi = NMI(cao_groups[, c(3,1)], cbind.data.frame(gene = DMcells$gene[ix], group = result$kmeans$cluster))
 
 print(nmi)
