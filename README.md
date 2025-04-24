@@ -1,4 +1,4 @@
-# Hierarchical Community Detection (HCD) with graph embedding
+# Deep learning based Hierarchical Community Detection (DeepHCD) with graph embedding
 
 ![](HCD_logo_1.jpg).
 This image was generated with Dall-E 3
@@ -6,7 +6,7 @@ This image was generated with Dall-E 3
 ## About
 Code developement repo for Hierarchical Community Detection (HCD): A graph-based deep learning algorithm for detecting community structure in gene regulatory networks from gene expression data.
 
-## Instructions to run HCD 
+## Instructions to run DeepHCD 
 To run `HCD`, you must download the following directories/files from this repository:
 | Original Path                                             | Mapped Path                                         |
 |----------------------------------------------------------|-----------------------------------------------------|
