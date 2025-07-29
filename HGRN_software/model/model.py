@@ -60,22 +60,9 @@ def reorganize_labels(S1: torch.Tensor, S2_list: torch.Tensor):
 
 
 class GATE(nn.Module):
-    
     """
-    Initializes the Graph Attention Autoencoder (GATE) Model of Salehi et al 2019.
-
-    Parameters:
-        in_nodes (int): The number of input nodes.
-        in_attrib (int): The number of input attributes.
-        normalize (bool, optional): Whether to normalize the node features. Defaults to True.
-        hid_sizes (List[int], optional): A list of hidden layer sizes. Defaults to [256, 128, 64].
-        attn_heads (int, optional): The number of attention heads. Defaults to 1.
-        layer_act (nn.Module, optional): The activation function for each layer. Defaults to nn.Identity().
-        dropout (float, optional): The dropout rate. Defaults to 0.2.
-        operator (Literal['GATConv', 'GATv2Conv', 'SAGEConv'], optional): The operator to use for the attention mechanism. Defaults to 'GATv2Conv'.
-        
-    References: 
-        https://arxiv.org/pdf/1905.10715.pdf
+    GATE model described in https://arxiv.org/pdf/1905.10715.pdf
+    
     """
 
     def __init__(self, in_nodes: int, in_attrib: int, normalize: bool = True, hid_sizes: List[int] = [256, 128, 64], 
@@ -111,7 +98,7 @@ class GATE(nn.Module):
         self.seqmodel = nn.Sequential(module_dict)
         
         
-    def forward(self, X: torch.Tensor, A: torch.Tensor):
+    def forward(self, X, A):
         weights_list = []
         ei, ea = pyg_utils.dense_to_sparse(A)
         #A_SPT = pyg_utils.to_torch_csr_tensor(Asparse[0], Asparse[1])
@@ -152,7 +139,7 @@ class AddLearningLayers(nn.Module):
         #build model by pytorch sequential
         self.model = nn.Sequential(module_dict)
         
-    def forward(self, Z: torch.Tensor):
+    def forward(self, Z):
         
         H = self.model(Z)
         
@@ -191,7 +178,7 @@ class CommunityDetectionLayers(nn.Module):
         self.model = nn.Sequential(module_dict)
         
         
-    def forward(self, Z: torch.Tensor, A: torch.Tensor):
+    def forward(self, Z, A):
         H_layers = self.model([Z, A, [], [], [], []])
         
         return H_layers
@@ -200,63 +187,19 @@ class CommunityDetectionLayers(nn.Module):
 
 class HCD(nn.Module):
     """
-    Hierarchical Graph Representation Network for genes.
-
-    This network is designed to learn hierarchical representations of graph-structured data.
-    It consists of an encoder, a decoder, and community detection modules that operate at multiple scales.
-
-    Parameters:
-        nodes (int): Number of nodes in the attributed graph.
-        attrib (int): Number of node attributes (features).
-        ae_hidden_dims (List[int]): Sizes of the hidden layers in the autoencoder.
-        method (str or List[str]): Method for community detection. Can be 'bottom_up' or 'top_down', or a combination of both.
-        ll_hidden_dims (List[int]): Sizes of the hidden layers in the output learning layers.
-        comm_sizes (List[int]): Number of super nodes/communities in each hierarchical layer.
-        ae_operator (str): Operator to use for the autoencoder. Defaults to 'GATv2Conv'.
-        use_kmeans_top (bool): Whether to use k-means clustering for top-level community detection. Defaults to False.
-        use_kmeans_middle (bool): Whether to use k-means clustering for middle-level community detection. Defaults to False.
-        comm_operator (str): Operator to use for community detection layers. Defaults to 'Linear'.
-        dropout (float): Dropout rate for the network. Defaults to 0.2.
-        use_output_layers (bool): Whether to use output learning layers between the autoencoder and community detection modules. Defaults to False.
-        normalize_outputs (bool): Whether to normalize the outputs of the network. Defaults to False.
-        normalize_input (bool): Whether to normalize the input data. Defaults to False.
-        ae_attn_heads (int): Number of attention heads in the autoencoder. Defaults to 1.
-        device (str): Device to use for computations. Defaults to 'cpu'.
-        **kwargs: Additional keyword arguments passed to the community detection modules.
-
-    Attributes:
-        method (str or List[str]): Method for community detection.
-        use_output_layers (bool): Whether to use output learning layers.
-        use_kmeans_top (bool): Whether to use k-means clustering for top-level community detection.
-        use_kmeans_middle (bool): Whether to use k-means clustering for middle-level community detection.
-        comm_sizes (List[int]): Number of super nodes/communities in each hierarchical layer.
-        ae_hidden_dims (List[int]): Sizes of the hidden layers in the autoencoder.
-        ll_hidden_dims (List[int]): Sizes of the hidden layers in the output learning layers.
-        normalize_outputs (bool): Whether to normalize the outputs of the network.
-        comm_operator (str): Operator to use for community detection layers.
-        ae_operator (str): Operator to use for the autoencoder.
-        dropout_rate (float): Dropout rate for the network.
-        encoder (nn.Module): Autoencoder encoder module.
-        decoder (nn.Module): Autoencoder decoder module.
-        fully_connected_layers (nn.Module): Output learning layers.
-        commModule (nn.Module): Community detection module.
-        TopCommModule (nn.Module): Top-level community detection module.
-        MiddleModules (List[nn.Module]): Middle-level community detection modules.
-
-    Returns:
-        X_hat (Tensor): Reconstructed node attributes.
-        A_hat (Tensor): Reconstructed adjacency matrix.
-        X_all_final (List[Tensor]): Hierarchical representations of the input data at different scales.
-        A_all_final (List[Tensor]): Hierarchical adjacency matrices at different scales.
-        P_all (List[Tensor]): Soft assignments of nodes to communities at different scales.
-        S_all (List[Tensor]): Hard assignments of nodes to communities at different scales.
+    Hierarchical Graph Representation Network for genes
+    nodes: (integer) number of nodes in attributed graph
+    attrib: (integer) number of node-attributes (i.e features)
+    hidden_dims: (list) of integers giving the size of the hidden layers
+    comm_sizes: (list) giving the number of super nodes/communities in 
+                hierarchcial layers
+    **kwargs: Keyword arguments passed to GATE/GAT module
     """
 
-    def __init__(self, nodes: int, attrib: int, ae_hidden_dims: List[int] = [256, 128, 64], method: str = ['top_down', 'bottom_up'],
-                 ll_hidden_dims: List[int] = [64, 64], comm_sizes: List[int] = [60, 10], ae_operator: str = 'GATv2Conv',
-                 use_kmeans_top: bool = False, use_kmeans_middle: bool = False, comm_operator: str = 'Linear', dropout: float = 0.2, 
-                 use_output_layers: bool = False, normalize_outputs: bool = False, normalize_input: bool = False, ae_attn_heads: int =1, 
-                 device: str = 'cpu', **kwargs):
+    def __init__(self, nodes, attrib, ae_hidden_dims = [256, 128, 64], method = ['top_down', 'bottom_up'],
+                 ll_hidden_dims = [64, 64], comm_sizes = [60, 10], ae_operator = 'GATv2Conv',
+                 use_kmeans_top = False, use_kmeans_middle = False, comm_operator = 'Linear', dropout = 0.2, 
+                 use_output_layers = False, normalize_outputs = False, normalize_input = False, ae_attn_heads=1, **kwargs):
         
         super(HCD, self).__init__()
         #copy and reverse decoder layer dims
@@ -283,7 +226,7 @@ class HCD(nn.Module):
                             normalize = self.normalize_outputs, 
                             operator= self.ae_operator,
                             attn_heads = ae_attn_heads,
-                            dropout = self.dropout_rate).to(device)
+                            dropout = self.dropout_rate)
         #set up decoder
         self.decoder = GATE(in_nodes = nodes, 
                             in_attrib = self.ae_hidden_dims[-1], 
@@ -291,7 +234,7 @@ class HCD(nn.Module):
                             normalize = self.normalize_outputs, 
                             operator = self.ae_operator,
                             attn_heads = ae_attn_heads,
-                            dropout = self.dropout_rate).to(device)
+                            dropout = self.dropout_rate)
         
         #bottom up method
         if self.method == 'bottom_up':
@@ -301,7 +244,7 @@ class HCD(nn.Module):
                                                                 in_attrib=self.ae_hidden_dims[-1],
                                                                 sizes=self.ll_hidden_dims,
                                                                 normalize=self.normalize_outputs,
-                                                                dropout = self.dropout_rate).to(device)
+                                                                dropout = self.dropout_rate)
             
             
                 #set up community detection module
@@ -311,7 +254,7 @@ class HCD(nn.Module):
                                                             comm_sizes = self.comm_sizes,
                                                             layer_operator = self.comm_operator,
                                                             dropout = self.dropout_rate,
-                                                            **kwargs).to(device)
+                                                            **kwargs)
             else:
                 #set up community detection module
                 self.commModule = CommunityDetectionLayers(in_nodes = nodes, 
@@ -320,7 +263,7 @@ class HCD(nn.Module):
                                                             comm_sizes=self.comm_sizes,
                                                             layer_operator = self.comm_operator,
                                                             dropout = self.dropout_rate,
-                                                            **kwargs).to(device)
+                                                            **kwargs)
                 
         #Top down method 
         elif self.method == 'top_down':
@@ -331,14 +274,14 @@ class HCD(nn.Module):
                                                                 in_attrib=self.ae_hidden_dims[-1],
                                                                 sizes=self.ll_hidden_dims,
                                                                 normalize=self.normalize_outputs,
-                                                                dropout = self.dropout_rate).to(device)
+                                                                dropout = self.dropout_rate)
                 comm_in_dim = self.ll_hidden_dims[-1]
             else:
                 comm_in_dim = self.ae_hidden_dims[-1]
                 
             if self.use_kmeans_top:
                 self.TopCommModule = SoftKMeans(n_clusters=self.comm_sizes[0], max_iter=1000, num_init=10,
-                                                init_method='k-means++', verbose=False).to(device)
+                                                init_method='k-means++', verbose=False)
             
             else:
                 self.TopCommModule = CommunityDetectionLayers(in_nodes = nodes, 
@@ -347,12 +290,12 @@ class HCD(nn.Module):
                                                               comm_sizes = [self.comm_sizes[0]],
                                                               layer_operator = self.comm_operator,
                                                               dropout = self.dropout_rate,
-                                                              **kwargs).to(device)
+                                                              **kwargs)
             if len(self.comm_sizes) > 1:
                 if self.use_kmeans_middle:
                     self.MiddleModules = [SoftKMeans(n_clusters=self.comm_sizes[1], 
                                                      max_iter=1000, 
-                                                     num_init=10).to(device) for i in enumerate(range(0, self.comm_sizes[0]))]
+                                                     num_init=10) for i in enumerate(range(0, self.comm_sizes[0]))]
                 else:
                     #separate layers for each partition in top
                     self.MiddleModules = [CommunityDetectionLayers(in_nodes = nodes, 
@@ -361,7 +304,7 @@ class HCD(nn.Module):
                                                                    comm_sizes = [self.comm_sizes[1]],
                                                                    layer_operator = self.comm_operator,
                                                                    dropout = self.dropout_rate,
-                                                                   **kwargs).to(device) for i in range(0, self.comm_sizes[0])]
+                                                                   **kwargs) for i in range(0, self.comm_sizes[0])]
             
             
             

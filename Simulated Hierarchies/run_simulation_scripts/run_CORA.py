@@ -88,7 +88,7 @@ def run_simulations(save_results = False, gam = 1, delt = 1,
     target_labels = [lb.transform(labels).argmax(1)]
     
     x_array = np.array(node_data[node_data.columns[:-1]])
-    X = torch.tensor(x_array).requires_grad_()
+    X = torch.Tensor(x_array).requires_grad_()
     
     #preallocate results table
     res_table = pd.DataFrame(columns = ['Beth_Hessian_Comms',
@@ -116,7 +116,7 @@ def run_simulations(save_results = False, gam = 1, delt = 1,
                     attn_act=activation, 
                     **kwargs).to(device)
 
-    A = torch.tensor(graph).requires_grad_()+torch.eye(nodes)
+    A = torch.Tensor(graph).requires_grad_()+torch.eye(nodes)
 
     
     #preallocate metrics
@@ -387,7 +387,7 @@ plot_clust_heatmaps(A = graphs[wg],
 #                         embed=data, 
 #                         probabilities=out[0][epoch][4],
 #                         size = 150.0,
-#                         labels = [torch.tensor(louv_pred), torch.tensor(louv_pred)],
+#                         labels = [torch.Tensor(louv_pred), torch.Tensor(louv_pred)],
 #                         truth = truth[::-1],
 #                         fs=10,
 #                         path = '', 

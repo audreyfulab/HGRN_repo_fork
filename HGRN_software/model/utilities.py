@@ -189,9 +189,6 @@ def compute_kappa(X: torch.Tensor, A: torch.Tensor, method: str = 'bethe_hessian
             
     #silouette optimization method
     elif method == 'silouette':
-        os.environ["OMP_NUM_THREADS"] = "1"
-        
-        print(f'OMP_NUM_THREADS = {os.getenv("OMP_NUM_THREADS")}')
         scores = []
         kappa_range = range(2, max_k+1)
         for i in kappa_range:
@@ -747,8 +744,8 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     ax2[0].set_xlabel('Training Epochs')
     ax2[0].set_ylabel('Gamma * Attribute Reconstruction Loss')
     #community loss using modularity
-    lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train (total) middle'])
-    lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test (total) middle'], linestyle = 'dashed')
+    lines1a, lines1b = ax2[1].plot(range(0, epoch+1), np.array(mod_train), label = ['train top', 'train middle'])
+    lines2a, lines2b = ax2[1].plot(range(0, epoch+1), np.array(mod_test), label = ['test top', 'test middle'], linestyle = 'dashed')
     ax2[1].set_xlabel('Training Epochs')
     ax2[1].set_ylabel('Delta * Modularity')
     #community loss using kmeans
@@ -770,8 +767,6 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
         
-    plt.close('all')
-        
     
 
 
@@ -779,32 +774,42 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
 
 # a simple function for plotting the performance curves during training
 #----------------------------------------------------------------
-def plot_perf(update_time, performance_hist, valid_hist, epoch, path='path/to/file', save = True):
-    #evaluation metrics
-    layers = len(performance_hist[0])
-    titles = ['Top Layer', 'Middle Layer']
-    fig, ax = plt.subplots(1, 2, figsize=(12,10))
-    for i in range(0, layers):
-        layer_hist = [j[i] for j in performance_hist]
-        if len(valid_hist) > 0:
-            valid_layer_hist = [j[i] for j in valid_hist]
-        #homogeneity
-        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,0], label = 'Homogeneity')
-        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,1], label = 'Completeness')
-        ax[i].plot(np.arange(update_time), np.array(layer_hist)[:,2], label = 'NMI')
-        if len(valid_hist) > 0:
-            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,0], linestyle='--', label = 'Validation Homogeneity')
-            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,1], linestyle='--', label = 'Validation Completeness')
-            ax[i].plot(np.arange(update_time), np.array(valid_layer_hist)[:,2], linestyle='--', label = 'Validation NMI')
-        ax[i].set_xlabel('Training Epochs')
-        ax[i].set_ylabel('Performance')
-        ax[i].set_title(titles[i]+' Performance')
+def plot_perf(update_time, performance_hist, valid_hist, epoch, path='path/to/file', save=True):
+    # Skip plotting if no performance history exists
+    if not performance_hist or all(p is None for p in performance_hist):
+        print("Skipping plotting: No performance data available.")
+        return
+
+    # Filter out None values (evaluation was skipped in some epochs)
+    valid_perf_hist = [p for p in performance_hist if p is not None]
+    if not valid_perf_hist:
+        return
+
+    # Use the last valid performance entry for layers/titles
+    layers = len(valid_perf_hist[-1])
+    titles = ['Top Layer', 'Middle Layer'][:layers]  # Adjust titles based on layers
+
+    fig, ax = plt.subplots(1, layers, figsize=(12, 10))
+    for i in range(layers):
+        layer_hist = [j[i] for j in valid_perf_hist if j is not None]
+        
+        # Plot training metrics
+        ax[i].plot(range(len(layer_hist)), [x[0] for x in layer_hist], label='Homogeneity')
+        ax[i].plot(range(len(layer_hist)), [x[3] for x in layer_hist], label='ARI')
+        ax[i].set_title(titles[i])
         ax[i].legend()
 
-        if save == True:
-            fig.savefig(path+'performance_curve_epoch_'+str(epoch+1)+'.pdf')
-            
-    plt.close('all')
+    # Handle validation data if exists
+    if valid_hist and not all(v is None for v in valid_hist):
+        valid_perf = [v for v in valid_hist if v is not None]
+        for i in range(layers):
+            ax[i].plot(range(len(valid_perf)), [x[i][0] for x in valid_perf], '--', label='Val Homogeneity')
+            ax[i].plot(range(len(valid_perf)), [x[i][3] for x in valid_perf], '--', label='Val ARI')
+            ax[i].legend()
+
+    if save:
+        plt.savefig(f'{path}/performance_epoch_{epoch}.png')
+    plt.close()
             
             
             
@@ -832,8 +837,6 @@ def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = Fals
                          cmap = 'plasma', **kwargs)
     if save == True:    
         fig.savefig(path+'.pdf')
-        
-    plt.close('all')
     
   
     
@@ -847,8 +850,6 @@ def plot_adj(A, path, **kwargs):
     fig, ax = plt.subplots()
     sbn.heatmap(A, ax = ax, **kwargs)
     fig.savefig(path+'.png', dpi = 300)
-    
-    plt.close('all')
     
     
     
@@ -865,7 +866,13 @@ def plot_adj(A, path, **kwargs):
 #a simple function to plot the clustering heatmaps
 #---------------------------------------------------------------- 
 def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, epoch, save_plot = True, sp = ''):
-    
+    with plt.style.context('default'):
+        fig1, ax1 = plt.subplots(1, 2, figsize=(12, 10))
+        sbn.heatmap(A_pred.cpu().detach().numpy(), ax=ax1[0])
+        sbn.heatmap(A.cpu().detach().numpy(), ax=ax1[1])
+        ax1[0].set_title(f'Reconstructed Adjacency At Epoch {epoch}')
+        ax1[1].set_title('Input Adjacency Matrix')
+        
     fig1, ax1 = plt.subplots(1,2, figsize=(12,10))
     sbn.heatmap(A_pred.cpu().detach().numpy(), ax = ax1[0])
     sbn.heatmap(A.cpu().detach().numpy(), ax = ax1[1])
@@ -906,8 +913,6 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
     if save_plot == True:
         fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)
         fig2.savefig(sp+'epoch_'+str(epoch)+'_heatmaps.png', dpi = 300) 
-        
-    plt.close('all')
         
 
 

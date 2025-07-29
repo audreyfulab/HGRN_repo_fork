@@ -17,6 +17,7 @@ from model.utilities import compute_kappa
 import pickle
 import random as rd
 import os
+import time
 
 
 def run_single_simulation(args, simulation_args = None, return_model = False, **kwargs):
@@ -45,8 +46,9 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         results = run_single_simulation(args)
         results, model = run_single_simulation(args, return_model=True) #save model in output directory as checkpoint.pth file
     """
-    
+    start = time.time()
     #set up output directories
+    setup_start = time.time()
     if args.save_results:
         if args.make_directories:
             print(f'Creating new directory at {os.path.join(args.sp)}')
@@ -61,21 +63,22 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #check for local GPU
     print(f'***** GPU AVAILABLE: {torch.cuda.is_available()} ******')
     device = 'cuda:'+str(0) if args.use_gpu and torch.cuda.is_available() else 'cpu'
-    torch.set_default_device(device)
-    torch.set_default_dtype(torch.float64)
     if 'cuda' in device:
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-        
-    print(f'***** Using device {device} ********')
+    else:
+        torch.set_default_tensor_type('torch.FloatTensor')
+    print('***** Using device {} ********'.format(device))
     
     
     savepath_main = args.sp
     comm_sizes = args.community_sizes
     layers = len(args.community_sizes)
     
-    
+    print(f"Setup time: {time.time() - setup_start:.2f} seconds")
     
     #read in pre-generated data 
+    data_load_start = time.time()
     if args.dataset in ['complex', 'intermediate', 'toy']:
         
         loadpath_main, grid1, grid2, grid3, stats = load_simulated_data(args)        
@@ -104,22 +107,11 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
             X, A, target_labels = train
             
     # read in regulon data
-    elif args.dataset in ['regulon.EM', 'regulon.DM.sc', 'regulon.DM.activity']:
+    elif args.dataset in ['regulon.EM', 'regulon.DM']:
         
-        X, A, gene_names, gt = load_application_data_regulon(args)
-        if gt is not None:
-            target_labels = [np.array(gt['regulon_kmeans'].tolist()), np.array(gt['regulon_kmeans'].tolist())]
-        else: 
-            target_labels = None
-        
-        if args.split_data:
-            train, test = split_dataset(X, A, target_labels, args.train_test_size)         
-            
-            X, A, target_labels = train
-        else:
-            test = None
-            
-        valid = None
+        train, test, gene_names = load_application_data_regulon(args)
+
+        X, A, [] = train
         
     # read in Dream5 data
     elif args.dataset in ['Dream5.'+i for i in ['E_coli', 'in_silico', 'S_aureus', 'S_cerevisiae']]:
@@ -139,6 +131,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
             train, test = split_dataset(X, A, target_labels, args.train_test_size)         
             
             X, A, target_labels = train
+           
         else:
             test = None
         
@@ -152,14 +145,11 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     # estimate number of communities k
     if args.compute_optimal_clusters:
-        comm_sizes = compute_kappa(X.cpu().detach().numpy(), 
-                                   A, 
-                                   method = args.kappa_method, 
-                                   save = args.save_results, 
-                                   PATH = args.sp, 
-                                   verbose = True)
-    
+        comm_sizes = compute_kappa(X, A, method = args.kappa_method, save = args.save_results, PATH = args.sp, verbose = True)
+
+    print(f"Data loading time: {time.time() - data_load_start:.2f} seconds")
     #initiate model 
+    model_init_start = time.time()
     print('-'*25+'setting up and fitting models'+'-'*25)
     model = HCD(
                 nodes, attrib, 
@@ -176,9 +166,8 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                 ae_attn_heads = args.attn_heads, 
                 dropout = args.dropout_rate,
                 use_output_layers = args.add_output_layers,
-                device = device,
                 **kwargs
-                )
+                ).to(device)
     
     X = X.to(device)
     A = A.to(device)
@@ -203,12 +192,13 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print('finished set up stage ...')
     #fit the models
     print("*"*80)
-    
+    print(f"Model initialization time: {time.time() - model_init_start:.2f} seconds")
+
     #train the model
+    training_start = time.time()
     model_output = fit(model, X, A, 
                        k = layers,
                        optimizer='Adam', 
-                       mse_method = args.mse_method,
                        epochs = args.training_epochs, 
                        update_interval=args.steps_between_updates, 
                        layer_resolutions=args.resolution,
@@ -230,8 +220,10 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                        batch_size = args.batch_size,
                        device = device
                        )
-         
-    #handle output and return relevant values               
+    print(f"Model training time: {time.time() - training_start:.2f} seconds")
+
+    #handle output and return relevant values
+    postprocessing_start = time.time()               
     results = handle_output(args = args, 
                             output = model_output, 
                             comm_sizes=comm_sizes)
@@ -246,16 +238,19 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     model_output.best_loss_index = best_result_index
     S_sub, S_layer, S_all = trace
-    
+    print(f"Postprocessing time: {time.time() - postprocessing_start:.2f} seconds")
+
     #run louvain method on same dataset
+    louvain_training = time.time()
     if args.run_louvain:
         louv_metrics, louv_mod, louv_num_comms, louv_preds = run_louvain(args, A, target_labels, len(comm_sizes)+1, savepath_main) 
         model_output.louvain_preds = louv_preds         
     else:
         louv_metrics, louv_mod, louv_num_comms, louv_preds = (None, None, None, None)
         model_output.louvain_preds = None
-        
+    print(f"louvain method time: {time.time() - louvain_training:.2f} seconds")
     #run Kmeans on same dataset
+    kmeans_training = time.time()
     if args.run_kmeans:
         
         if args.compute_optimal_clusters:
@@ -263,7 +258,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         else: 
             km_sizes = [len(np.unique(i)) for i in target_labels]
             
-        kmeans_preds = run_kmeans(args, X=X.cpu().detach().numpy(), 
+        kmeans_preds = run_kmeans(args, X=X.detach().numpy(), 
                                   labels=target_labels, 
                                   layers=len(comm_sizes)+1,
                                   sizes=km_sizes)
@@ -272,8 +267,9 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     else:
         kmeans_preds = None
         model_output.kmeans_preds = {'top': None, 'middle': None}
-        
-    # runs hierarchical clustering using Ward's metric on data 
+    print(f"kmeans time: {time.time() - kmeans_training:.2f} seconds") 
+    # runs hierarchical clustering using Ward's metric on data
+    hierarchical_start = time.time() 
     if args.run_hc:
         
         if args.compute_optimal_clusters:
@@ -291,10 +287,22 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         hc_preds = None
         model_output.hierarchical_clustering_preds = {'top': None, 'middle': None}
 
-    best_preds = [i.cpu() for i in model_output.pred_history[best_result_index]]
+    if (hasattr(model_output, 'pred_history') and 
+    model_output.pred_history is not None and
+    best_result_index is not None and
+    best_result_index < len(model_output.pred_history) and
+    model_output.pred_history[best_result_index] is not None):
+    
+        best_preds = [i.cpu() for i in model_output.pred_history[best_result_index] if i is not None]
+    else:
+        best_preds = []
+        print("Warning: No valid prediction history available")
+    print(f"hierarchical clustering time: {time.time() - hierarchical_start:.2f} seconds")
 
         
     #post fit plots and results
+    plot_time = time.time()
+    
     if args.post_hoc_plots:
         pbmt=post_hoc(args, 
                       output = model_output, 
@@ -309,6 +317,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     
     
     #update performance table
+    
     row_add = [beth_hessian,
                np.round(upper_limit.cpu().detach().numpy()),
                np.round(max_mod.cpu().detach().numpy(),4),
@@ -320,6 +329,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                louv_mod,
                louv_metrics,
                louv_num_comms]
+               
     print(row_add)
     print('updating performance statistics...')
     res_table.loc[0] = row_add
@@ -338,7 +348,8 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
         torch.save(model.cpu(), savepath_main+'MODEL.pth')
-        
+    print(f"plot time: {time.time() - plot_time:.2f} seconds")
+    print(f"Total runtime: {time.time() - start:.2f} seconds")
     print('done')
     
     if return_model:

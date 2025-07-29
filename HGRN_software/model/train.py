@@ -22,7 +22,7 @@ from typing import Optional, Union, List,  Literal
 
 # model early stopping
 class EarlyStopping:
-    def __init__(self, device, patience=7, verbose=False, delta=0, path = None):
+    def __init__(self, patience=7, verbose=False, delta=0, path = None):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -30,7 +30,6 @@ class EarlyStopping:
         self.early_stop = False
         self.loss_min = float('inf')
         self.delta = delta
-        self.device = device
         
         if not path:
             self.path = os.getcwd()
@@ -62,7 +61,6 @@ class EarlyStopping:
             print(f'\n {self._type} loss decreased ({self.loss_min:.6f} --> {loss:.6f}).  Saving model ... \n')
         torch.save(model.cpu(), os.path.join(self.path, 'checkpoint.pth'))
         self.loss_min = loss
-        model.to(self.device)
 
 
 #model output class
@@ -170,7 +168,7 @@ class HCD_output():
         self.kmeans_preds = None
         self.table = None
         self.perf_table = None
-        self.batch_indices = [i.cpu() for i in batch_indices if i is not None]
+        self.batch_indices = [i.cpu() for i in batch_indices]
         
     def to_dict(self):
         
@@ -242,33 +240,30 @@ def batch_data(input, batch_size, shuffle_data = True):
     return dataloader
 
 #an alternative batching approach to above
-def get_batched_data(X, A, batch_size = 64, min_batch_size = 11):
+def get_batched_data(X, A, batch_size=64, min_batch_size=11):
     num_nodes = X.size(0)
-    # Ensure indices are on the same device as X
     device = X.device
-    #print(f'This is the device for the input {device}')
     indices = torch.randperm(num_nodes, device=device)
+    
+    # Calculate all indices upfront
+    start_indices = range(0, num_nodes, batch_size)
+    end_indices = range(batch_size, num_nodes + batch_size, batch_size)
+    end_indices = [min(e, num_nodes) for e in end_indices]
+    
+    # Process all batches in one go
     X_batches = []
     A_batches = []
     index_batches = []
     
-    start_index = list(range(0, num_nodes-batch_size, batch_size))
-    end_index = list(range(64, num_nodes, batch_size))
-    
-    if (num_nodes - end_index[-1]) < min_batch_size:
-        end_index[-1] = num_nodes
-    
-    for (start_idx, end_idx) in zip(start_index, end_index):
-        #end_idx = min(start_idx + batch_size, num_nodes)
-        batch_indices = indices[start_idx:end_idx]
-        X_batch = torch.index_select(X, 0, batch_indices)
-        A_batch = torch.index_select(torch.index_select(A, 0, batch_indices), 1, batch_indices)
+    for start, end in zip(start_indices, end_indices):
+        batch_indices = indices[start:end]
+        X_batch = X[batch_indices]
+        A_batch = A[batch_indices][:, batch_indices]
         X_batches.append(X_batch)
         A_batches.append(A_batch)
         index_batches.append(batch_indices)
     
     return X_batches, A_batches, index_batches
-
 
 
 
@@ -446,7 +441,7 @@ class ModularityLoss(nn.Module):
             >>> loss, loss_list = loss_fn(all_A, all_P, resolutions)
             >>> print(loss.item(), loss_list)
         """
-        loss = torch.tensor([0.0])
+        loss = torch.Tensor([0])
         loss_list = []
         for index, (A,P) in enumerate(zip(all_A, all_P)):
             if resolutions:
@@ -458,31 +453,7 @@ class ModularityLoss(nn.Module):
         return loss, loss_list
  
     
-
-
-class MSEnzLoss(nn.Module):
-    def __init__(self):
-        super(MSEnzLoss, self).__init__()
-    
-    def forward(self, xhat, x):
-        # Create a mask of non-zero values
-        mask = (x != 0).float()
-        
-        masked_xhat = xhat * mask
-        # Compute squared error only for non-zero values
-        #square_err = torch.square(x - xhat)
-        #square_err_nz = torch.sum(square_err * omega, dim=1)
-        
-        # Compute mean squared error over non-zero elements per row
-        #mean_square_err_nz = square_err_nz / torch.sum(omega, dim=1)
-        
-        mean_square_err_nz = F.mse_loss(masked_xhat, x, reduction ='mean')
-        
-        return mean_square_err_nz  # Return the mean loss over all samples
-
-
-
-
+ 
 
  
 #------------------------------------------------------  
@@ -560,7 +531,7 @@ class ClusterLoss(nn.Module):
             >>> loss, loss_list = loss_fn(Lamb, Attributes, Probabilities, method='bottom_up')
             >>> print(loss.item(), loss_list)
         """
-        loss = torch.tensor([0.0])
+        loss = torch.Tensor([0])
         loss_list = []
         if not isinstance(Attributes, list):
             N = Attributes.shape[0]
@@ -594,7 +565,7 @@ class ClusterLoss(nn.Module):
             loss += weight*within_ss
 
         return loss, loss_list
-
+    #torch no grad
 
 
     # forward method for loss computed using GAE model embedding
@@ -611,7 +582,7 @@ class ClusterLoss(nn.Module):
     #     """
     
     #     #N = Attributes[0].shape[0]
-    #     loss = torch.tensor([0])
+    #     loss = torch.Tensor([0])
     #     loss_list = []
     #     #problist = [torch.eye(N)]+Probabilities
     #     #onehots = [torch.eye(N)]+[F.one_hot(i).type(torch.float32) for i in cluster_labels]
@@ -637,11 +608,14 @@ class ClusterLoss(nn.Module):
 
 
 
-def evaluate(model, X, A, k, true_labels):
+def evaluate(model, X, A, k, true_labels ,run_eval = True):
     
     #set model to evaluation mode
-    model.eval()
-    X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
+    if run_eval == False:
+        return None, (None, None, None, None, None, None, None), None
+    with torch.no_grad():
+        model.eval()
+        X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
     perf_layers = []
     
     if model.method == 'bottom_up':
@@ -662,14 +636,42 @@ def evaluate(model, X, A, k, true_labels):
 
 
 def print_performance(history, comm_layers, k):
-    lnm = ['top']+['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
-    for i in range(0, k):
-        print('-' * 36 + '{} layer'.format(lnm[i]) + '-' * 36)
-        print('\nHomogeneity = {:.4f}, \nCompleteness = {:.4f}, \nNMI = {:.4f}, \nARI = {:.4f}'.format(
-            history[-1][i][0], 
-            history[-1][i][1], 
-            history[-1][i][2],
-            history[-1][i][3]))
+    """Print performance metrics with safe handling of missing data"""
+    if not history or all(h is None for h in history):
+        print("No performance history available")
+        return
+
+    # Filter out None entries and get last valid performance
+    valid_history = [h for h in history if h is not None]
+    if not valid_history:
+        print("No valid performance data available")
+        return
+
+    last_perf = valid_history[-1]
+    lnm = ['top'] + ['middle_'+str(i) for i in np.arange(comm_layers-1)[::-1]]
+    
+    for i in range(min(k, len(last_perf))):  # Ensure we don't exceed available layers
+        # Skip if layer data is missing
+        if i >= len(last_perf) or last_perf[i] is None:
+            print(f"----- No data available for {lnm[i]} layer -----")
+            continue
+            
+        print('-' * 36 + f' {lnm[i]} layer ' + '-' * 36)
+        
+        # Check if all metrics exist
+        metrics = last_perf[i]
+        if len(metrics) >= 4:  # Ensure we have all 4 metrics
+            print(f'\nHomogeneity = {metrics[0]:.4f},'
+                  f'\nCompleteness = {metrics[1]:.4f},'
+                  f'\nNMI = {metrics[2]:.4f},'
+                  f'\nARI = {metrics[3]:.4f}')
+        else:
+            print("\nIncomplete metrics available:")
+            for j, name in enumerate(['Homogeneity', 'Completeness', 'NMI', 'ARI']):
+                if j < len(metrics):
+                    print(f'{name} = {metrics[j]:.4f}', end=', ')
+            print()
+            
         print('-' * 80)
         
         
@@ -707,7 +709,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
         top_mod_loss, values_top = modlossfn([A_all[0]], [P_all[0]], resolution)
         middle_mod_loss, values_mid = modlossfn(A_all[-1], P_all[1], resolution)
         Mod_loss = top_mod_loss+middle_mod_loss
-        Modloss_values = values_top+[torch.sum(torch.tensor(values_mid)).detach().tolist()]
+        Modloss_values = values_top+[torch.mean(torch.tensor(values_mid)).detach().tolist()]
         #Compute clustering loss
         #Clust_loss, Clustloss_values = clustering_loss_fn(lamb, X_all, P_all, S)
         Clust_loss_top, Clustloss_values_top = clustlossfn(lamb[0], Xbatch, [P_all[0]], model.method)
@@ -723,7 +725,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
 
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
-def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 100, update_interval=10, lr = 1e-4, 
+def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, use_batch_learning = True, 
         batch_size = 64, early_stopping = False, patience = 5, true_labels = None, validation_data = None, 
         test_data = None, save_output = False, output_path = '', fs = 10, ns = 10, verbose = True, 
@@ -828,8 +830,8 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
     >>> fit(model, X, A, epochs=50, lr=1e-3, batch_size=32, early_stopping=True, patience=5)
 
     """
-
-    
+    total_training_start = time.time()
+    prelim_time = time.time()
     #preallocate storage
     train_loss_history=[]
     perf_hist = []
@@ -841,9 +843,14 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
     pred_list = []
     all_out = []
     test_loss_history = []
+    test_loss = 0
+    update_interval = 10
+    batch_time_hist = []
+    run_eval_true_hist =[]
+    plot_time_hist = []
         
     if early_stopping:
-        early_stop = EarlyStopping(device=device, patience=patience, verbose=True,  path = output_path)
+        early_stop = EarlyStopping(patience=patience, verbose=True,  path = output_path)
     
     
     #set optimizer Adam
@@ -857,26 +864,29 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
     #A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
     A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
-    if mse_method == 'mse':
-        X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
-    elif mse_method == 'msenz':
-        X_recon_loss = MSEnzLoss()
-    else:
-        raise ValueError(f'Error: got {mse_method} for mse_method. Expected one of either "mse" or "msenz"')
+    X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
 
     #initiate custom loss functions
     modularity_loss_fn = ModularityLoss()
     clustering_loss_fn = ClusterLoss()
-    
+    prelim_end = time.time()
+
+    print(f"...fit set up time: {prelim_end-prelim_time}")
+    prelim_setup_time = str(prelim_end-prelim_time)
     #get batches
+    batch_start = time.time()
     if use_batch_learning:
         if batch_size > X.shape[0]:
             raise ValueError(f'ERROR! Batch size is larger than number of items to split features.shape[0] = {X.shape[0]}')
         X_batches, A_batches, index_batches = get_batched_data(X, A, batch_size = batch_size)
     else:
-        X_batches, A_batches, index_batches = [X], [A], [None]
-    
-
+        X_batches, A_batches, index_batches = [X], [A], None
+    batch_end = time.time()
+    print(f'...get batched data time: {batch_end - batch_start}')
+    fetching_batch_data = str(batch_end - batch_start)
+    last_valid_A_eval = None
+    last_valid_X_eval = None
+    last_valid_S_eval = None
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(range(epochs)):
         #allocate storage for train and test total epoch losses (sum of all batches)
@@ -892,13 +902,13 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
             print('=' * 55+'\n')
         
         total_loss = 0
-        test_loss = 0
         
         
         batch_iterable = tqdm(zip(X_batches, A_batches), ascii=False, ncols=75)
         for index, (Xbatch, Abatch) in enumerate(batch_iterable):
-            
+            print(f'batch {index}')
             #zero out gradient
+            batch_compute_start = time.time()
             optimizer.zero_grad()
 
             #compute forward output 
@@ -937,47 +947,61 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
             train_epoch_loss_X += float(X_loss.cpu().detach().numpy())
             train_epoch_loss_clust = [float(i+j) for (i,j) in zip(train_epoch_loss_clust, Clustloss_values)]
             train_epoch_loss_mod = [float(i+j) for (i,j) in zip(train_epoch_loss_mod, Modloss_values)]
+            batch_compute_end = time.time()
+            tqdm.write(f'...batch computation time: {batch_compute_end - batch_compute_start}')
+            batch_time_hist.append(batch_compute_end-batch_compute_start)
+            
+
+            #batch_iterable.set_description(f'Epoch {idx} Processing batch {"-"*15} batch loss: {total_loss:.2f} test loss: {print_loss_test}')
+
+            
             # #--------------------------------------------------------------------
             #evaluationg test performance
-            if test_data:
-                eval_X, eval_A, eval_labels = test_data
+        test_perf_hist = []
+        test_perf_time_start = time.time()
+        if test_data:
+            eval_X, eval_A, eval_labels = test_data
+            with torch.no_grad():
                 test_perf, test_output, S_replab_test = evaluate(model, eval_X, eval_A, k, eval_labels)
-                X_hat_test, A_hat_test = test_output[0], test_output[1]
-                
-                
-                get_test_output = get_mod_clust_losses(model, 
-                                                       eval_X, 
-                                                       eval_A, 
-                                                       test_output, 
-                                                       lamb, 
-                                                       layer_resolutions, 
-                                                       modularity_loss_fn, 
-                                                       clustering_loss_fn)
-                
-                Mod_loss_test, Modloss_values_test, Clust_loss_test, Clustloss_values_test = get_test_output[:4]
-                #compute loss
-                
-                X_loss_test = gamma*(X_recon_loss(X_hat_test, eval_X)).cpu().detach().numpy()
-                A_loss_test = (A_recon_loss(A_hat_test, eval_A)).cpu().detach().numpy()
-                mod_weighted = delta*Mod_loss_test
-                
-                test_loss += (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
-                print_loss_test = f'{test_loss:.2f}'
-                #update batch losses
-                test_epoch_loss_A += float(A_loss_test)
-                test_epoch_loss_X += float(X_loss_test)
-                test_epoch_loss_clust = [float(i+j) for (i,j) in zip(test_epoch_loss_clust, Clustloss_values_test)]
-                test_epoch_loss_mod = [float(i+j) for (i,j) in zip(test_epoch_loss_mod, Modloss_values_test)]
-                
-            else:
-                print_loss_test = 'No test set provided'
-                test_loss = 0
-                Modloss_values_test = [0,0]
-                Clustloss_values_test = [0,0]
-                X_loss_test = 0
-                A_loss_test = 0
-                
-            batch_iterable.set_description(f'Epoch {idx} Processing batch {"-"*15} batch loss: {total_loss:.2f} test loss: {print_loss_test}')
+            X_hat_test, A_hat_test = test_output[0], test_output[1]
+            
+            
+            get_test_output = get_mod_clust_losses(model, 
+                                                    eval_X, 
+                                                    eval_A, 
+                                                    test_output, 
+                                                    lamb, 
+                                                    layer_resolutions, 
+                                                    modularity_loss_fn, 
+                                                    clustering_loss_fn)
+            
+            Mod_loss_test, Modloss_values_test, Clust_loss_test, Clustloss_values_test = get_test_output[:4]
+            #compute loss
+            X_loss_test = gamma*(X_recon_loss(X_hat_test, eval_X)).cpu().detach().numpy().item()
+            A_loss_test = (A_recon_loss(A_hat_test, eval_A)).cpu().detach().numpy().item()
+            mod_weighted = delta*Mod_loss_test
+            
+            test_loss = (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
+            print_loss_test = f'{test_loss:.2f}'
+            #update batch losses
+            test_epoch_loss_A += float(A_loss_test)
+            test_epoch_loss_X += float(X_loss_test)
+            test_epoch_loss_clust = [float(i+j) for (i,j) in zip(test_epoch_loss_clust, Clustloss_values_test)]
+            test_epoch_loss_mod = [float(i+j) for (i,j) in zip(test_epoch_loss_mod, Modloss_values_test)]
+            
+        else:
+            print_loss_test = 'No test set provided'
+            test_loss = 0
+            Modloss_values_test = [0,0]
+            Clustloss_values_test = [0,0]
+            X_loss_test = 0
+            A_loss_test = 0
+        test_perf_time_end = time.time()
+        test_perf_hist.append(test_perf_time_end - test_perf_time_start)
+        print(f'...evaluate test performance time: {test_perf_time_end - test_perf_time_start}')
+        test_perf_compute_time = str(test_perf_time_end - test_perf_time_start)
+
+                        
            
         # P_truth_top = F.one_hot(torch.tensor(true_labels[0], dtype=torch.int64), num_classes = 5)
         # P_truth_mid = F.one_hot(torch.tensor(true_labels[1], dtype=torch.int64), num_classes = 15)
@@ -986,8 +1010,9 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
         # print(f'Top loss (Truth) {float(ptlt[0])}')
         # print(f'Middle loss (Truth) {float(ptlm[0])}')
         
-        epoch_end = time.time()
         #store loss component information
+        epoch_end = time.time()
+        append_time_start = time.time()
         train_loss_history.append({'Total Loss': total_loss,
                                    'A Reconstruction': train_epoch_loss_A,
                                    'X Reconstruction': gamma*train_epoch_loss_X,
@@ -1000,24 +1025,54 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
                                    'Modularity': test_epoch_loss_mod,
                                    'Clustering': test_epoch_loss_clust})
 
-            
-        print(f'Epoch Time: {epoch_end - epoch_start}')
-                
-        train_perf, eval_output, S_eval= evaluate(model, X, A, k, true_labels)
+        append_time_end = time.time()
+        print(f'...append loss history time: {append_time_end - append_time_start}')
+        loss_hist_update = str(append_time_end - append_time_start)
+        
+        #evaluation on whole data
+
+        eval_time_start = time.time()
+        if epoch%update_interval == 0:
+            run_eval_true_start =time.time()
+            train_perf, eval_output, S_eval= evaluate(model, X, A, k, true_labels,run_eval=True)
+            X_eval, A_eval = eval_output[0], eval_output[1]
+            last_valid_A_eval = A_eval  # Store the last valid evaluation
+            last_valid_X_eval = X_eval
+            last_valid_S_eval = S_eval
+            run_eval_true_end = time.time()
+            run_eval_true_hist.append(run_eval_true_end-run_eval_true_start)
+
+        else:
+            train_perf, eval_output, S_eval= evaluate(model, X, A, k, true_labels,run_eval=False)
+            X_eval, A_eval = eval_output[0], eval_output[1]
+            # Use last valid evaluation if current is None
+            A_eval = last_valid_A_eval if A_eval is None else A_eval
+            X_eval = last_valid_X_eval if X_eval is None else X_eval
+            S_eval = last_valid_S_eval if S_eval is None else S_eval
+        
         X_eval, A_eval = eval_output[0], eval_output[1]
+        eval_time_end = time.time()
+        print(f'...evaluation whole data time: {eval_time_end - eval_time_start}')
+        eval_whole_data = str(eval_time_end - eval_time_start)
         #update history
+        append_perf_start = time.time()
         perf_hist.append(train_perf)
         pred_list.append(S_eval)
-                     
-        
+        print("updated history")             
+        append_perf_end = time.time()
+        print(f'...append perf hist time: {append_perf_end - append_perf_start}')
+        append_perf_hist = str(append_perf_end - append_perf_start)
         #check for and apply validation 
         if validation_data:
-            X_val, A_val, val_labels = validation_data
-            valid_perf, output, Sval = evaluate(model, X_val, A_val, k, val_labels)
-            valid_perf_hist.append(valid_perf)
-        
+            with torch.no_grad():
+                X_val, A_val, val_labels = validation_data
+                valid_perf, output, Sval = evaluate(model, X_val, A_val, k, val_labels)
+                valid_perf_hist.append(valid_perf)
+            print("finished validate")
         #evaluate epoch
-        if (epoch+1) % update_interval == 0:
+        plot_time_start = time.time()
+        
+        if epoch % update_interval == 0:
             
             #store update interval
             updates.append(epoch+1)
@@ -1071,10 +1126,11 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
                     
                 
                 print('plotting heatmaps ...')
+                
                 plot_clust_heatmaps(A = A.cpu(), 
-                                    A_pred = A_eval.cpu(), 
+                                    A_pred = A_eval.cpu() if A_eval is not None else None, 
                                     X = X.cpu(),
-                                    X_pred = X_eval.cpu(),
+                                    X_pred = X_eval.cpu() if X_eval is not None else None,
                                     true_labels = true_labels, 
                                     pred_labels = [i.cpu() for i in S_eval], 
                                     layers = k+1, 
@@ -1093,7 +1149,10 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
                               epoch = epoch, 
                               path= output_path, 
                               save = save_output)
-                
+        plot_time_end = time.time()
+        print(f'...plot time: {plot_time_end-plot_time_start}')
+        plot_time_hist.append(plot_time_end-plot_time_start)
+        plotting_time = str(plot_time_end-plot_time_start)
         if early_stopping:
             if test_data:
                 # Check for early stopping
@@ -1105,17 +1164,24 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
             if early_stop.early_stop == True:
                 break
             
-            
+        
         if epoch > 0:
             print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
+            print(f"...Average batch computation time = {np.mean(batch_time_hist)}\n\n")
         time_hist.append(time.time() - epoch_start)
         if verbose:
             print(f'Total Epoch Time: {(epoch_end - epoch_start):.2f}')
+
     
     #return 
+    forward_start = time.time()
+    print("model forward")
     final_out = model.forward(X, A)
-    
-    
+    forward_end = time.time()
+    print(f'...forward whole data time: {forward_end-forward_start}')
+    forward_time = str(forward_end-forward_start)
+    print("testing HCD out")
+    output_start = time.time()
     output = HCD_output(X = X, 
                         A = A, 
                         test_set= test_data,
@@ -1127,5 +1193,28 @@ def fit(model, X, A, optimizer='Adam', mse_method = ['msenz', 'mse'], epochs = 1
                         perf_history=perf_hist, 
                         pred_history=pred_list, 
                         batch_indices=index_batches)
-    
+    output_end =time.time()
+    print(f'...output time: {output_end - output_start}')
+    model_output = str(output_end - output_start)
+
+    total_training_end = time.time()
+    total_training_time = str(total_training_end-total_training_start)
+    file_path = os.path.join(output_path, 'time_data.txt')
+    with open(file_path, 'w') as f:
+        f.write(f"Preliminary Set up: {prelim_setup_time} \n")
+        f.write(f'fetching batched data: {fetching_batch_data}\n')
+        f.write(f'test performance compute time: {test_perf_compute_time}\n')
+        f.write(f'loss history updating: {loss_hist_update}\n')
+        f.write(f'evaluation on whole data:{eval_whole_data}\n')
+        f.write(f'appending performance history: {append_perf_hist}\n')
+        f.write(f'model output: {model_output}\n')
+        f.write(f'Average plotting time: {np.mean(plot_time_hist)}\n')
+        f.write(f'Average time for evaluate when run eval is true: {np.mean(run_eval_true_hist)}\n')
+        f.write(f'Average test performance evaluation: {np.mean(test_perf_hist)}\n')
+        f.write(f'Average batch time: {np.mean(batch_time_hist)}\n')
+        f.write(f'Average epoch time: {np.mean(time_hist)}\n')
+        f.write(f'total training time: {total_training_time}\n')
+
+    print(f"File saved to: {file_path}")
+
     return output

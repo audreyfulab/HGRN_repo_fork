@@ -276,8 +276,16 @@ def hierachical_graph(top_graph, subgraph_node_number, subgraph_type, as_weighte
             
         #add edges and print which edges were added to user
         edges_to_add = [possible_edges[x] for x in which_edges_idx]
+        print('cprob: ',c_prob)
+        print('num_possible: ',num_possible)
+        num_true = 0
+        for i in range(len(which_edges)):
+            if which_edges[i] == True:
+                num_true+=1
+        print('which_edges are true:', num_true)
+
         print(f'Adding {len(edges_to_add)} edges between community {p_graph} and community {c_graph}: \n {edges_to_add}')
-        
+       
         full_graph = add_edges_to_subgraph(full_graph, 
                                            nodes_to_add = None, 
                                            edges_to_add = edges_to_add, 
@@ -400,8 +408,8 @@ def generate_pseudo_expression_weighted(topological_order, adjacency_matrix,
         else:
             parents_idx = [i for i in list(np.arange(N)) if adjacency_matrix[i, index] != 0]
             weights = adjacency_matrix[parents_idx, index].reshape(len(parents_idx), 1)
-            #weights = adjacency_matrix[parents_idx, index]
-            #parents_loc = np.multiply(pseudo_expression[parents_idx, :].transpose(),weights).sum(axis = 1).reshape(1, number_of_invididuals)
+            weights = adjacency_matrix[parents_idx, index]
+            parents_loc = np.multiply(pseudo_expression[parents_idx, :].transpose(),weights).sum(axis = 1).reshape(1, number_of_invididuals)
             parents_loc = np.matmul(pseudo_expression[parents_idx, :].transpose(), weights).reshape(1, number_of_invididuals)
             pseudo_expression[index, :] = np.random.normal(parents_loc, std) 
     return pseudo_expression, origin_nodes

@@ -137,7 +137,7 @@ def simulate_graph(args):
                                  subgraph_node_number=args.nodes_per_super2, 
                                  subgraph_type =args.subgraph_type, 
                                  sub_graph_prob=args.subgraph_prob[0], 
-                                 connection_prob_within=args.connect_prob_middle[0],
+                                 connection_prob_within = args.connect_prob_middle[0],
                                  connection_prob_between = args.connect_prob_middle[1],
                                  degree=args.node_degree_middle,
                                  weight_w = args.within_edgeweights,
@@ -309,5 +309,4 @@ def simulate_graph(args):
     #close all open figures
     plt.close('all')
     
-    #return 
     return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes

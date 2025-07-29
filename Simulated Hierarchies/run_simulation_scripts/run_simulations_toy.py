@@ -154,13 +154,13 @@ def run_simulations(save_results = False):
         HCD_model_r08 = HCD(nodes, attrib, comm_sizes=comm_sizes, attn_act='LeakyReLU')
         
         #set attribute and input graph(s) to torch tensors with grad attached
-        X = torch.tensor(pe_sorted).requires_grad_()
+        X = torch.Tensor(pe_sorted).requires_grad_()
         #three input graph scenarios -- add self loops
-        A_truth = torch.tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
-        A_rmat = torch.tensor(rmat).requires_grad_()
-        A_r02 = torch.tensor(in_adj02).requires_grad_()+torch.eye(nodes)
-        A_r05 = torch.tensor(in_adj05).requires_grad_()+torch.eye(nodes)
-        A_r08 = torch.tensor(in_adj08).requires_grad_()+torch.eye(nodes)
+        A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
+        A_rmat = torch.Tensor(rmat).requires_grad_()
+        A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
+        A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
+        A_r08 = torch.Tensor(in_adj08).requires_grad_()+torch.eye(nodes)
         
         #combine input items into lists for iteration
         Mods = [HCD_model_truth, HCD_model_rmat, HCD_model_r02, 

@@ -233,13 +233,13 @@ def run_simulations(dataset = ['complex', 'intermediate','toy', 'cora', 'pubmed'
                             attn_act=activation).to(device)
         
         #set attribute and input graph(s) to torch tensors with gradient
-        X = torch.tensor(pe_sorted).requires_grad_()
+        X = torch.Tensor(pe_sorted).requires_grad_()
         #-- add in self loops to input adjacency matrices
-        A_truth = torch.tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
-        A_rmat = torch.tensor(rmat).requires_grad_()
-        A_r02 = torch.tensor(in_adj02).requires_grad_()+torch.eye(nodes)
-        A_r05 = torch.tensor(in_adj05).requires_grad_()+torch.eye(nodes)
-        A_r07 = torch.tensor(in_adj07).requires_grad_()+torch.eye(nodes)
+        A_truth = torch.Tensor(true_adj_undi[:nodes,:nodes]).requires_grad_()+torch.eye(nodes)
+        A_rmat = torch.Tensor(rmat).requires_grad_()
+        A_r02 = torch.Tensor(in_adj02).requires_grad_()+torch.eye(nodes)
+        A_r05 = torch.Tensor(in_adj05).requires_grad_()+torch.eye(nodes)
+        A_r07 = torch.Tensor(in_adj07).requires_grad_()+torch.eye(nodes)
         
         #combine input items into lists for iteration:
         #models
