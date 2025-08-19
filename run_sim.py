@@ -26,8 +26,9 @@ HCD was built using python `3.12.2` and uses `CUDA toolkit 12.6` for GPU utiliza
 import argparse
 import sys
 import os
+import tracemalloc
 #expose paths to necessary files
-base_dir = "/Users/jordandavis/Desktop/HGRN_repo"
+base_dir = "/Users/jordandavis/Documents/HGRN_repo_fork"
 
 # Add necessary folders to the Python path
 sys.path.append(os.path.join(base_dir, "HGRN_software"))
@@ -45,6 +46,7 @@ import torch
 import numpy as np
 import pandas as pd
 from typing import Literal
+from memory_profiler import profile
 
 # Run and Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
@@ -183,7 +185,7 @@ args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
 args.use_batch_learning = True
-args.batch_size = 64
+args.batch_size = 24
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
@@ -214,10 +216,13 @@ args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
+tracemalloc.start()
 #generate data and train model - returns output object of class HCD_output
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
 plt.close('all') #close any open figures to save memory
-    
+print(f'run single sim memory',tracemalloc.get_traced_memory())
+tracemalloc.stop()
+
 #save all arguments/parameters
 args_dict = vars(args)
 simargs_dict = vars(sim_args)
@@ -227,9 +232,11 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
-
+tracemalloc.start()
 # reload data
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
+print(f'set up model for simulation in place',tracemalloc.get_traced_memory())
+tracemalloc.stop()
 
 #load trained model
 model = torch.load(args.sp+'checkpoint.pth')
@@ -273,7 +280,6 @@ with open(params_output_path, 'w') as f:
         f.write(f"{key}: {value}\n")
 
 print(f"Parameters saved to {params_output_path}")
-
 
 #lower batch size
 #change steps_between_updates

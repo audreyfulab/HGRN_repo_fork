@@ -931,7 +931,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
             #compute reconstruction losses for graph and attributes
             X_loss = X_recon_loss(X_hat, Xbatch)
-            A_loss = A_recon_loss(A_hat, Abatch)
+            A_loss = A_recon_loss(torch.sigmoid(A_hat), Abatch)
             #compute the total loss function
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
             
@@ -1050,7 +1050,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             X_eval = last_valid_X_eval if X_eval is None else X_eval
             S_eval = last_valid_S_eval if S_eval is None else S_eval
         
-        X_eval, A_eval = eval_output[0], eval_output[1]
+        
         eval_time_end = time.time()
         print(f'...evaluation whole data time: {eval_time_end - eval_time_start}')
         eval_whole_data = str(eval_time_end - eval_time_start)
