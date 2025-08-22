@@ -18,6 +18,7 @@ import pickle
 import random as rd
 import os
 import time
+import tracemalloc
 
 
 def run_single_simulation(args, simulation_args = None, return_model = False, **kwargs):
@@ -151,6 +152,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #initiate model 
     model_init_start = time.time()
     print('-'*25+'setting up and fitting models'+'-'*25)
+    tracemalloc.start()
     model = HCD(
                 nodes, attrib, 
                 method=args.use_method,
@@ -193,9 +195,11 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #fit the models
     print("*"*80)
     print(f"Model initialization time: {time.time() - model_init_start:.2f} seconds")
-
+    print(f'model memory: ',tracemalloc.get_traced_memory())
+    tracemalloc.stop()
     #train the model
     training_start = time.time()
+    tracemalloc.start()
     model_output = fit(model, X, A, 
                        k = layers,
                        optimizer='Adam', 
@@ -228,7 +232,8 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
                             output = model_output, 
                             comm_sizes=comm_sizes)
     beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, indices, metrics, preds, trace = results
-    
+    print(f'training memory: ',tracemalloc.get_traced_memory())
+    tracemalloc.stop()
     #choose results to return (best perf mid, top or best loss)
     bpi, bli = indices
     if args.return_result == 'best_loss':
@@ -239,7 +244,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     model_output.best_loss_index = best_result_index
     S_sub, S_layer, S_all = trace
     print(f"Postprocessing time: {time.time() - postprocessing_start:.2f} seconds")
-
+    tracemalloc.start()
     #run louvain method on same dataset
     louvain_training = time.time()
     if args.run_louvain:
@@ -298,22 +303,30 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
         best_preds = []
         print("Warning: No valid prediction history available")
     print(f"hierarchical clustering time: {time.time() - hierarchical_start:.2f} seconds")
-
+    print(f'Other cluster methods memory: ',tracemalloc.get_traced_memory())
+    tracemalloc.stop()
         
     #post fit plots and results
     plot_time = time.time()
+    tracemalloc.start()
     
     if args.post_hoc_plots:
-        pbmt=post_hoc(args, 
-                      output = model_output, 
-                      predicted = best_preds,
-                      truth = target_labels,
-                      louv_pred = louv_preds,
-                      kmeans_pred = kmeans_preds,
-                      thc_pred = hc_preds,
-                      bp = best_result_index,
-                      k_layers = layers,
-                      verbose = True)
+        # Process in chunks if dealing with large data
+        pbmt = post_hoc(args, 
+                    output = model_output, 
+                    predicted = best_preds,
+                    truth = target_labels,
+                    louv_pred = louv_preds,
+                    kmeans_pred = kmeans_preds,
+                    thc_pred = hc_preds,
+                    bp = best_result_index,
+                    k_layers = layers,
+                    verbose = True)
+        
+        # Clear large intermediate objects immediately
+        del best_preds, louv_preds, kmeans_preds, hc_preds
+        import gc
+        gc.collect()
     
     
     #update performance table
@@ -337,13 +350,26 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print(res_table.loc[0])
     print('*'*80)
     
+    # Instead of storing everything in model_output, use selective storage
     model_output.table = res_table
-    model_output.perf_table = pbmt
-    
-    if args.save_results == True:
+
+    # Only store essential parts of pbmt if it's large
+    if pbmt is not None:
+        model_output.perf_table = pbmt
+        # Optionally, store only summary statistics instead of full table
+        # model_output.perf_summary = pbmt.describe() if hasattr(pbmt, 'describe') else pbmt
+        
+    if args.save_results:
+        # Write in chunks if the table is large
+        if len(res_table) > 1000:  # Adjust threshold
+            for i in range(0, len(res_table), 500):
+                chunk = res_table.iloc[i:i+500]
+                mode = 'w' if i == 0 else 'a'
+                header = i == 0
+                chunk.to_csv(savepath_main+'Simulation_Results'+'.csv', 
+                            mode=mode, header=header)
+    else:
         res_table.to_csv(savepath_main+'Simulation_Results'+'.csv')
-        with open(savepath_main+'Simulation_Results_'+'OUTPUT'+'.pkl', 'wb') as f:
-            pickle.dump(model_output, f)
     
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
@@ -351,7 +377,8 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print(f"plot time: {time.time() - plot_time:.2f} seconds")
     print(f"Total runtime: {time.time() - start:.2f} seconds")
     print('done')
-    
+    print(f'plotting memory: ', tracemalloc.get_traced_memory())
+    tracemalloc.stop()
     if return_model:
         return model_output, model
     else:

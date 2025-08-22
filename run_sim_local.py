@@ -26,8 +26,9 @@ HCD was built using python `3.12.2` and uses `CUDA toolkit 12.6` for GPU utiliza
 import argparse
 import sys
 import os
+import tracemalloc
 #expose paths to necessary files
-base_dir = "/wsu/home/gw/gw40/gw4067/HGRN_repo_newbatch"
+base_dir = "/Users/jordandavis/Documents/HGRN_repo_fork"
 
 # Add necessary folders to the Python path
 sys.path.append(os.path.join(base_dir, "HGRN_software"))
@@ -45,6 +46,7 @@ import torch
 import numpy as np
 import pandas as pd
 from typing import Literal
+from memory_profiler import profile
 
 # Run and Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
@@ -140,11 +142,11 @@ sim_args.subgraph_type = 'small world'
 
 sim_args.set_seed = True
 sim_args.seed_number = 555
-sim_args.savepath = '/wsu/home/gw/gw40/gw4067/HGRN_repo/7kgraph/'
-#sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
+#sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/attempt_on_test7/test6/'
+sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
 
 #output save settings
-args.sp = '/wsu/home/gw/gw40/gw4067/HGRN_repo_newbatch/10k_inference/'
+args.sp = '/Users/jordandavis/Desktop/HGRN_repo/train_implement3/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True
@@ -152,6 +154,7 @@ args.make_directories = True #this will automatically create the directories at 
 args.set_seed = 555 #sets a seed for training the model
 args.load_from_existing = True #this will ensure a new graph is simulated. When set to True, data retreiver looks for graph elements at directory sim_args.savepath
 args.dataset = 'generated' #sets the dataset to be simulated according arguments passed in sim_args
+
 
 #graph settings
 def scale_connection_prob(num_nodes, avg_degree_range=(4, 12)):
@@ -182,7 +185,7 @@ args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
 args.use_batch_learning = True
-args.batch_size = 32
+args.batch_size = 64
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
@@ -193,16 +196,16 @@ args.dropout_rate = 0.2
 args.normalize_input = True
 args.normalize_layers = True
 args.AE_hidden_size = [256, 128] 
-args.gamma = 0.1
-args.delta = 30
-args.lambda_ = [0.067, .02]
+args.gamma = 2
+args.delta = 10
+args.lambda_ = [1/60, 1/20]
 args.learning_rate = 1e-3
 args.community_sizes = [15, 5]
 args.compute_optimal_clusters = True #this overrides args.community_sizes and estimates k_middle, k_top according to "kappa_method"
 args.kappa_method = 'bethe_hessian'
 
 #training set up
-args.training_epochs = 20
+args.training_epochs = 30
 args.steps_between_updates = 10
 args.use_true_graph = False 
 args.correlation_cutoff = 0.2
@@ -213,10 +216,13 @@ args.run_hc = True
 args.split_data = True
 args.train_test_size = [0.8, 0.2]
 
+tracemalloc.start()
 #generate data and train model - returns output object of class HCD_output
 results = run_single_simulation(args, simulation_args = sim_args, return_model = False, heads = 1)
 plt.close('all') #close any open figures to save memory
-    
+print(f'run single sim memory',tracemalloc.get_traced_memory())
+tracemalloc.stop()
+
 #save all arguments/parameters
 args_dict = vars(args)
 simargs_dict = vars(sim_args)
@@ -226,9 +232,11 @@ dfargs2 = pd.DataFrame(list(simargs_dict.items()), columns=['Parameter', 'Value'
 
 dfargs1.to_csv(args.sp+'Model_Parameters.csv')
 dfargs2.to_csv(sim_args.savepath+'Simulation_Parameters.csv')
-
+tracemalloc.start()
 # reload data
 X, A, target_labels = set_up_model_for_simulation_inplace(args, sim_args, load_from_existing = True)
+print(f'set up model for simulation in place',tracemalloc.get_traced_memory())
+tracemalloc.stop()
 
 #load trained model
 model = torch.load(args.sp+'checkpoint.pth')
@@ -272,7 +280,6 @@ with open(params_output_path, 'w') as f:
         f.write(f"{key}: {value}\n")
 
 print(f"Parameters saved to {params_output_path}")
-
 
 #lower batch size
 #change steps_between_updates
