@@ -27,7 +27,7 @@ import argparse
 import sys
 import os
 #expose paths to necessary files
-base_dir = "/wsu/home/gw/gw40/gw4067/HGRN_repo_newbatch"
+base_dir = "/wsu/home/gw/gw40/gw4067/HGRN_repo_fork"
 
 # Add necessary folders to the Python path
 sys.path.append(os.path.join(base_dir, "HGRN_software"))
@@ -144,7 +144,7 @@ sim_args.savepath = '/wsu/home/gw/gw40/gw4067/HGRN_repo/7kgraph/'
 #sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
 
 #output save settings
-args.sp = '/wsu/home/gw/gw40/gw4067/HGRN_repo_newbatch/10k_inference/'
+args.sp = '/wsu/home/gw/gw40/gw4067/HGRN_repo_fork/10k_inference/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True

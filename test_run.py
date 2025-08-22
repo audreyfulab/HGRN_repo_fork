@@ -2,13 +2,14 @@ import argparse
 import sys
 import os
 #expose paths to necessary files
-base_dir = "/Users/jordandavis/Desktop/HGRN_repo"
+base_dir = "/wsu/home/gw/gw40/gw4067/HGRN_repo_fork"
 
 # Add necessary folders to the Python path
 sys.path.append(os.path.join(base_dir, "HGRN_software"))
 sys.path.append(os.path.join(base_dir, "Simulated Hierarchies"))
 sys.path.append(os.path.join(base_dir, "Simulated Hierarchies", "run_simulation_utils"))
 sys.path.append(os.path.join(base_dir, "model"))
+
 
 from MAIN_run_simulations_single_net import run_single_simulation
 from run_simulations_utils import set_up_model_for_simulation_inplace
@@ -120,56 +121,57 @@ def scale_connection_prob(num_nodes, within_between_probs=(4, 12)):
     #between_prob = np.abs(np.random.normal(between_prob))
     probs = [within_prob,between_prob]
     return probs
+
 bottom_prob_within =.013
 bottom_prob_between = .0027
 middle_prob_between = .002
-for i in range(1):
-    
-    bottom_prob_between = bottom_prob_between + .0002
-    middle_prob_between = middle_prob_between + .001
-    
-
-    sim_args.savepath = f'/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
-    sim_args.connect = 'full'
-    sim_args.force_connect = False
-    sim_args.top_layer_nodes = 3
-    sim_args.nodes_per_super2 = (5,5) #output to sim params
-    sim_args.nodes_per_super3 = (10,10) #output to sim params
-    n1 = sim_args.top_layer_nodes
-    k2 = (sim_args.nodes_per_super2[0]+sim_args.nodes_per_super2[1])/2
-    k3 = (sim_args.nodes_per_super3[0]+sim_args.nodes_per_super3[1])/2
-
-    n2 = n1 * k2  # Middle layer
-    n3 = n2 * k3  # Bottom layer
 
 
-    sim_args.connect_prob_middle = [.008,middle_prob_between]
-    sim_args.connect_prob_bottom = [bottom_prob_within,bottom_prob_between]
-    X,A, target_labels = set_up_model_for_simulation_inplace(args, sim_args)
-    params_output_path = os.path.join(sim_args.savepath, 'simulation_params.txt')
+bottom_prob_between = bottom_prob_between + .0002
+middle_prob_between = middle_prob_between + .001
 
-    # Ensure the save directory exists
-    os.makedirs(sim_args.savepath, exist_ok=True)
 
-    # Collect parameters to save
-    params_to_save = {
-        "connect": sim_args.connect,
-        "nodes_per_super2": sim_args.nodes_per_super2,
-        "nodes_per_super3": sim_args.nodes_per_super3,
-        "top_layer_nodes": sim_args.top_layer_nodes,
-        "middle_layer_nodes": n2,
-        "bottom_layer_nodes": n3,
-        "node_degree_middle": sim_args.node_degree_middle,
-        "node_degree_bottom": sim_args.node_degree_bottom,
-        "connect_prob_middle": sim_args.connect_prob_middle,
-        "connect_prob_bottom": sim_args.connect_prob_bottom,
-        "sim_args.subgraph_type": sim_args.subgraph_type 
-    }
+sim_args.savepath = f'/wsu/home/gw/gw40/gw4067/HGRN_repo/10kgraph/'
+sim_args.connect = 'full'
+sim_args.force_connect = False
+sim_args.top_layer_nodes = 3
+sim_args.nodes_per_super2 = (5,5) #output to sim params
+sim_args.nodes_per_super3 = (10,10) #output to sim params
+n1 = sim_args.top_layer_nodes
+k2 = (sim_args.nodes_per_super2[0]+sim_args.nodes_per_super2[1])/2
+k3 = (sim_args.nodes_per_super3[0]+sim_args.nodes_per_super3[1])/2
 
-    with open(params_output_path, 'w') as f:
-        for key, value in params_to_save.items():
-            f.write(f"{key}: {value}\n")
+n2 = n1 * k2  # Middle layer
+n3 = n2 * k3  # Bottom layer
 
-    print(f"Parameters saved to {params_output_path}")
-    #uotput number of nodes
-    #try 10k nodes
+
+sim_args.connect_prob_middle = [.008,middle_prob_between]
+sim_args.connect_prob_bottom = [bottom_prob_within,bottom_prob_between]
+X,A, target_labels = set_up_model_for_simulation_inplace(args, sim_args)
+params_output_path = os.path.join(sim_args.savepath, 'simulation_params.txt')
+
+# Ensure the save directory exists
+os.makedirs(sim_args.savepath, exist_ok=True)
+
+# Collect parameters to save
+params_to_save = {
+    "connect": sim_args.connect,
+    "nodes_per_super2": sim_args.nodes_per_super2,
+    "nodes_per_super3": sim_args.nodes_per_super3,
+    "top_layer_nodes": sim_args.top_layer_nodes,
+    "middle_layer_nodes": n2,
+    "bottom_layer_nodes": n3,
+    "node_degree_middle": sim_args.node_degree_middle,
+    "node_degree_bottom": sim_args.node_degree_bottom,
+    "connect_prob_middle": sim_args.connect_prob_middle,
+    "connect_prob_bottom": sim_args.connect_prob_bottom,
+    "sim_args.subgraph_type": sim_args.subgraph_type 
+}
+
+with open(params_output_path, 'w') as f:
+    for key, value in params_to_save.items():
+        f.write(f"{key}: {value}\n")
+
+print(f"Parameters saved to {params_output_path}")
+#uotput number of nodes
+#try 10k nodes
