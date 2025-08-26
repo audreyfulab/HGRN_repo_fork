@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 #expose paths to necessary files
-base_dir = "/Users/jordandavis/Desktop/HGRN_repo"
+base_dir = "/Users/jordandavis/Documents/HGRN_repo_fork"
 
 # Add necessary folders to the Python path
 sys.path.append(os.path.join(base_dir, "HGRN_software"))

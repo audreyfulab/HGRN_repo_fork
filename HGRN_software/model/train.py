@@ -904,7 +904,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         total_loss = 0
         
         
-        batch_iterable = tqdm(zip(X_batches, A_batches), ascii=False, ncols=75)
+        batch_iterable = zip(X_batches, A_batches)
         for index, (Xbatch, Abatch) in enumerate(batch_iterable):
             print(f'batch {index}')
             #zero out gradient
@@ -931,9 +931,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
             #compute reconstruction losses for graph and attributes
             X_loss = X_recon_loss(X_hat, Xbatch)
-            A_loss = A_recon_loss(torch.sigmoid(A_hat), Abatch)
+            print(A_hat)
+            A_loss = A_recon_loss(A_hat, Abatch)
             #compute the total loss function
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
+            #vanishing gradients in back prop, grabbing from matrices
             
             #compute backward pass
             loss.backward()
@@ -948,7 +950,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             train_epoch_loss_clust = [float(i+j) for (i,j) in zip(train_epoch_loss_clust, Clustloss_values)]
             train_epoch_loss_mod = [float(i+j) for (i,j) in zip(train_epoch_loss_mod, Modloss_values)]
             batch_compute_end = time.time()
-            tqdm.write(f'...batch computation time: {batch_compute_end - batch_compute_start}')
+           
             batch_time_hist.append(batch_compute_end-batch_compute_start)
             
 
