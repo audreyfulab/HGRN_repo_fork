@@ -142,7 +142,7 @@ class HCD_output():
     
     def __init__(self, X, A, test_set, labels, all_output, model_output, test_history, train_history, perf_history, pred_history, batch_indices):
         
-        X_final, A_final, X_all_final, A_all_final, P_all_final, S_final, AW_final = model_output
+        X_final, A_final,_, X_all_final, A_all_final, P_all_final, S_final, AW_final = model_output
         
         eval_X, eval_A, eval_labels = test_set
         
@@ -615,7 +615,7 @@ def evaluate(model, X, A, k, true_labels ,run_eval = True):
         return None, (None, None, None, None, None, None, None), None
     with torch.no_grad():
         model.eval()
-        X_pred, A_pred, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
+        X_pred, A_pred, A_logit, X_list, A_list, P_list, S_pred, AW_pred = model.forward(X, A)
     perf_layers = []
     
     if model.method == 'bottom_up':
@@ -693,7 +693,11 @@ def print_losses(epoch, loss_history):
     
 def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlossfn, clustlossfn):
     
-    X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
+    if len(output) == 8:
+        X_hat, A_hat, A_logit, X_all, A_all, P_all, S_all, AW = output
+    else:  
+        X_hat, A_hat, X_all, A_all, P_all, S_all, AW = output
+        A_logit = None
     
     if model.method == 'bottom_up':
         S_sub, S_relab, S = trace_comms([i.cpu().clone() for i in S_all], model.comm_sizes)
@@ -925,14 +929,14 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                               clustering_loss_fn)
             
             Mod_loss, Modloss_values, Clust_loss, Clustloss_values, S_sub, S_relab = get_output
-            X_hat, A_hat, X_all, A_all, P_all, S_all, AW = forward_output
+            X_hat, A_hat, A_logit, X_all, A_all, P_all, S_all, AW = forward_output
             #update output list
             all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all], AW])
             
             #compute reconstruction losses for graph and attributes
             X_loss = X_recon_loss(X_hat, Xbatch)
-            print(A_hat)
-            A_loss = A_recon_loss(A_hat, Abatch)
+            criterion = torch.nn.BCEWithLogitsLoss()
+            A_loss = criterion(A_logit, Abatch)
             #compute the total loss function
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
             #vanishing gradients in back prop, grabbing from matrices

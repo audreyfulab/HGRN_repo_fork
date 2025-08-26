@@ -331,6 +331,7 @@ class HCD(nn.Module):
         #get embedding representation
         Z, A, encoder_attention_weights = self.encoder(H,A)
 
+        A_logits = self.dpd_norm(torch.mm(Z, Z.transpose(0,1)))
         A_hat = self.dpd_act(self.dpd_norm(torch.mm(Z, Z.transpose(0,1))))        
         #get reconstructed adjacency
         X_hat, A, decoder_attention_weights = self.decoder(Z, A)
@@ -422,7 +423,7 @@ class HCD(nn.Module):
                 
         A_all_final = [A]+[A_all]+[subsets_A]
         X_all_final = [Z]+[X_all]+[subsets_X]
-        return X_hat, A_hat, X_all_final, A_all_final, P_all, S_all, {'encoder': [[i.cpu() for i in j] for j in encoder_attention_weights], 'decoder': [[i.cpu() for i in j] for j in decoder_attention_weights]}
+        return X_hat, A_hat, A_logits, X_all_final, A_all_final, P_all, S_all, {'encoder': [[i.cpu() for i in j] for j in encoder_attention_weights], 'decoder': [[i.cpu() for i in j] for j in decoder_attention_weights]}
     
     
     
