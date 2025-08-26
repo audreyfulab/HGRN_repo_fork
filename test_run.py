@@ -131,7 +131,7 @@ bottom_prob_between = bottom_prob_between + .0002
 middle_prob_between = middle_prob_between + .001
 
 
-sim_args.savepath = f'/wsu/home/gw/gw40/gw4067/HGRN_repo/10kgraph/'
+sim_args.savepath = f'/wsu/home/gw/gw40/gw4067/HGRN_repo/small_graph/'
 sim_args.connect = 'full'
 sim_args.force_connect = False
 sim_args.top_layer_nodes = 3
