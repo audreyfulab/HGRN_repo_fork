@@ -936,7 +936,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #compute reconstruction losses for graph and attributes
             X_loss = X_recon_loss(X_hat, Xbatch)
             criterion = torch.nn.BCEWithLogitsLoss()
-            A_loss = criterion(A_logit, Abatch)
+            A_loss = criterion(A_hat, Abatch)
             #compute the total loss function
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
             #vanishing gradients in back prop, grabbing from matrices
