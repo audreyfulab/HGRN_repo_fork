@@ -137,7 +137,7 @@ sim_args = parser2.parse_args()
 #simulation settings
 sim_args.subgraph_type = 'small world'
 
-
+print('testing commit')
 sim_args.set_seed = True
 sim_args.seed_number = 555
 sim_args.savepath = '/wsu/home/gw/gw40/gw4067/HGRN_repo/7kgraph/'
