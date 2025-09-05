@@ -140,11 +140,11 @@ sim_args.subgraph_type = 'small world'
 print('testing commit')
 sim_args.set_seed = True
 sim_args.seed_number = 555
-sim_args.savepath = '/wsu/home/gw/gw40/gw4067/HGRN_repo/7kgraph/'
+sim_args.savepath = '/wsu/home/gw/gw40/gw4067/HGRN_repo/1kgraph/'
 #sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
 
 #output save settings
-args.sp = '/wsu/home/gw/gw40/gw4067/HGRN_repo_fork/10k_inference/'
+args.sp = '/wsu/home/gw/gw40/gw4067/HGRN_repo_fork/1k_inference/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True
@@ -182,7 +182,7 @@ args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
 args.use_batch_learning = True
-args.batch_size = 32
+args.batch_size = 64
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False
@@ -202,7 +202,7 @@ args.compute_optimal_clusters = True #this overrides args.community_sizes and es
 args.kappa_method = 'bethe_hessian'
 
 #training set up
-args.training_epochs = 20
+args.training_epochs = 30
 args.steps_between_updates = 10
 args.use_true_graph = False 
 args.correlation_cutoff = 0.2

@@ -129,12 +129,12 @@ for i in range(1):
     middle_prob_between = middle_prob_between + .001
     
 
-    sim_args.savepath = f'/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
+    sim_args.savepath = f'/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph/'
     sim_args.connect = 'full'
     sim_args.force_connect = False
-    sim_args.top_layer_nodes = 3
-    sim_args.nodes_per_super2 = (5,5) #output to sim params
-    sim_args.nodes_per_super3 = (10,10) #output to sim params
+    sim_args.top_layer_nodes = 5
+    sim_args.nodes_per_super2 = (10,10) #output to sim params
+    sim_args.nodes_per_super3 = (20,20) #output to sim params
     n1 = sim_args.top_layer_nodes
     k2 = (sim_args.nodes_per_super2[0]+sim_args.nodes_per_super2[1])/2
     k3 = (sim_args.nodes_per_super3[0]+sim_args.nodes_per_super3[1])/2

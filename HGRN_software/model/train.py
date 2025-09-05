@@ -19,6 +19,8 @@ from model.utilities import trace_comms, get_layered_performance
 from model.utilities import plot_loss, plot_perf, plot_nodes, plot_clust_heatmaps
 import os
 from typing import Optional, Union, List,  Literal
+from memory_profiler import profile
+import tracemalloc
 
 # model early stopping
 class EarlyStopping:
@@ -729,6 +731,7 @@ def get_mod_clust_losses(model, Xbatch, Abatch, output, lamb, resolution, modlos
 
 #------------------------------------------------------
 #this function fits the HRGNgene model to data
+
 def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e-4, 
         gamma = 1, delta = 1, lamb = 1, layer_resolutions = [1,1], k = 2, use_batch_learning = True, 
         batch_size = 64, early_stopping = False, patience = 5, true_labels = None, validation_data = None, 
@@ -834,6 +837,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     >>> fit(model, X, A, epochs=50, lr=1e-3, batch_size=32, early_stopping=True, patience=5)
 
     """
+    tracemalloc.start()
     total_training_start = time.time()
     prelim_time = time.time()
     #preallocate storage
@@ -853,6 +857,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     run_eval_true_hist =[]
     plot_time_hist = []
         
+    file_path1 = os.path.join(output_path, 'mem_data.txt')
     if early_stopping:
         early_stop = EarlyStopping(patience=patience, verbose=True,  path = output_path)
     
@@ -875,7 +880,6 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     clustering_loss_fn = ClusterLoss()
     prelim_end = time.time()
 
-    print(f"...fit set up time: {prelim_end-prelim_time}")
     prelim_setup_time = str(prelim_end-prelim_time)
     #get batches
     batch_start = time.time()
@@ -886,30 +890,41 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     else:
         X_batches, A_batches, index_batches = [X], [A], None
     batch_end = time.time()
-    print(f'...get batched data time: {batch_end - batch_start}')
     fetching_batch_data = str(batch_end - batch_start)
     last_valid_A_eval = None
     last_valid_X_eval = None
     last_valid_S_eval = None
+    prelim_mem_str = f'Prelim training memory: ', tracemalloc.get_traced_memory()
+    tracemalloc.stop()
     #------------------begin training epochs----------------------------
     for idx, epoch in enumerate(range(epochs)):
         #allocate storage for train and test total epoch losses (sum of all batches)
+        
         train_epoch_loss_A, train_epoch_loss_X, train_epoch_loss_clust, train_epoch_loss_mod = 0,0,[0,0],[0,0]
         test_epoch_loss_A, test_epoch_loss_X, test_epoch_loss_clust, test_epoch_loss_mod = 0,0,[0,0],[0,0]
     
         #epoch printing
         epoch_start = time.time()
-        if idx == 0:
-            print('Epoch {} starts !'.format(epoch))
-            print('=' * 55)
-            print('-' * 55)
-            print('=' * 55+'\n')
+        
+        print('Epoch {} starts !'.format(epoch))
+        print('=' * 55)
+        print('-' * 55)
+        print('=' * 55+'\n')
+        if epoch == 0:
+
+            with open(file_path1, 'w') as f:
+                f.write('Epoch {} starts !\n'.format(epoch))
+        else:
+
+            with open(file_path1, 'a') as f:
+                f.write('Epoch {} starts !\n'.format(epoch))
         
         total_loss = 0
         
         
         batch_iterable = zip(X_batches, A_batches)
         for index, (Xbatch, Abatch) in enumerate(batch_iterable):
+            tracemalloc.start()
             print(f'batch {index}')
             #zero out gradient
             batch_compute_start = time.time()
@@ -917,8 +932,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
 
             #compute forward output 
             forward_output = model.forward(Xbatch, Abatch)
-            
-            
+            batch_forward_mem_str = f'Batch forward step memory: ', tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            tracemalloc.start()
             get_output = get_mod_clust_losses(model, 
                                               Xbatch, 
                                               Abatch, 
@@ -932,20 +948,34 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             X_hat, A_hat, A_logit, X_all, A_all, P_all, S_all, AW = forward_output
             #update output list
             all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all], AW])
-            
+            mod_clust_loss_mem_str = f'get_mod_clust_losses batch memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             #compute reconstruction losses for graph and attributes
+            tracemalloc.start()
             X_loss = X_recon_loss(X_hat, Xbatch)
             criterion = torch.nn.BCEWithLogitsLoss()
             A_loss = criterion(A_hat, Abatch)
+            recon_loss_mem_str = f'Batch reconstruction loss memory: ', tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             #compute the total loss function
+            tracemalloc.start()
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
+            batch_total_loss_str = f'Batch Total loss computation memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             #vanishing gradients in back prop, grabbing from matrices
             
             #compute backward pass
-            loss.backward()
+            tracemalloc.start()
+            loss.backward(retain_graph = True)
+            batch_backword_mem_str = f'Batch Backward Pass memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             #update gradients
+            tracemalloc.start()
             optimizer.step()
+            optimizer_mem_str = f'Batch Update Gradient Memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             #update total loss function
+            tracemalloc.start()
             total_loss += loss.cpu().item()
             
             #update batch losses
@@ -956,13 +986,31 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             batch_compute_end = time.time()
            
             batch_time_hist.append(batch_compute_end-batch_compute_start)
-            
+            update_loss_mem_str = f'Updating Batch Loss Memory: ', tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            print(batch_forward_mem_str)
+            print(mod_clust_loss_mem_str)
+            print(recon_loss_mem_str)
+            print(batch_total_loss_str)
+            print(batch_backword_mem_str)
+            print(optimizer_mem_str)
+            print(update_loss_mem_str)
 
+            with open(file_path1, 'a') as f:
+                f.write(f'\t\tbatch {index}\n')
+                f.write('\t'+'\t'+str(batch_forward_mem_str)+'\n')
+                f.write('\t'+'\t'+str(mod_clust_loss_mem_str)+'\n')
+                f.write('\t'+'\t'+str(recon_loss_mem_str)+'\n')
+                f.write('\t'+'\t'+str(batch_total_loss_str)+'\n')
+                f.write('\t'+'\t'+str(batch_backword_mem_str)+'\n')
+                f.write('\t'+'\t'+str(optimizer_mem_str)+'\n')
+                f.write('\t'+'\t'+str(update_loss_mem_str)+'\n')
             #batch_iterable.set_description(f'Epoch {idx} Processing batch {"-"*15} batch loss: {total_loss:.2f} test loss: {print_loss_test}')
 
             
             # #--------------------------------------------------------------------
-            #evaluationg test performance
+            #evaluating test performance
+        tracemalloc.start()
         test_perf_hist = []
         test_perf_time_start = time.time()
         if test_data:
@@ -971,7 +1019,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                 test_perf, test_output, S_replab_test = evaluate(model, eval_X, eval_A, k, eval_labels)
             X_hat_test, A_hat_test = test_output[0], test_output[1]
             
-            
+            test_perf_eval_mem_str = f'Evaluation of test data memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            tracemalloc.start()
             get_test_output = get_mod_clust_losses(model, 
                                                     eval_X, 
                                                     eval_A, 
@@ -980,20 +1030,27 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                                     layer_resolutions, 
                                                     modularity_loss_fn, 
                                                     clustering_loss_fn)
-            
+            test_mod_clust_loss = f'get_mod_clust_losses on test data memory: ', tracemalloc.get_tracemalloc_memory()
+            tracemalloc.stop()
             Mod_loss_test, Modloss_values_test, Clust_loss_test, Clustloss_values_test = get_test_output[:4]
             #compute loss
+            tracemalloc.start()
             X_loss_test = gamma*(X_recon_loss(X_hat_test, eval_X)).cpu().detach().numpy().item()
             A_loss_test = (A_recon_loss(A_hat_test, eval_A)).cpu().detach().numpy().item()
             mod_weighted = delta*Mod_loss_test
             
             test_loss = (A_loss_test+X_loss_test+Clust_loss_test-mod_weighted).cpu().item()
+            compute_loss_mem_str = f'Compute X and A loss Memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             print_loss_test = f'{test_loss:.2f}'
-            #update batch losses
+            
+            tracemalloc.start()
             test_epoch_loss_A += float(A_loss_test)
             test_epoch_loss_X += float(X_loss_test)
             test_epoch_loss_clust = [float(i+j) for (i,j) in zip(test_epoch_loss_clust, Clustloss_values_test)]
             test_epoch_loss_mod = [float(i+j) for (i,j) in zip(test_epoch_loss_mod, Modloss_values_test)]
+            update_test_loss_mem_str = f'Updating Epoch Loss Memory: ',tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             
         else:
             print_loss_test = 'No test set provided'
@@ -1004,7 +1061,6 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             A_loss_test = 0
         test_perf_time_end = time.time()
         test_perf_hist.append(test_perf_time_end - test_perf_time_start)
-        print(f'...evaluate test performance time: {test_perf_time_end - test_perf_time_start}')
         test_perf_compute_time = str(test_perf_time_end - test_perf_time_start)
 
                         
@@ -1019,6 +1075,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         #store loss component information
         epoch_end = time.time()
         append_time_start = time.time()
+        tracemalloc.start()
         train_loss_history.append({'Total Loss': total_loss,
                                    'A Reconstruction': train_epoch_loss_A,
                                    'X Reconstruction': gamma*train_epoch_loss_X,
@@ -1032,11 +1089,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                    'Clustering': test_epoch_loss_clust})
 
         append_time_end = time.time()
-        print(f'...append loss history time: {append_time_end - append_time_start}')
         loss_hist_update = str(append_time_end - append_time_start)
-        
+        append_mem_str = f'Appending training and test loss memory: ', tracemalloc.get_traced_memory()
+        tracemalloc.stop()
         #evaluation on whole data
-
+        tracemalloc.start()
         eval_time_start = time.time()
         if epoch%update_interval == 0:
             run_eval_true_start =time.time()
@@ -1055,29 +1112,30 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             A_eval = last_valid_A_eval if A_eval is None else A_eval
             X_eval = last_valid_X_eval if X_eval is None else X_eval
             S_eval = last_valid_S_eval if S_eval is None else S_eval
-        
+        eval_whole_data_mem_str = f'Evaluation on whole data memory: ', tracemalloc.get_traced_memory()
+        tracemalloc.stop()
         
         eval_time_end = time.time()
-        print(f'...evaluation whole data time: {eval_time_end - eval_time_start}')
         eval_whole_data = str(eval_time_end - eval_time_start)
         #update history
         append_perf_start = time.time()
         perf_hist.append(train_perf)
-        pred_list.append(S_eval)
-        print("updated history")             
+        pred_list.append(S_eval)       
         append_perf_end = time.time()
-        print(f'...append perf hist time: {append_perf_end - append_perf_start}')
         append_perf_hist = str(append_perf_end - append_perf_start)
         #check for and apply validation 
+        tracemalloc.start()
         if validation_data:
             with torch.no_grad():
                 X_val, A_val, val_labels = validation_data
                 valid_perf, output, Sval = evaluate(model, X_val, A_val, k, val_labels)
                 valid_perf_hist.append(valid_perf)
             print("finished validate")
+        valid_mem_str = f'Validation Step Memory: ', tracemalloc.get_traced_memory()
+        tracemalloc.stop()
         #evaluate epoch
         plot_time_start = time.time()
-        
+        tracemalloc.start()
         if epoch % update_interval == 0:
             
             #store update interval
@@ -1155,8 +1213,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                               epoch = epoch, 
                               path= output_path, 
                               save = save_output)
+        plotting_mem_str = f'Plotting Step Memory: ', tracemalloc.get_traced_memory()
+        tracemalloc.stop()
         plot_time_end = time.time()
-        print(f'...plot time: {plot_time_end-plot_time_start}')
         plot_time_hist.append(plot_time_end-plot_time_start)
         plotting_time = str(plot_time_end-plot_time_start)
         if early_stopping:
@@ -1170,9 +1229,25 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             if early_stop.early_stop == True:
                 break
             
-        
+            with open(file_path1, 'a') as f:
+                f.write(f'\t{test_perf_eval_mem_str}\n')
+                f.write(f'\t{test_mod_clust_loss}\n')
+                f.write(f'\t{compute_loss_mem_str}\n')
+                f.write(f'\t{update_test_loss_mem_str}\n')
+                f.write(f'\t{append_mem_str}\n')
+                f.write(f'\t{eval_whole_data_mem_str}\n')
+                f.write(f'\t{valid_mem_str}\n')
+                f.write(f'\t{plotting_mem_str}\n')
+
+            print(test_perf_eval_mem_str)
+            print(test_mod_clust_loss)
+            print(compute_loss_mem_str)
+            print(update_test_loss_mem_str)
+            print(append_mem_str)
+            print(eval_whole_data_mem_str)
+            print(valid_mem_str)
+            print(plotting_mem_str)
         if epoch > 0:
-            print(".... Average epoch time = %.2f seconds ---" % (np.mean(time_hist)))
             print(f"...Average batch computation time = {np.mean(batch_time_hist)}\n\n")
         time_hist.append(time.time() - epoch_start)
         if verbose:
@@ -1182,12 +1257,15 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     #return 
     forward_start = time.time()
     print("model forward")
+    tracemalloc.start()
     final_out = model.forward(X, A)
     forward_end = time.time()
-    print(f'...forward whole data time: {forward_end-forward_start}')
+    model_forward_mem_str = f'Model forward step memory: ', tracemalloc.get_traced_memory()
+    tracemalloc.stop()
     forward_time = str(forward_end-forward_start)
     print("testing HCD out")
     output_start = time.time()
+    tracemalloc.start()
     output = HCD_output(X = X, 
                         A = A, 
                         test_set= test_data,
@@ -1200,7 +1278,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                         pred_history=pred_list, 
                         batch_indices=index_batches)
     output_end =time.time()
-    print(f'...output time: {output_end - output_start}')
+    hcd_output_mem_str = f'HCD_output Memory: ',tracemalloc.get_traced_memory()
     model_output = str(output_end - output_start)
 
     total_training_end = time.time()
@@ -1222,5 +1300,12 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         f.write(f'total training time: {total_training_time}\n')
 
     print(f"File saved to: {file_path}")
+    print(model_forward_mem_str)
+    print(hcd_output_mem_str)
+    with open(file_path1, 'a') as f:
+        f.write(f'{(model_forward_mem_str)}\n')
+        f.write(f'{(hcd_output_mem_str)}\n')
+    tracemalloc.stop()
 
     return output
+#try tracemalloc screenshot

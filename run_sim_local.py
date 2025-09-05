@@ -47,6 +47,8 @@ import numpy as np
 import pandas as pd
 from typing import Literal
 from memory_profiler import profile
+from io import StringIO
+import subprocess
 
 # Run and Model arguments
 parser = argparse.ArgumentParser(description='Model Parameters')
@@ -143,10 +145,10 @@ sim_args.subgraph_type = 'small world'
 sim_args.set_seed = True
 sim_args.seed_number = 555
 #sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/attempt_on_test7/test6/'
-sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
+sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph/'
 
 #output save settings
-args.sp = '/Users/jordandavis/Desktop/HGRN_repo/train_implement3/'
+args.sp = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph_inference/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True
@@ -154,6 +156,7 @@ args.make_directories = True #this will automatically create the directories at 
 args.set_seed = 555 #sets a seed for training the model
 args.load_from_existing = True #this will ensure a new graph is simulated. When set to True, data retreiver looks for graph elements at directory sim_args.savepath
 args.dataset = 'generated' #sets the dataset to be simulated according arguments passed in sim_args
+
 
 
 #graph settings
@@ -185,7 +188,7 @@ args.early_stopping = True
 args.patience = 10
 args.use_method = "top_down"
 args.use_batch_learning = True
-args.batch_size = 20
+args.batch_size = 64
 args.use_softKMeans_top = False
 args.use_softKMeans_middle = False
 args.add_output_layers = False

@@ -33,6 +33,7 @@ from colorama import Fore, Style
 import plotly.graph_objects as go
 import os
 from typing import Optional, Union, List,  Literal
+import time
 
 
 #function which splits training and testing data
@@ -273,7 +274,7 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
         pe, gexp, nodes, edges, nx_all, adj_all, path, nodelabs, ori = simulate_graph(simargs)
         print('done.')
         print('computing statistics....')
-        
+        compute_stat_time_start = time.time()
         mod, node_deg, deg_within, deg_between = compute_graph_STATs(A_all = adj_all, 
                                                                     comm_assign = nodelabs, 
                                                                     layers = simargs.layers,
@@ -281,6 +282,8 @@ def set_up_model_for_simulation_inplace(args, simargs, load_from_existing = Fals
                                                                     node_size = 60,
                                                                     font_size = 9,
                                                                     add_labels=True)
+        compute_stat_time_end = time.time()
+        print(f'Computation of Stats Time: ', compute_stat_time_end-compute_stat_time_start)
         print('*'*25+'top layer stats'+'*'*25)
         print('modularity = {:.4f}, mean node degree = {:.4f}'.format(
             mod[0], node_deg[0]

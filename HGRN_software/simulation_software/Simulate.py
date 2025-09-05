@@ -15,7 +15,7 @@ from simulation_software.HGRN_hierarchicalgraph import same_cluster
 from simulation_software.simulation_utilities import plot_diGraph
 from model.utilities import pickle_data, sort_labels
 import random as rd  
-
+import time
 
 
 
@@ -85,6 +85,7 @@ def simulate_graph(args):
     #for networks with fully connected top layer
     if args.connect == 'full':
         #randomly generate first layer of hierarchy
+        top_layer_time_start = time.time()
         h1_graph = nx.watts_strogatz_graph(args.top_layer_nodes, 
                                            args.top_layer_nodes, 
                                            args.subgraph_prob)
@@ -103,7 +104,7 @@ def simulate_graph(args):
         adj_h1_graph = nx.adjacency_matrix(h1_graph, ts_h1_graph).todense()
         h1_in_degree = [i[1] for i in h1_graph.in_degree()]
         h1_out_degree = [i[1] for i in h1_graph.in_degree()]
-        
+        top_layer_time_end = time.time()
     #for networks with disconnected top layer
     if args.connect == 'disc':
     
@@ -132,6 +133,7 @@ def simulate_graph(args):
     nodes_by_layer.append(h1_graph.number_of_nodes())
     edges_by_layer.append(h1_graph.number_of_edges())
     
+    middle_layer_time_start = time.time()
     #generate middle layer graph
     h2_graph, subgraphs2 = hierachical_graph(top_graph=h1_graph, 
                                  subgraph_node_number=args.nodes_per_super2, 
@@ -150,7 +152,7 @@ def simulate_graph(args):
     ts_h2_graph = list(nx.topological_sort(h2_graph))
     adj_h2_graph = nx.adjacency_matrix(h2_graph, ts_h2_graph).todense()
     
-    
+    middle_layer_time_end = time.time()
     
     #print middle layer summary stats
     print('-'*60)
@@ -212,6 +214,7 @@ def simulate_graph(args):
         nodes_by_layer.append(h3_graph.number_of_nodes())
         edges_by_layer.append(h3_graph.number_of_edges())
 
+    convert_time_start = time.time()
     #convert topology to undirected 
     h1_undi = h1_graph.to_undirected()
     h2_undi = h2_graph.to_undirected()
@@ -231,7 +234,8 @@ def simulate_graph(args):
         adj_full = nx.adjacency_matrix(h3_graph, ts_full).todense()
         
     print(len(ts_full), adj_full.shape)
-    
+    convert_time_end = time.time()
+    gen_exp_time_start = time.time()
     #generate pseudoexpression data according to network topology in last/bottom layer
     print('Generating pseudoexpression...')
     if args.use_weighted_graph:
@@ -290,10 +294,13 @@ def simulate_graph(args):
     gexp_numpy = gexp.to_numpy()
     np.save(args.savepath+'_gexp.npy', gexp_numpy)
     gexp.head()
-    
+    gen_exp_time_end = time.time()
+
+    sort_time_start = time.time()
     #sort group labels
     indices_top, indices_mid, true_labels, sorted_top, sorted_middle = sort_labels(gene_list)
-    
+    sort_time_end = time.time()
+    plot_time_start = time.time()
     #make plot of data and graph
     fig, ax = plt.subplots(1,2, figsize = (16, 10))
     if args.layers > 2:
@@ -308,5 +315,13 @@ def simulate_graph(args):
     
     #close all open figures
     plt.close('all')
+    plot_time_end = time.time()
+
+    print(f'Top layer Time: ',top_layer_time_end-top_layer_time_start)
+    print(f'Middle Layer Time: ',middle_layer_time_end-middle_layer_time_start)
+    print(f'Convert to Undierected Time: ',convert_time_end - convert_time_start)
+    print(f'Gene Expression Time: ', gen_exp_time_end-gen_exp_time_start)
+    print(f'Sort Group Labels Time: ', sort_time_end-sort_time_end)
+    print(f'plotting time: ',plot_time_end-plot_time_start)
     
     return pe, gexp, nodes_by_layer, edges_by_layer, nx_all, adj_all, args.savepath, ts_full, ori_nodes
