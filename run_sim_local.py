@@ -148,7 +148,7 @@ sim_args.seed_number = 555
 sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph/'
 
 #output save settings
-args.sp = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph_inference/'
+args.sp = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph_inference_1/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True

@@ -766,7 +766,7 @@ def plot_loss(epoch, layers, train_loss_history, test_loss_history, true_losses 
     
     if save == True:
         fig.savefig(path+'training_loss_curve_epoch_'+str(epoch+1)+'.pdf')
-        
+    plt.close(fig)
     
 
 
@@ -809,7 +809,7 @@ def plot_perf(update_time, performance_hist, valid_hist, epoch, path='path/to/fi
 
     if save:
         plt.savefig(f'{path}/performance_epoch_{epoch}.png')
-    plt.close()
+    plt.close('all')
             
             
             
@@ -836,7 +836,8 @@ def plot_nodes(A, labels, path, node_size = 5, font_size = 10, add_labels = Fals
                          with_labels = False,
                          cmap = 'plasma', **kwargs)
     if save == True:    
-        fig.savefig(path+'.pdf')
+        fig.savefig(path+'.png')
+    plt.close(fig)
     
   
     
@@ -914,7 +915,7 @@ def plot_clust_heatmaps(A, A_pred, X, X_pred, true_labels, pred_labels, layers, 
         fig1.savefig(sp+'epoch_'+str(epoch)+'_Adjacency_maps.png', dpi = 300)
         fig2.savefig(sp+'epoch_'+str(epoch)+'_heatmaps.png', dpi = 300) 
         
-
+    plt.close('all')
 
 
 def get_layered_performance(k, S_relab, true_labels):
