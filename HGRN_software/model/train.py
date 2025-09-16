@@ -1162,6 +1162,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             if ((epoch+1) >= 10):
                 #loss plot
                 print('plotting loss curve ...')
+                '''
                 plot_loss(epoch = epoch, 
                           layers = comm_layers,
                           train_loss_history = train_loss_history,
@@ -1169,9 +1170,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                           path=output_path, 
                           save = save_output,)
                           #true_losses = [ptlt[0], ptlm[0]])
+                '''
                 if verbose == True:
                     #plotting graphs in networkx 
                     print('plotting nx graphs ...')
+                    '''
                     plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
                                labels=S_relab[-k:][-1], 
                                path = output_path+'Top_Clusters_result_'+str(epoch+1),
@@ -1179,7 +1182,9 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                font_size=fs,
                                save = save_output,
                                add_labels = True)
+                    '''
                     if k == 2:
+                        '''
                         plot_nodes(A = (A-torch.eye(A.shape[0])).cpu().detach().numpy(), 
                                    labels=S_relab[-k:][0], 
                                    add_labels = True,
@@ -1187,10 +1192,10 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                    font_size=fs,
                                    save=save_output,
                                    path = output_path+'midde_Clusters_result_'+str(epoch+1))
-                    
+                        '''
                 
                 print('plotting heatmaps ...')
-                
+                '''
                 plot_clust_heatmaps(A = A.cpu(), 
                                     A_pred = A_eval.cpu() if A_eval is not None else None, 
                                     X = X.cpu(),
@@ -1201,18 +1206,20 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
                                     epoch = epoch+1, 
                                     save_plot = save_output, 
                                     sp = output_path)
-                
+                '''
                 
                 #plot the performance history
                 if len(perf_hist)>1 and true_labels is not None:
                     print('plotting performance curves ...')
                     #performance plot
+                    '''
                     plot_perf(update_time = updates[-1], 
                               performance_hist = perf_hist, 
                               valid_hist = valid_perf_hist,
                               epoch = epoch, 
                               path= output_path, 
                               save = save_output)
+                    '''
         plotting_mem_str = f'Plotting Step Memory: ', tracemalloc.get_traced_memory()
         tracemalloc.stop()
         plot_time_end = time.time()
