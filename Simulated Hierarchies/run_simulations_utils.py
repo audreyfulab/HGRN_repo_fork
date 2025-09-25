@@ -989,7 +989,7 @@ def post_hoc(args, output, k_layers, truth, bp, louv_pred,
             best_iter_metrics.to_csv(os.path.join(args.sp+f'best_iteration_metrics_{args.which_net}.csv'))
     
     # Rest of your processing code...
-    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes, AW = output.model_output_history[bp]
+    X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, S_sizes, AW = output.load_history_item(bp)
      
     if args.use_method == 'bottom_up':
         P_pred_bp = P_all

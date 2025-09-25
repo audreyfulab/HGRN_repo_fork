@@ -11,7 +11,8 @@ import torch
 import numpy as np
 import pandas as pd
 from model.model import HCD 
-from model.train import fit, split_dataset
+from model.optimized_train import fit_optimized,HCD_output
+from model.train import fit,split_dataset
 from run_simulations_utils import load_simulated_data, set_up_model_for_simulated_data, handle_output, run_louvain, run_trad_hc, read_benchmark_CORA, post_hoc, run_kmeans, load_application_data_regulon, load_application_data_Dream5, set_up_model_for_simulation_inplace
 from model.utilities import compute_kappa
 import pickle
@@ -200,6 +201,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     #train the model
     training_start = time.time()
     tracemalloc.start()
+    
     model_output = fit(model, X, A, 
                        k = layers,
                        optimizer='Adam', 
@@ -227,10 +229,13 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     print(f"Model training time: {time.time() - training_start:.2f} seconds")
 
     #handle output and return relevant values
-    postprocessing_start = time.time()               
+    postprocessing_start = time.time()
+          
     results = handle_output(args = args, 
                             output = model_output, 
                             comm_sizes=comm_sizes)
+  
+    
     beth_hessian, comm_loss, recon_A, recon_X, perf_mid, perf_top, upper_limit, max_mod, indices, metrics, preds, trace = results
     print(f'training memory: ',tracemalloc.get_traced_memory())
     tracemalloc.stop()
@@ -374,6 +379,13 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     if args.save_model:
         print(f'saving model to {savepath_main+"MODEL.pth"}')
         torch.save(model.cpu(), savepath_main+'MODEL.pth')
+    def cleanup_saved_outputs(all_out_ref):
+        for ref in all_out_ref:
+            try:
+                os.remove(ref['file'])
+            except Exception:
+                pass
+    cleanup_saved_outputs(model_output.model_output_history)
     print(f"plot time: {time.time() - plot_time:.2f} seconds")
     print(f"Total runtime: {time.time() - start:.2f} seconds")
     print('done')

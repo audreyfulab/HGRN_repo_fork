@@ -21,6 +21,8 @@ import os
 from typing import Optional, Union, List,  Literal
 from memory_profiler import profile
 import tracemalloc
+import sys
+import uuid
 
 # model early stopping
 class EarlyStopping:
@@ -171,7 +173,13 @@ class HCD_output():
         self.table = None
         self.perf_table = None
         self.batch_indices = [i.cpu() for i in batch_indices]
-        
+
+    def load_history_item(self, idx, map_location="cpu"):
+        ref = self.model_output_history[idx]
+        if isinstance(ref, dict) and "file" in ref:
+            return load_batch_output(ref["file"], map_location=map_location)
+        return ref
+    
     def to_dict(self):
         
         """
@@ -217,7 +225,59 @@ class HCD_output():
         """
         print(self.perf_table)
 
+def _ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
 
+def save_batch_output(batch_output, out_dir, epoch, batch_idx):
+    """
+    Saves batch_output (any picklable structure of tensors / lists / dicts)
+    to disk with torch.save. Returns the filepath and some light metadata.
+    """
+    _ensure_dir(out_dir)
+    # create deterministic-ish filename
+    fname = f"epoch{epoch:04d}_batch{batch_idx:04d}_{uuid.uuid4().hex[:8]}.pt"
+    fpath = os.path.join(out_dir, fname)
+
+    # Before saving, detach tensors & move to cpu to free GPU memory
+    def cpuify(obj):
+        if torch.is_tensor(obj):
+            return obj.detach().cpu()
+        if isinstance(obj, (list, tuple)):
+            return type(obj)(cpuify(x) for x in obj)
+        if isinstance(obj, dict):
+            return {k: cpuify(v) for k, v in obj.items()}
+        return obj
+
+    to_save = cpuify(batch_output)
+    # atomic save: write to tmp then rename (torch.save is atomic enough on most systems, but we do tmp)
+    tmp_path = fpath + ".tmp"
+    torch.save(to_save, tmp_path)
+    os.replace(tmp_path, fpath)
+    # return filepath and small metadata (example: shapes)
+    meta = {}
+    try:
+        # attempt to capture shapes/sizes for quick indexing later
+        X_hat = to_save[0]
+        if torch.is_tensor(X_hat):
+            meta['X_shape'] = tuple(X_hat.shape)
+    except Exception:
+        pass
+    return fpath, meta
+
+def load_batch_output(path, map_location='cpu'):
+    """Load a saved batch output file (torch.save)"""
+    return torch.load(path, map_location=map_location)
+
+def get_saved_model_output(all_out_ref, idx, map_location='cpu'):
+    ref = all_out_ref[idx]
+    return load_batch_output(ref['file'], map_location=map_location)
+
+def cleanup_saved_outputs(all_out_ref):
+    for ref in all_out_ref:
+        try:
+            os.remove(ref['file'])
+        except Exception:
+            pass
 #------------------------------------------------------
 #custom pytorch dataset
 class CustomDataset(Dataset):
@@ -947,7 +1007,23 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             Mod_loss, Modloss_values, Clust_loss, Clustloss_values, S_sub, S_relab = get_output
             X_hat, A_hat, A_logit, X_all, A_all, P_all, S_all, AW = forward_output
             #update output list
-            all_out.append([X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub, [len(np.unique(i.cpu())) for i in S_all], AW])
+            # before saving: build a serializable structure
+            batch_struct = [
+                X_hat, A_hat, X_all, A_all, P_all, S_relab, S_all, S_sub,
+                [len(np.unique(i.cpu())) for i in S_all], AW
+            ]
+
+            # save to disk and store reference + small metadata (epoch, batch)
+            batch_filedir = os.path.join(output_path, 'batch_outputs')
+            fpath, meta = save_batch_output(batch_struct, out_dir=batch_filedir, epoch=epoch, batch_idx=index)
+
+            # store light reference in memory (no heavy tensors kept)
+            all_out.append({
+                'file': fpath,
+                'epoch': epoch,
+                'batch_idx': index,
+                'meta': meta
+            })
             mod_clust_loss_mem_str = f'get_mod_clust_losses batch memory: ',tracemalloc.get_traced_memory()
             tracemalloc.stop()
             #compute reconstruction losses for graph and attributes
@@ -966,7 +1042,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             
             #compute backward pass
             tracemalloc.start()
-            loss.backward(retain_graph = True)
+            loss.backward(retain_graph = False)
             batch_backword_mem_str = f'Batch Backward Pass memory: ',tracemalloc.get_traced_memory()
             tracemalloc.stop()
             #update gradients
@@ -1309,6 +1385,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     print(f"File saved to: {file_path}")
     print(model_forward_mem_str)
     print(hcd_output_mem_str)
+   
     with open(file_path1, 'a') as f:
         f.write(f'{(model_forward_mem_str)}\n')
         f.write(f'{(hcd_output_mem_str)}\n')
