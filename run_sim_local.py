@@ -148,7 +148,7 @@ sim_args.seed_number = 555
 sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph/'
 
 #output save settings
-args.sp = '/Users/jordandavis/Desktop/HGRN_repo/1k_inference_disc_70/'
+args.sp = '/Users/jordandavis/Desktop/HGRN_repo/test2/'
 args.use_gpu = True
 sim_args.use_multihead_attn = True
 args.save_results = True
@@ -185,7 +185,7 @@ sim_args.connect_prob_bottom = scale_connection_prob(n3, avg_degree_range=(.3, .
 
 #model set up
 args.early_stopping = True
-args.patience = 10
+args.patience = 2
 args.use_method = "top_down"
 args.use_batch_learning = True
 args.batch_size = 64
@@ -208,7 +208,7 @@ args.compute_optimal_clusters = True #this overrides args.community_sizes and es
 args.kappa_method = 'bethe_hessian'
 
 #training set up
-args.training_epochs = 70
+args.training_epochs = 30
 args.steps_between_updates = 10
 args.use_true_graph = False 
 args.correlation_cutoff = 0.2

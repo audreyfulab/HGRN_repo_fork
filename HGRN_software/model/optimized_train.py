@@ -21,7 +21,7 @@ from contextlib import contextmanager
 
 # Optimized early stopping with memory management
 class EarlyStopping:
-    def __init__(self, patience=7, verbose=False, delta=0, path=None):
+    def __init__(self, patience=3, verbose=False, delta=0, path=None):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -38,13 +38,14 @@ class EarlyStopping:
         if self.best_score is None:
             self.best_score = score
             self.save_checkpoint(loss, model)
-        elif score > self.best_score + self.delta:
+        elif score >= self.best_score + self.delta:
             self.counter += 1
             if self.verbose:
                 print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
+            
             self.best_score = score
             self.save_checkpoint(loss, model)
             self.counter = 0
@@ -356,13 +357,14 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
                 
                 # Total loss
                 batch_loss = A_loss + gamma * X_loss + Clust_loss - delta * Mod_loss
-                
+                print(f'A_loss: ',A_loss,', X_loss: ',X_loss,', Clust_loss',Clust_loss,', Mod_loss: ',Mod_loss)
                 # Backward pass
                 batch_loss.backward()
                 optimizer.step()
                 
                 # Update epoch losses
                 total_loss += batch_loss.item()
+                print(f'batch loss: ',batch_loss.item())
                 train_epoch_losses['A'] += A_loss.item()
                 train_epoch_losses['X'] += X_loss.item()
                 
@@ -387,7 +389,7 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
         
         # Evaluation (less frequent to save memory)
         test_loss = 0.0
-        if test_data and epoch % update_interval == 0:
+        if test_data:
             eval_X, eval_A, eval_labels = test_data
             with memory_efficient_context():
                 test_perf, test_output, S_replab_test = evaluate_efficient(
@@ -403,7 +405,9 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
                     
                     X_loss_test = X_recon_loss(X_hat_dev, eval_X_dev).item()
                     A_loss_test = A_recon_loss(A_hat_dev, eval_A_dev).item()
+                    
                     test_loss = A_loss_test + gamma * X_loss_test
+                    
         
         test_loss_history.append({'Total Loss': test_loss})
         
@@ -422,6 +426,11 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
         
         # Early stopping check
         if early_stopping:
+            print('Early Stopping Start\n')
+            print(f'A_loss_test: ',A_loss_test, ', X_loss_test: ', X_loss_test)
+            print(f'Total Loss: ',  total_loss)
+            print(f'Test Loss: ', test_loss)
+         
             early_stop(test_loss if test_data else total_loss, model)
             if early_stop.early_stop:
                 print("Early stopping triggered")

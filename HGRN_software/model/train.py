@@ -234,7 +234,7 @@ def save_batch_output(batch_output, out_dir, epoch, batch_idx):
     to disk with torch.save. Returns the filepath and some light metadata.
     """
     _ensure_dir(out_dir)
-    # create deterministic-ish filename
+    # create deterministic filename
     fname = f"epoch{epoch:04d}_batch{batch_idx:04d}_{uuid.uuid4().hex[:8]}.pt"
     fpath = os.path.join(out_dir, fname)
 
@@ -327,7 +327,24 @@ def get_batched_data(X, A, batch_size=64, min_batch_size=11):
     
     return X_batches, A_batches, index_batches
 
+def get_efficient_batches(X, A, batch_size=64, device='cpu'):
+    """Memory-efficient batch generation"""
+    num_nodes = X.size(0)
+    indices = torch.randperm(num_nodes, device=device)
+    
+    batches = []
+    for start in range(0, num_nodes, batch_size):
+        end = min(start + batch_size, num_nodes)
+        batch_indices = indices[start:end]
+        batches.append(batch_indices)
+    
+    return batches
 
+def get_batch_data(X, A, batch_indices, device):
+    """Get batch data on demand to save memory"""
+    X_batch = X[batch_indices].to(device)
+    A_batch = A[batch_indices][:, batch_indices].to(device)
+    return X_batch, A_batch
 
 # def get_batched_data(X, A, batch_size=64, min_samples_per_batch=11):
 #     num_nodes = X.size(0)
@@ -900,23 +917,27 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     tracemalloc.start()
     total_training_start = time.time()
     prelim_time = time.time()
+
     #preallocate storage
     train_loss_history=[]
     perf_hist = []
     valid_perf_hist = []
     updates = []
     time_hist = []
-    comm_layers = len(model.comm_sizes)
-    print(model)
     pred_list = []
     all_out = []
     test_loss_history = []
-    test_loss = 0
-    update_interval = 10
     batch_time_hist = []
     run_eval_true_hist =[]
     plot_time_hist = []
-        
+
+    update_interval = 10
+    comm_layers = len(model.comm_sizes)
+    test_loss = 0
+
+    print(model)  
+
+    #create file for tracemalloc memory data  
     file_path1 = os.path.join(output_path, 'mem_data.txt')
     if early_stopping:
         early_stop = EarlyStopping(patience=patience, verbose=True,  path = output_path)
@@ -930,8 +951,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     )
     
     #initialize loss functions
-    #A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
-    A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
+    A_recon_loss = torch.nn.BCEWithLogitsLoss(reduction = 'mean')
+    #A_recon_loss = torch.nn.BCELoss(reduction = 'mean')
     #A_recon_loss = torch.nn.NLLLoss()
     X_recon_loss = torch.nn.MSELoss(reduction = 'mean')
 
@@ -945,10 +966,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     batch_start = time.time()
     if use_batch_learning:
         if batch_size > X.shape[0]:
-            raise ValueError(f'ERROR! Batch size is larger than number of items to split features.shape[0] = {X.shape[0]}')
-        X_batches, A_batches, index_batches = get_batched_data(X, A, batch_size = batch_size)
+            raise ValueError(f"Batch size {batch_size} larger than number of nodes {X.shape[0]}")
+
+        index_batches = get_efficient_batches(X, A, batch_size=batch_size, device=device)
     else:
-        X_batches, A_batches, index_batches = [X], [A], None
+        index_batches = [torch.arange(X.size(0), device=device)]  # single full batch
     batch_end = time.time()
     fetching_batch_data = str(batch_end - batch_start)
     last_valid_A_eval = None
@@ -981,9 +1003,11 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
         
         total_loss = 0
         
-        
-        batch_iterable = zip(X_batches, A_batches)
-        for index, (Xbatch, Abatch) in enumerate(batch_iterable):
+        print(f"Fetched {len(index_batches)} batches in {fetching_batch_data} seconds")
+        for index, batch_indices in enumerate(index_batches):
+            Xbatch, Abatch = get_batch_data(X, A, batch_indices, device)
+            print(f"Batch {index} | size={len(batch_indices)}")
+
             tracemalloc.start()
             print(f'batch {index}')
             #zero out gradient
@@ -991,6 +1015,7 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             optimizer.zero_grad()
 
             #compute forward output 
+            
             forward_output = model.forward(Xbatch, Abatch)
             batch_forward_mem_str = f'Batch forward step memory: ', tracemalloc.get_traced_memory()
             tracemalloc.stop()
@@ -1036,13 +1061,15 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
             #compute the total loss function
             tracemalloc.start()
             loss = A_loss+gamma*X_loss+Clust_loss-delta*Mod_loss
+            print(f'\nLoss Value: ', loss)
             batch_total_loss_str = f'Batch Total loss computation memory: ',tracemalloc.get_traced_memory()
             tracemalloc.stop()
             #vanishing gradients in back prop, grabbing from matrices
             
             #compute backward pass
             tracemalloc.start()
-            loss.backward(retain_graph = False)
+            with torch.cpu.amp.autocast(dtype=torch.bfloat16):
+                loss.backward(retain_graph = False)
             batch_backword_mem_str = f'Batch Backward Pass memory: ',tracemalloc.get_traced_memory()
             tracemalloc.stop()
             #update gradients
@@ -1341,7 +1368,8 @@ def fit(model, X, A, optimizer='Adam', epochs = 100, update_interval=10, lr = 1e
     forward_start = time.time()
     print("model forward")
     tracemalloc.start()
-    final_out = model.forward(X, A)
+    with torch.cpu.amp.autocast(dtype=torch.bfloat16):
+        final_out = model.forward(X, A)
     forward_end = time.time()
     model_forward_mem_str = f'Model forward step memory: ', tracemalloc.get_traced_memory()
     tracemalloc.stop()

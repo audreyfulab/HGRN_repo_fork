@@ -202,7 +202,7 @@ def run_single_simulation(args, simulation_args = None, return_model = False, **
     training_start = time.time()
     tracemalloc.start()
     
-    model_output = fit(model, X, A, 
+    model_output = fit_optimized(model, X, A, 
                        k = layers,
                        optimizer='Adam', 
                        epochs = args.training_epochs, 
