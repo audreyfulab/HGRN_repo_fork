@@ -145,7 +145,7 @@ sim_args.subgraph_type = 'small world'
 sim_args.set_seed = True
 sim_args.seed_number = 555
 #sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/attempt_on_test7/test6/'
-sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/1k_node_graph/'
+sim_args.savepath = '/Users/jordandavis/Desktop/HGRN_repo/very_small_graph_150/'
 
 #output save settings
 args.sp = '/Users/jordandavis/Desktop/HGRN_repo/test2/'

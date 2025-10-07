@@ -155,6 +155,12 @@ class HCD_output:
     def to_dict(self):
         return {attr: getattr(self, attr) for attr in self.__dict__}
     
+    def load_history_item(self, idx, map_location="cpu"):
+        idx = min(idx, len(self.model_output_history) - 1)
+        ref = self.model_output_history[idx]
+        if isinstance(ref, dict) and "file" in ref:
+            return load_batch_output(ref["file"], map_location=map_location)
+        return ref
     def show_results(self):
         if self.perf_table is not None:
             print(self.perf_table)
@@ -178,6 +184,10 @@ def get_batch_data(X, A, batch_indices, device):
     X_batch = X[batch_indices].to(device)
     A_batch = A[batch_indices][:, batch_indices].to(device)
     return X_batch, A_batch
+
+def load_batch_output(path, map_location='cpu'):
+    """Load a saved batch output file (torch.save)"""
+    return torch.load(path, map_location=map_location)
 
 # Optimized loss functions
 class OptimizedModularityLoss(nn.Module):
@@ -336,6 +346,7 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
         for batch_idx, batch_indices in enumerate(batch_indices_list):
             with memory_efficient_context():
                 # Get batch data on device
+                A = A / A.max()
                 X_batch, A_batch = get_batch_data(X, A, batch_indices, device)
                 
                 optimizer.zero_grad()
@@ -351,7 +362,9 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
                 )
                 Mod_loss, Modloss_values, Clust_loss, Clustloss_values = mod_clust_output
                 
+                
                 # Reconstruction losses
+                A_hat = torch.clamp(A_hat, min=1e-7, max=1 - 1e-7)
                 X_loss = X_recon_loss(X_hat, X_batch)
                 A_loss = A_recon_loss(A_hat, A_batch)
                 
@@ -360,6 +373,7 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
                 print(f'A_loss: ',A_loss,', X_loss: ',X_loss,', Clust_loss',Clust_loss,', Mod_loss: ',Mod_loss)
                 # Backward pass
                 batch_loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
                 
                 # Update epoch losses
@@ -405,7 +419,7 @@ def fit_optimized(model, X, A, optimizer='Adam', epochs=100, update_interval=10,
                     
                     X_loss_test = X_recon_loss(X_hat_dev, eval_X_dev).item()
                     A_loss_test = A_recon_loss(A_hat_dev, eval_A_dev).item()
-                    
+                    print(A_hat)
                     test_loss = A_loss_test + gamma * X_loss_test
                     
         
